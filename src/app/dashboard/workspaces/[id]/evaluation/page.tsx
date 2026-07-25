@@ -19,7 +19,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GenerateEvaluationButton } from "./evaluation-ui";
+import {
+  GenerateEvaluationButton,
+  MentorCheck,
+  SupervisorAsk,
+} from "./evaluation-ui";
 
 export const metadata: Metadata = { title: "AI Evaluation" };
 
@@ -112,6 +116,28 @@ export default async function EvaluationPage({
             />
           )}
         </div>
+      </div>
+
+      {/* Mentor (works without AI) + Supervisor (needs AI) */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Project mentor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MentorCheck workspaceId={id} />
+          </CardContent>
+        </Card>
+        {aiReady && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Ask the AI supervisor</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SupervisorAsk workspaceId={id} />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Always-visible computed facts (work even without AI). */}

@@ -18,6 +18,7 @@ import {
   CheckInButton,
   DeleteMeetingButton,
   AttendanceSelect,
+  GenerateMinutesButton,
 } from "../meetings-ui";
 
 export const metadata: Metadata = { title: "Meeting" };
@@ -95,10 +96,27 @@ export default async function MeetingDetailPage({
                 </a>
               </Button>
             )}
+            {canManage && (
+              <GenerateMinutesButton
+                meetingId={meeting.id}
+                hasMinutes={!!meeting.minutes}
+              />
+            )}
             {canManage && <DeleteMeetingButton meetingId={meeting.id} />}
           </div>
         </div>
       </div>
+
+      {meeting.minutes && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Meeting minutes</CardTitle>
+          </CardHeader>
+          <CardContent className="whitespace-pre-wrap text-sm">
+            {meeting.minutes}
+          </CardContent>
+        </Card>
+      )}
 
       {meeting.description && (
         <Card>

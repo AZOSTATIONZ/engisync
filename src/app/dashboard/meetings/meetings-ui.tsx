@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { CalendarPlus, LogIn, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { CalendarPlus, FileText, LogIn, Trash2 } from "lucide-react";
 import {
   createMeeting,
   deleteMeeting,
   checkIn,
   setAttendance,
+  generateMinutes,
   type ActionState,
 } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -188,6 +190,37 @@ export function CheckInButton({
     >
       <LogIn className="h-4 w-4" />
       {checkedIn ? "Checked in" : "Check in"}
+    </Button>
+  );
+}
+
+export function GenerateMinutesButton({
+  meetingId,
+  hasMinutes,
+}: {
+  meetingId: string;
+  hasMinutes: boolean;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        const res = await generateMinutes(meetingId);
+        setBusy(false);
+        if (res?.error) toast.error(res.error);
+        else {
+          toast.success(res?.success ?? "Done");
+          router.refresh();
+        }
+      }}
+    >
+      <FileText className="h-4 w-4" />
+      {busy ? "Generating…" : hasMinutes ? "Regenerate minutes" : "AI meeting minutes"}
     </Button>
   );
 }

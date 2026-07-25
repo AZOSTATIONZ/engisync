@@ -5,12 +5,56 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isWorkspaceLeader } from "@/lib/workspace";
-import { isAIConfigured } from "@/lib/ai";
-import { rateLimit } from "@/lib/rate-limit";
+import { isWorkspaceLeader, getMembership } from "@/lib/workspace";
+import { canUseAI } from "@/lib/plan";
+import { chatComplete } from "@/lib/ai";
+import { runMentorCheck, type MentorAlert } from "@/lib/mentor";
 import { gatherProjectFacts, runEvaluation } from "@/lib/ai-evaluation";
 
 export type EvalState = { error?: string; success?: string } | null;
+export type SupervisorState = { error?: string; answer?: string } | null;
+export type MentorState = { error?: string; alerts?: MentorAlert[] } | null;
+
+/** AI Supervisor: answer a project question with the project's context. */
+export async function askSupervisor(
+  workspaceId: string,
+  question: string,
+): Promise<SupervisorState> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+
+  if (!(await getMembership(workspaceId, userId))) {
+    return { error: "You're not a member of this group." };
+  }
+  const gate = await canUseAI(userId);
+  if (!gate.ok) return { error: gate.reason };
+  if (!question.trim()) return { error: "Ask a question first." };
+
+  const facts = await gatherProjectFacts(workspaceId, userId);
+  if (!facts) return { error: "Couldn't load project data." };
+
+  try {
+    const answer = await chatComplete({
+      system:
+        "You are an experienced university engineering project supervisor. Answer the student's question with detailed, specific engineering guidance grounded in their project's data (provided as JSON). Reference relevant standards/methodology where useful. Be constructive and thorough, not a short chatbot reply.",
+      prompt: `Project data: ${JSON.stringify(facts)}\n\nStudent question: ${question.slice(0, 2000)}`,
+      maxTokens: 1200,
+    });
+    return { answer };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "AI request failed." };
+  }
+}
+
+/** Run the deterministic mentor checks (no AI key needed). */
+export async function runMentor(workspaceId: string): Promise<MentorState> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const alerts = await runMentorCheck(workspaceId, session.user.id);
+  if (alerts === null) return { error: "You're not a member of this group." };
+  return { alerts };
+}
 
 /** Generate (or refresh) the AI evaluation for a group. Leader-gated. */
 export async function generateEvaluation(workspaceId: string): Promise<EvalState> {
@@ -21,16 +65,8 @@ export async function generateEvaluation(workspaceId: string): Promise<EvalState
   if (!(await isWorkspaceLeader(workspaceId, userId))) {
     return { error: "Only a group leader can run the AI evaluation." };
   }
-  if (!isAIConfigured()) {
-    return {
-      error:
-        "AI isn't enabled yet. Add an API key (ANTHROPIC_API_KEY / OPENAI_API_KEY) to enable evaluations.",
-    };
-  }
-  const limit = rateLimit(`ai-eval:${userId}`, 10, 10 * 60 * 1000);
-  if (!limit.ok) {
-    return { error: `Please wait ${limit.retryAfterSec}s before running another evaluation.` };
-  }
+  const gate = await canUseAI(userId);
+  if (!gate.ok) return { error: gate.reason };
 
   const facts = await gatherProjectFacts(workspaceId, userId);
   if (!facts) return { error: "Couldn't gather project data." };

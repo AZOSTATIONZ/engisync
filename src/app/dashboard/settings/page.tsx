@@ -111,6 +111,22 @@ export default async function SettingsPage() {
           <TwoFactor enabled={user?.twoFactorEnabled ?? false} />
         </CardContent>
       </Card>
+
+      {user?.systemRole === "ADMIN" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Administration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <a
+              href="/dashboard/admin"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Open the admin panel (AI & plans) →
+            </a>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { userWorkspaceIds } from "@/lib/task";
 import { getMeetingForUser, isMeetingLeader } from "@/lib/meeting";
 import { meetingSchema, attendanceStatusEnum } from "@/lib/validations";
+import { canUseAI } from "@/lib/plan";
+import { chatComplete } from "@/lib/ai";
 
 export type ActionState = { error?: string; success?: string } | null;
 
@@ -16,6 +18,46 @@ async function requireUserId() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   return session.user.id;
+}
+
+/** AI Meeting Assistant: generate minutes + action items and store them. */
+export async function generateMinutes(meetingId: string): Promise<ActionState> {
+  const userId = await requireUserId();
+  if (!(await isMeetingLeader(meetingId, userId))) {
+    return { error: "Only the organiser or a leader can generate minutes." };
+  }
+  const gate = await canUseAI(userId);
+  if (!gate.ok) return { error: gate.reason };
+
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    include: {
+      workspace: { select: { name: true } },
+      attendances: { include: { user: { select: { name: true, email: true } } } },
+    },
+  });
+  if (!meeting) return { error: "Meeting not found." };
+
+  const attendance = meeting.attendances
+    .map((a) => `${a.user.name ?? a.user.email}: ${a.status}`)
+    .join(", ");
+
+  try {
+    const result = await chatComplete({
+      system:
+        "You are a meeting secretary for an engineering project team. From the meeting details, produce concise, well-structured minutes with these sections: Summary, Decisions Made, Action Items (with owner where possible), Follow-up Reminders, and Attendance Summary. Use short bullet points.",
+      prompt: `Meeting: ${meeting.title}\nProject: ${meeting.workspace.name}\nWhen: ${meeting.startAt.toISOString()}\nAgenda/notes: ${meeting.description ?? "(none)"}\nAttendance: ${attendance || "(not recorded)"}`,
+      maxTokens: 900,
+    });
+    await prisma.meeting.update({ where: { id: meetingId }, data: { minutes: result } });
+    await prisma.auditLog.create({
+      data: { userId, action: "MEETING_MINUTES_GENERATED", target: meetingId },
+    });
+    revalidatePath(`/dashboard/meetings/${meetingId}`);
+    return { success: "Minutes generated." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "AI request failed." };
+  }
 }
 
 export async function createMeeting(

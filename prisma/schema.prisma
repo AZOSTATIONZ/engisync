@@ -19,6 +19,12 @@ enum SystemRole {
   ADMIN
 }
 
+enum Plan {
+  FREE
+  STUDENT_PREMIUM
+  UNIVERSITY
+}
+
 enum WorkspaceRole {
   LEADER
   MEMBER
@@ -123,6 +129,9 @@ model User {
 
   // Notification preferences
   emailNotifications Boolean @default(false)
+
+  // Subscription plan (admin-assigned for now; payments later).
+  plan Plan @default(FREE)
 
   // Two-factor
   twoFactorEnabled Boolean @default(false)
@@ -283,6 +292,14 @@ model Workspace {
   @@index([leaderId])
   @@index([joinCode])
   @@index([departmentId])
+}
+
+// ── Admin-controlled app settings (key/value) ──
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 // ── AI project evaluation (cached report) ─────
@@ -651,6 +668,7 @@ model Meeting {
   meetingUrl  String?
   startAt     DateTime
   endAt       DateTime?
+  minutes     String? // AI-generated minutes & action items
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

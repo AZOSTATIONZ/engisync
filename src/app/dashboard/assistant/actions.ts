@@ -6,8 +6,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { userWorkspaceIds } from "@/lib/task";
-import { chatComplete, extractJson, isAIConfigured } from "@/lib/ai";
-import { rateLimit } from "@/lib/rate-limit";
+import { chatComplete, extractJson } from "@/lib/ai";
+import { canUseAI } from "@/lib/plan";
 
 export type AIState = { error?: string; result?: string } | null;
 export type TaskGenState = {
@@ -21,18 +21,9 @@ async function requireUserId() {
   return session.user.id;
 }
 
-function guard(userId?: string): string | null {
-  if (!isAIConfigured()) {
-    return "AI is not configured. Add ANTHROPIC_API_KEY or OPENAI_API_KEY to your .env, then restart the app.";
-  }
-  // Throttle AI usage per user: 20 requests / 5 minutes (protects API spend).
-  if (userId) {
-    const limit = rateLimit(`ai:${userId}`, 20, 5 * 60 * 1000);
-    if (!limit.ok) {
-      return `You're sending requests too quickly. Try again in ${limit.retryAfterSec}s.`;
-    }
-  }
-  return null;
+async function guard(userId: string): Promise<string | null> {
+  const gate = await canUseAI(userId);
+  return gate.ok ? null : (gate.reason ?? "AI is unavailable.");
 }
 
 export async function summarizeContent(
@@ -40,7 +31,7 @@ export async function summarizeContent(
   formData: FormData,
 ): Promise<AIState> {
   const userId = await requireUserId();
-  const err = guard(userId);
+  const err = await guard(userId);
   if (err) return { error: err };
 
   const content = (formData.get("content") as string)?.trim();
@@ -66,7 +57,7 @@ export async function detectRisks(
   formData: FormData,
 ): Promise<AIState> {
   const userId = await requireUserId();
-  const err = guard(userId);
+  const err = await guard(userId);
   if (err) return { error: err };
 
   const content = (formData.get("content") as string)?.trim();
@@ -92,7 +83,7 @@ export async function askAssistant(
   formData: FormData,
 ): Promise<AIState> {
   const userId = await requireUserId();
-  const err = guard(userId);
+  const err = await guard(userId);
   if (err) return { error: err };
 
   const question = (formData.get("question") as string)?.trim();
@@ -117,7 +108,7 @@ export async function generateTasks(
   formData: FormData,
 ): Promise<TaskGenState> {
   const userId = await requireUserId();
-  const err = guard(userId);
+  const err = await guard(userId);
   if (err) return { error: err };
 
   const notes = (formData.get("notes") as string)?.trim();

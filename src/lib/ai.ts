@@ -5,14 +5,23 @@
  * we call the HTTP APIs directly so no extra packages are needed.
  */
 
-export type AIProvider = "anthropic" | "openai";
+export type AIProvider = "anthropic" | "openai" | "gemini" | "local";
+
+function keyFor(p: AIProvider): boolean {
+  if (p === "anthropic") return !!process.env.ANTHROPIC_API_KEY;
+  if (p === "openai") return !!process.env.OPENAI_API_KEY;
+  if (p === "gemini") return !!process.env.GEMINI_API_KEY;
+  if (p === "local") return !!process.env.LOCAL_AI_URL;
+  return false;
+}
 
 export function getProvider(): AIProvider | null {
-  const explicit = process.env.AI_PROVIDER?.toLowerCase();
-  if (explicit === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (explicit === "openai" && process.env.OPENAI_API_KEY) return "openai";
-  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (process.env.OPENAI_API_KEY) return "openai";
+  const explicit = process.env.AI_PROVIDER?.toLowerCase() as AIProvider | undefined;
+  if (explicit && keyFor(explicit)) return explicit;
+  // Auto-detect by whichever credential is present.
+  for (const p of ["anthropic", "openai", "gemini", "local"] as AIProvider[]) {
+    if (keyFor(p)) return p;
+  }
   return null;
 }
 
@@ -24,14 +33,23 @@ export function providerLabel(): string {
   const p = getProvider();
   if (p === "anthropic") return "Anthropic (Claude)";
   if (p === "openai") return "OpenAI (GPT)";
+  if (p === "gemini") return "Google Gemini";
+  if (p === "local") return "Local model";
   return "Not configured";
 }
 
 function defaultModel(provider: AIProvider): string {
   if (process.env.AI_MODEL) return process.env.AI_MODEL;
-  return provider === "anthropic"
-    ? "claude-3-5-sonnet-latest"
-    : "gpt-4o-mini";
+  switch (provider) {
+    case "anthropic":
+      return "claude-3-5-sonnet-latest";
+    case "openai":
+      return "gpt-4o-mini";
+    case "gemini":
+      return "gemini-1.5-flash";
+    case "local":
+      return "llama3";
+  }
 }
 
 type ChatArgs = {
@@ -78,13 +96,45 @@ export async function chatComplete({
     );
   }
 
-  // OpenAI
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  if (provider === "gemini") {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: maxTokens },
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      throw new Error(`Gemini API error (${res.status}): ${detail.slice(0, 300)}`);
+    }
+    const data = await res.json();
+    return (
+      data?.candidates?.[0]?.content?.parts
+        ?.map((p: { text?: string }) => p.text ?? "")
+        .join("")
+        .trim() ?? ""
+    );
+  }
+
+  // OpenAI, or a local OpenAI-compatible endpoint (Ollama, LM Studio, etc.).
+  const base =
+    provider === "local"
+      ? (process.env.LOCAL_AI_URL as string).replace(/\/$/, "")
+      : "https://api.openai.com/v1";
+  const authHeader: Record<string, string> =
+    provider === "local"
+      ? process.env.LOCAL_AI_KEY
+        ? { authorization: `Bearer ${process.env.LOCAL_AI_KEY}` }
+        : {}
+      : { authorization: `Bearer ${process.env.OPENAI_API_KEY as string}` };
+
+  const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${process.env.OPENAI_API_KEY as string}`,
-    },
+    headers: { "content-type": "application/json", ...authHeader },
     body: JSON.stringify({
       model,
       max_tokens: maxTokens,
@@ -96,7 +146,7 @@ export async function chatComplete({
   });
   if (!res.ok) {
     const detail = await res.text();
-    throw new Error(`OpenAI API error (${res.status}): ${detail.slice(0, 300)}`);
+    throw new Error(`AI API error (${res.status}): ${detail.slice(0, 300)}`);
   }
   const data = await res.json();
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
