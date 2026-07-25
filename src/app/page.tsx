@@ -20,7 +20,7 @@ import {
 import { Navbar } from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EngineeringBackground } from "@/components/engineering-background";
+import { HeroBackground } from "@/components/hero-background";
 import { AnimatedCounter } from "@/components/animated-counter";
 
 const features = [
@@ -58,7 +58,7 @@ export default function HomePage() {
       <main className="flex-1">
         {/* Hero */}
         <section className="relative overflow-hidden">
-          <EngineeringBackground />
+          <HeroBackground />
           <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
           <div className="container relative flex flex-col items-center gap-6 py-28 text-center">
             <span className="animate-float inline-flex items-center gap-2 rounded-full border bg-background/60 px-4 py-1.5 text-sm backdrop-blur">

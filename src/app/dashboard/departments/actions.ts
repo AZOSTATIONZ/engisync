@@ -64,6 +64,17 @@ export async function joinDepartment(departmentId: string): Promise<ActionState>
   const dept = await prisma.department.findUnique({ where: { id: departmentId } });
   if (!dept) return { error: "Department not found." };
 
+  // One department per user: they must leave their current one first.
+  const existing = await prisma.departmentMember.findFirst({
+    where: { userId: user.id, NOT: { departmentId } },
+    include: { department: { select: { name: true } } },
+  });
+  if (existing) {
+    return {
+      error: `You're already in ${existing.department.name}. Leave it before joining another department (one department per student).`,
+    };
+  }
+
   await prisma.departmentMember.upsert({
     where: { departmentId_userId: { departmentId, userId: user.id } },
     create: { departmentId, userId: user.id, role: DepartmentRole.MEMBER },

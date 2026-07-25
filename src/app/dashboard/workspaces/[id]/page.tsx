@@ -2,7 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, Crown, KeyRound, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Crown,
+  KeyRound,
+  ShieldCheck,
+  MessageSquare,
+  GraduationCap,
+  CheckSquare,
+} from "lucide-react";
 import { WorkspaceRole } from "@prisma/client";
 
 import { auth } from "@/auth";
@@ -22,13 +30,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   CopyButton,
   RegenerateCodeButton,
-  RemoveMemberButton,
   LeaveWorkspaceButton,
   DeleteWorkspaceButton,
 } from "./workspace-controls";
+import { MemberControls } from "./member-controls";
 import {
   AccessSettingsForm,
   JoinRequestRow,
@@ -96,6 +105,25 @@ export default async function WorkspaceDetailPage({
             <LeaveWorkspaceButton workspaceId={workspace.id} />
           )}
         </div>
+      </div>
+
+      {/* Quick links to group collaboration spaces */}
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/dashboard/workspaces/${workspace.id}/discussions`}>
+            <MessageSquare className="h-4 w-4" /> Discussions
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/dashboard/workspaces/${workspace.id}/quizzes`}>
+            <GraduationCap className="h-4 w-4" /> Quizzes
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/dashboard/tasks`}>
+            <CheckSquare className="h-4 w-4" /> Tasks
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -166,36 +194,44 @@ export default async function WorkspaceDetailPage({
           <CardContent>
             <ul className="divide-y">
               {workspace.members.map((m) => (
-                <li key={m.id} className="flex items-center justify-between py-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {m.user.name ?? m.user.email}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {m.user.email}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
+                <li key={m.id} className="py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {m.user.name ?? m.user.email}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {m.title ? `${m.title} · ` : ""}
+                        {m.user.email}
+                      </p>
+                    </div>
                     <span
                       className={
                         m.role === WorkspaceRole.LEADER
-                          ? "flex items-center gap-1 text-xs text-primary"
-                          : "text-xs text-muted-foreground"
+                          ? "flex shrink-0 items-center gap-1 text-xs text-primary"
+                          : "shrink-0 text-xs text-muted-foreground"
                       }
                     >
                       {m.role === WorkspaceRole.LEADER && (
                         <Crown className="h-3.5 w-3.5" />
                       )}
-                      {m.role === WorkspaceRole.LEADER ? "Leader" : "Member"}
+                      {m.userId === workspace.leaderId
+                        ? "Owner"
+                        : m.role === WorkspaceRole.LEADER
+                          ? "Co-leader"
+                          : "Member"}
                     </span>
-                    {isLeader && m.role !== WorkspaceRole.LEADER && (
-                      <RemoveMemberButton
-                        workspaceId={workspace.id}
-                        memberUserId={m.userId}
-                        memberName={m.user.name ?? m.user.email}
-                      />
-                    )}
                   </div>
+                  {isLeader && (
+                    <MemberControls
+                      workspaceId={workspace.id}
+                      memberUserId={m.userId}
+                      memberName={m.user.name ?? m.user.email}
+                      role={m.role}
+                      title={m.title}
+                      isOwner={m.userId === workspace.leaderId}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

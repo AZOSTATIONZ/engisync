@@ -273,6 +273,8 @@ model Workspace {
   joinRequests  JoinRequest[]
   invites       GroupInvite[]
   collaborations WorkspaceCollaboration[]
+  discussions   DiscussionThread[]
+  quizzes       Quiz[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -280,6 +282,82 @@ model Workspace {
   @@index([leaderId])
   @@index([joinCode])
   @@index([departmentId])
+}
+
+// ── Discussions & quizzes (per group) ─────────
+
+model DiscussionThread {
+  id          String @id @default(cuid())
+  workspaceId String
+  authorId    String
+  authorName  String
+  title       String
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages  DiscussionMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+}
+
+model DiscussionMessage {
+  id         String @id @default(cuid())
+  threadId   String
+  authorId   String
+  authorName String
+  body       String
+
+  thread DiscussionThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([threadId])
+}
+
+model Quiz {
+  id            String  @id @default(cuid())
+  workspaceId   String
+  createdById   String
+  title         String
+  description   String?
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+model QuizQuestion {
+  id           String @id @default(cuid())
+  quizId       String
+  text         String
+  options      Json // string[]
+  correctIndex Int
+  order        Int    @default(0)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+}
+
+model QuizAttempt {
+  id        String @id @default(cuid())
+  quizId    String
+  userId    String
+  userName  String
+  score     Int
+  total     Int
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([quizId])
 }
 
 // ── Secure group access: requests & invites ───
@@ -390,6 +468,7 @@ model WorkspaceMember {
   workspaceId String
   userId      String
   role        WorkspaceRole @default(MEMBER)
+  title       String? // responsibility label set by the leader (e.g. "Design lead")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

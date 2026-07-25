@@ -98,8 +98,38 @@ export function CreateMeetingForm({ workspaces }: { workspaces: Option[] }) {
               <Input id="endTime" name="endTime" type="time" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="meetingUrl">Meeting link (optional)</Label>
+              <Label htmlFor="meetingUrl">Meeting link</Label>
               <Input id="meetingUrl" name="meetingUrl" placeholder="https://meet.google.com/…" />
+              <p className="text-xs text-muted-foreground">
+                No link yet? Open a provider to create the room, then paste the
+                link here:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <a
+                  href="https://meet.google.com/new"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
+                >
+                  Start Google Meet
+                </a>
+                <a
+                  href="https://zoom.us/start/videomeeting"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
+                >
+                  Start Zoom
+                </a>
+                <a
+                  href="https://teams.microsoft.com/l/meeting/new"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md border px-2 py-1 text-xs hover:bg-accent"
+                >
+                  Start Teams
+                </a>
+              </div>
             </div>
           </div>
           <div className="space-y-2">

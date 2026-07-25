@@ -263,6 +263,100 @@ export async function leaveWorkspace(workspaceId: string): Promise<ActionState> 
   redirect("/dashboard/workspaces");
 }
 
+// ── Leader coordination tools ──
+
+/** Set a member's responsibility label (e.g. "Design lead"). */
+export async function setMemberTitle(
+  workspaceId: string,
+  memberUserId: string,
+  title: string,
+): Promise<ActionState> {
+  const userId = await requireUserId();
+  if (!(await isWorkspaceLeader(workspaceId, userId))) {
+    return { error: "Only a group leader can set member roles." };
+  }
+  const clean = title.trim().slice(0, 60);
+  await prisma.workspaceMember.update({
+    where: { workspaceId_userId: { workspaceId, userId: memberUserId } },
+    data: { title: clean || null },
+  });
+  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  return { success: "Role updated." };
+}
+
+/** Promote a member to co-leader. */
+export async function promoteToLeader(
+  workspaceId: string,
+  memberUserId: string,
+): Promise<ActionState> {
+  const userId = await requireUserId();
+  if (!(await isWorkspaceLeader(workspaceId, userId))) {
+    return { error: "Only a group leader can promote members." };
+  }
+  await prisma.workspaceMember.update({
+    where: { workspaceId_userId: { workspaceId, userId: memberUserId } },
+    data: { role: WorkspaceRole.LEADER },
+  });
+  await createNotification({
+    userId: memberUserId,
+    type: NotificationType.WORKSPACE,
+    title: "You're now a co-leader",
+    body: "You can now help coordinate this group.",
+    link: `/dashboard/workspaces/${workspaceId}`,
+  });
+  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  return { success: "Member promoted to co-leader." };
+}
+
+/** Demote a co-leader back to member (the original owner can't be demoted). */
+export async function demoteToMember(
+  workspaceId: string,
+  memberUserId: string,
+): Promise<ActionState> {
+  const userId = await requireUserId();
+  if (!(await isWorkspaceLeader(workspaceId, userId))) {
+    return { error: "Only a group leader can change roles." };
+  }
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { leaderId: true },
+  });
+  if (workspace?.leaderId === memberUserId) {
+    return { error: "The group owner can't be demoted." };
+  }
+  await prisma.workspaceMember.update({
+    where: { workspaceId_userId: { workspaceId, userId: memberUserId } },
+    data: { role: WorkspaceRole.MEMBER },
+  });
+  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  return { success: "Co-leader demoted to member." };
+}
+
+/** Send a member a reminder/nudge notification. */
+export async function nudgeMember(
+  workspaceId: string,
+  memberUserId: string,
+  message: string,
+): Promise<ActionState> {
+  const userId = await requireUserId();
+  if (!(await isWorkspaceLeader(workspaceId, userId))) {
+    return { error: "Only a group leader can nudge members." };
+  }
+  const workspace = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { name: true },
+  });
+  await createNotification({
+    userId: memberUserId,
+    type: NotificationType.WORKSPACE,
+    title: `Reminder from your group leader`,
+    body: message.trim().slice(0, 200) || `Please check in on "${workspace?.name}".`,
+    link: `/dashboard/workspaces/${workspaceId}`,
+  });
+  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  return { success: "Reminder sent." };
+}
+
 export async function deleteWorkspace(workspaceId: string): Promise<ActionState> {
   const userId = await requireUserId();
   if (!(await isWorkspaceLeader(workspaceId, userId))) {
