@@ -9,8 +9,26 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ImageSlider, type Slide } from "@/components/image-slider";
+import { RotatingText } from "@/components/rotating-text";
 
 export const metadata: Metadata = { title: "Dashboard" };
+
+// Slides use a gradient base + an optional photo from /public/images.
+// Drop slide1.jpg … slide4.jpg (free engineering photos) to show real images.
+const bannerSlides: Slide[] = [
+  { src: "/images/slide1.jpg", label: "Electrical", gradient: "from-blue-600 to-cyan-500" },
+  { src: "/images/slide2.jpg", label: "Mechanical", gradient: "from-slate-700 to-slate-500" },
+  { src: "/images/slide3.jpg", label: "Civil", gradient: "from-amber-600 to-orange-500" },
+  { src: "/images/slide4.jpg", label: "Computer", gradient: "from-violet-600 to-fuchsia-500" },
+];
+
+const bannerPhrases = [
+  "Build. Test. Ship.",
+  "Coordinate your team.",
+  "Never miss a deadline.",
+  "Engineer, together.",
+];
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -58,6 +76,21 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">
           Here&apos;s an overview of your work.
         </p>
+      </div>
+
+      {/* Animated banner: sliding images + rotating text */}
+      <div className="relative h-40 overflow-hidden rounded-2xl shadow-soft sm:h-48">
+        <ImageSlider slides={bannerSlides} className="h-full w-full" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+        <div className="absolute inset-0 flex flex-col justify-center gap-1 p-6 text-white">
+          <p className="text-sm/relaxed opacity-90">EngiSync</p>
+          <h2 className="text-2xl font-bold sm:text-3xl">
+            <RotatingText phrases={bannerPhrases} />
+          </h2>
+          <p className="max-w-md text-sm text-white/80">
+            Projects, teams, meetings and deadlines — all in one workspace.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
