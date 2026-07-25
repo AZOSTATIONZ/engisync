@@ -257,6 +257,10 @@ model Workspace {
   joinCode    String  @unique
   pinHash     String? // hashed PIN for extra protection
 
+  // Project management
+  objectives String?
+  scope      String?
+
   // Budget
   budgetTarget Decimal? @db.Decimal(12, 2)
   currency     String   @default("USD")
@@ -285,6 +289,9 @@ model Workspace {
   discussions   DiscussionThread[]
   quizzes       Quiz[]
   evaluation    AIEvaluation?
+  milestones    Milestone[]
+  risks         ProjectRisk[]
+  deliverables  Deliverable[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -300,6 +307,50 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// ── Project management (per group) ────────────
+
+model Milestone {
+  id          String    @id @default(cuid())
+  workspaceId String
+  title       String
+  dueDate     DateTime?
+  done        Boolean   @default(false)
+  order       Int       @default(0)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+model ProjectRisk {
+  id          String  @id @default(cuid())
+  workspaceId String
+  title       String
+  severity    String  @default("MEDIUM") // LOW | MEDIUM | HIGH
+  mitigation  String?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+model Deliverable {
+  id          String  @id @default(cuid())
+  workspaceId String
+  title       String
+  done        Boolean @default(false)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
 }
 
 // ── AI project evaluation (cached report) ─────

@@ -117,7 +117,7 @@ export default async function DepartmentDetailPage({
       )}
 
       {/* Cross-department collaboration */}
-      {(dept.isAdmin || collaboratingGroups.length > 0) && (
+      {dept.isMember && (dept.isAdmin || collaboratingGroups.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Cross-department collaboration</CardTitle>
@@ -211,7 +211,8 @@ export default async function DepartmentDetailPage({
           </CardContent>
         </Card>
 
-        {/* Members */}
+        {/* Members (members-only) */}
+        {dept.isMember && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
@@ -249,6 +250,7 @@ export default async function DepartmentDetailPage({
             </ul>
           </CardContent>
         </Card>
+        )}
       </div>
     </div>
   );

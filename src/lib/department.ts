@@ -61,6 +61,22 @@ export async function getDepartment(departmentId: string, userId: string) {
   const myMembership = department.members.find((m) => m.userId === userId);
   const isAdmin = myMembership?.role === DepartmentRole.ADMIN;
 
+  // Isolation: non-members see only basic info + a join prompt — never the
+  // member list, announcements, or groups of a department they're not in.
+  if (!myMembership) {
+    return {
+      id: department.id,
+      name: department.name,
+      code: department.code,
+      description: department.description,
+      isMember: false,
+      isAdmin: false,
+      members: [],
+      groups: [],
+      announcements: [],
+    };
+  }
+
   // Isolation: admins see every group; members see only their own groups here.
   const groups = await prisma.workspace.findMany({
     where: {
