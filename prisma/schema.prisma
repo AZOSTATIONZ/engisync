@@ -1,0 +1,647 @@
+// EngiSync — Prisma schema
+// Phase 1 (Foundation): users, roles, auth, workspaces.
+// Later phases (tasks, files, meetings, budget, AI) extend this schema.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ─────────────────────────────────────
+
+enum SystemRole {
+  GUEST
+  INDIVIDUAL
+  ADMIN
+}
+
+enum WorkspaceRole {
+  LEADER
+  MEMBER
+}
+
+enum DepartmentRole {
+  ADMIN
+  MEMBER
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CollaborationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum Recurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum EventType {
+  EVENT
+  DEADLINE
+  MEETING
+  REMINDER
+}
+
+enum NotificationType {
+  TASK_DUE
+  WORKSPACE
+  MENTION
+  SYSTEM
+}
+
+enum MeetingProvider {
+  GOOGLE_MEET
+  ZOOM
+  MS_TEAMS
+  GOOGLE_CLASSROOM
+  OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum ContributionMethod {
+  ECOCASH
+  ONEMONEY
+  INNBUCKS
+  CASH
+  BANK
+  OTHER
+}
+
+enum ExpenseCategory {
+  COMPONENTS
+  TOOLS
+  PRINTING
+  TRANSPORT
+  SOFTWARE
+  SERVICES
+  OTHER
+}
+
+// ── Auth.js models ────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // null for OAuth-only users
+  systemRole    SystemRole @default(INDIVIDUAL)
+
+  // Notification preferences
+  emailNotifications Boolean @default(false)
+
+  // Two-factor
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+
+  accounts     Account[]
+  sessions     Session[]
+  memberships  WorkspaceMember[]
+  ledWorkspaces Workspace[] @relation("WorkspaceLeader")
+
+  createdTasks  Task[] @relation("TaskCreator")
+  assignedTasks Task[] @relation("TaskAssignee")
+  timeLogs      TimeLog[]
+  events        CalendarEvent[] @relation("EventCreator")
+  notifications Notification[]
+  files         FileResource[]  @relation("FileUploader")
+  shareLinks    ShareLink[]     @relation("ShareCreator")
+  createdMeetings Meeting[]     @relation("MeetingCreator")
+  attendances   Attendance[]
+  contributions Contribution[] @relation("Contributor")
+  expensesSpent Expense[]      @relation("ExpenseSpender")
+  deptMemberships   DepartmentMember[]
+  createdDepartments Department[]     @relation("DeptCreator")
+  deptAnnouncements DepartmentAnnouncement[] @relation("DeptAnnouncementAuthor")
+  joinRequests      JoinRequest[]
+  pushSubscriptions PushSubscription[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+model PushSubscription {
+  id       String @id @default(cuid())
+  userId   String
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ── Workspaces (group projects) ───────────────
+
+model Workspace {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  // Join controls
+  joinCode    String  @unique
+  pinHash     String? // hashed PIN for extra protection
+
+  // Budget
+  budgetTarget Decimal? @db.Decimal(12, 2)
+  currency     String   @default("USD")
+
+  // Department this group belongs to (nullable for legacy groups).
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  // Secure access controls.
+  maxMembers      Int?     // null = unlimited
+  requireApproval Boolean  @default(false)
+
+  leaderId String
+  leader   User   @relation("WorkspaceLeader", fields: [leaderId], references: [id])
+
+  members       WorkspaceMember[]
+  tasks         Task[]
+  events        CalendarEvent[]
+  files         FileResource[]
+  meetings      Meeting[]
+  contributions Contribution[]
+  expenses      Expense[]
+  joinRequests  JoinRequest[]
+  invites       GroupInvite[]
+  collaborations WorkspaceCollaboration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([leaderId])
+  @@index([joinCode])
+  @@index([departmentId])
+}
+
+// ── Secure group access: requests & invites ───
+
+model JoinRequest {
+  id          String            @id @default(cuid())
+  workspaceId String
+  userId      String
+  status      JoinRequestStatus @default(PENDING)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+}
+
+model GroupInvite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  token       String    @unique
+  expiresAt   DateTime?
+  maxUses     Int? // null = unlimited
+  uses        Int       @default(0)
+  revoked     Boolean   @default(false)
+  createdById String
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([token])
+}
+
+// ── Departments (university organizing layer) ──
+
+model Department {
+  id          String  @id @default(cuid())
+  name        String
+  code        String  @unique // e.g. "EE", "MECH"
+  description String?
+
+  createdById String
+  createdBy   User   @relation("DeptCreator", fields: [createdById], references: [id])
+
+  members       DepartmentMember[]
+  workspaces    Workspace[]
+  announcements DepartmentAnnouncement[]
+  collaborations WorkspaceCollaboration[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkspaceCollaboration {
+  id            String              @id @default(cuid())
+  workspaceId   String
+  departmentId  String
+  status        CollaborationStatus @default(PENDING)
+  requestedById String
+
+  workspace  Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, departmentId])
+  @@index([departmentId])
+}
+
+model DepartmentAnnouncement {
+  id           String @id @default(cuid())
+  departmentId String
+  authorId     String
+  title        String
+  body         String
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  author     User       @relation("DeptAnnouncementAuthor", fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([departmentId])
+}
+
+model DepartmentMember {
+  id           String         @id @default(cuid())
+  departmentId String
+  userId       String
+  role         DepartmentRole @default(MEMBER)
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([departmentId, userId])
+  @@index([userId])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(MEMBER)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+// ── Tasks & time tracking ─────────────────────
+
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  recurrence  Recurrence   @default(NONE)
+
+  estimatedMinutes Int?
+  loggedMinutes    Int  @default(0) // denormalized sum of TimeLog minutes
+
+  // Personal task if workspaceId is null; otherwise a group task.
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  creatorId String
+  creator   User   @relation("TaskCreator", fields: [creatorId], references: [id])
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  // Self-relation: tasks that must be completed before this one.
+  dependsOn    Task[] @relation("TaskDependencies")
+  dependedOnBy Task[] @relation("TaskDependencies")
+
+  timeLogs TimeLog[]
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([creatorId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+model TimeLog {
+  id      String  @id @default(cuid())
+  taskId  String
+  userId  String
+  minutes Int
+  note    String?
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([userId])
+}
+
+// ── Calendar & notifications ──────────────────
+
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  startAt     DateTime
+  endAt       DateTime?
+  allDay      Boolean   @default(false)
+  type        EventType @default(EVENT)
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  creatorId String
+  creator   User   @relation("EventCreator", fields: [creatorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([creatorId])
+  @@index([startAt])
+}
+
+model Notification {
+  id     String           @id @default(cuid())
+  userId String
+  type   NotificationType @default(SYSTEM)
+  title  String
+  body   String?
+  link   String?
+  read   Boolean          @default(false)
+
+  // Prevents duplicate auto-generated reminders (NULLs are distinct in Postgres).
+  dedupeKey String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, read])
+}
+
+// ── Resource library & secure sharing ─────────
+
+model FileResource {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  mimeType    String
+  size        Int
+  data        Bytes // stored in Postgres; swappable for S3/Supabase later
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  uploaderId String
+  uploader   User   @relation("FileUploader", fields: [uploaderId], references: [id])
+
+  shareLinks ShareLink[]
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([uploaderId])
+}
+
+model ShareLink {
+  id       String @id @default(cuid())
+  token    String @unique
+  fileId   String
+  file     FileResource @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  expiresAt     DateTime?
+  maxDownloads  Int?
+  downloadCount Int      @default(0)
+  revoked       Boolean  @default(false)
+
+  createdById String
+  createdBy   User   @relation("ShareCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([fileId])
+}
+
+// ── Meetings & attendance ─────────────────────
+
+model Meeting {
+  id          String          @id @default(cuid())
+  title       String
+  description String?
+  provider    MeetingProvider @default(OTHER)
+  meetingUrl  String?
+  startAt     DateTime
+  endAt       DateTime?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("MeetingCreator", fields: [createdById], references: [id])
+
+  attendances Attendance[]
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([startAt])
+}
+
+model Attendance {
+  id          String           @id @default(cuid())
+  meetingId   String
+  userId      String
+  status      AttendanceStatus @default(ABSENT)
+  checkedInAt DateTime?
+  note        String?
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([meetingId, userId])
+  @@index([userId])
+}
+
+// ── Budget: contributions & expenses ──────────
+
+model Contribution {
+  id          String             @id @default(cuid())
+  amount      Decimal            @db.Decimal(12, 2)
+  method      ContributionMethod @default(ECOCASH)
+  reference   String? // e.g. EcoCash transaction reference
+  note        String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // The member who contributed.
+  userId String
+  user   User   @relation("Contributor", fields: [userId], references: [id])
+
+  recordedById String // who logged this entry
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  amount      Decimal         @db.Decimal(12, 2)
+  category    ExpenseCategory @default(OTHER)
+  description String
+  reference   String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Optional: who spent the money.
+  spentById String?
+  spentBy   User?   @relation("ExpenseSpender", fields: [spentById], references: [id])
+
+  recordedById String
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+// ── Audit log (security requirement) ──────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  target    String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}

@@ -1,0 +1,180 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import {
+  createWorkspace,
+  joinWorkspace,
+  type ActionState,
+  type CreateWorkspaceState,
+} from "./actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+function SubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" disabled={pending} className="w-full">
+      {pending ? "Please wait…" : label}
+    </Button>
+  );
+}
+
+export function CreateWorkspaceForm({
+  departments = [],
+}: {
+  departments?: { id: string; label: string }[];
+}) {
+  const [state, action] = useActionState<CreateWorkspaceState, FormData>(
+    createWorkspace,
+    null,
+  );
+  const hasDuplicates = !!state?.duplicates?.length;
+
+  if (departments.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Join a department first — groups are created inside a department. Head to{" "}
+        <Link href="/dashboard/departments" className="font-medium text-primary hover:underline">
+          Departments
+        </Link>{" "}
+        to join one.
+      </p>
+    );
+  }
+
+  return (
+    <form action={action} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Group name</Label>
+        <Input id="name" name="name" placeholder="Final Year Robotics Project" required />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="departmentId">Department</Label>
+        <select
+          id="departmentId"
+          name="departmentId"
+          required
+          defaultValue={departments.length === 1 ? departments[0].id : ""}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="" disabled>
+            Choose a department…
+          </option>
+          {departments.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description (optional)</Label>
+        <Textarea
+          id="description"
+          name="description"
+          placeholder="Short summary of the project…"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="pin">Join PIN (optional)</Label>
+        <Input
+          id="pin"
+          name="pin"
+          inputMode="numeric"
+          placeholder="4–6 digits"
+          autoComplete="off"
+        />
+        <p className="text-xs text-muted-foreground">
+          Members must enter this PIN alongside the join code.
+        </p>
+      </div>
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state?.success && <p className="text-sm text-green-600">{state.success}</p>}
+
+      {hasDuplicates && (
+        <div className="space-y-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
+          <p className="text-sm font-medium">
+            You are already participating in the following project(s):
+          </p>
+          <ul className="space-y-2">
+            {state!.duplicates!.map((g) => (
+              <li key={g.id} className="rounded-md border bg-background p-2 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{g.name}</span>
+                  <Link
+                    href={`/dashboard/workspaces/${g.id}`}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Open / leave
+                  </Link>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {g.department ?? "No department"} · {g.role} · joined{" "}
+                  {new Date(g.joinedAt).toLocaleDateString("en-GB")} · {g.status}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted-foreground">
+            You can still create another group if your university allows it.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" name="intent" value="continue" size="sm">
+              Continue with new group
+            </Button>
+            <Button
+              type="submit"
+              name="intent"
+              value="notify"
+              size="sm"
+              variant="outline"
+            >
+              Notify my supervisor
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {!hasDuplicates && <SubmitButton label="Create group" />}
+    </form>
+  );
+}
+
+export function JoinWorkspaceForm({ defaultCode = "" }: { defaultCode?: string }) {
+  const [state, action] = useActionState<ActionState, FormData>(
+    joinWorkspace,
+    null,
+  );
+
+  return (
+    <form action={action} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="joinCode">Join code</Label>
+        <Input
+          id="joinCode"
+          name="joinCode"
+          placeholder="e.g. ENGI2026"
+          defaultValue={defaultCode}
+          autoComplete="off"
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="join-pin">PIN (if required)</Label>
+        <Input
+          id="join-pin"
+          name="pin"
+          inputMode="numeric"
+          placeholder="4–6 digits"
+          autoComplete="off"
+        />
+      </div>
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+      <SubmitButton label="Join workspace" />
+    </form>
+  );
+}
