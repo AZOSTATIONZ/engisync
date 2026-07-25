@@ -11,12 +11,14 @@ import {
   GraduationCap,
   CheckSquare,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { WorkspaceRole } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getWorkspaceForUser } from "@/lib/workspace";
+import { getWorkspaceParticipation } from "@/lib/participation";
 import { getInvolvedDepartments } from "@/lib/collaboration";
 import { buildJoinUrl, generateQrDataUrl, getBaseUrl } from "@/lib/qr";
 import { isEmailConfigured } from "@/lib/email";
@@ -63,6 +65,10 @@ export default async function WorkspaceDetailPage({
     (m) => m.userId === userId && m.role === WorkspaceRole.LEADER,
   );
 
+  const participation = await getWorkspaceParticipation(workspace.id);
+  const myParticipation = participation[userId];
+  const inactiveCount = Object.values(participation).filter((p) => p.inactive).length;
+
   const joinUrl = await buildJoinUrl(workspace.joinCode);
   const qr = await generateQrDataUrl(joinUrl);
   const origin = await getBaseUrl();
@@ -107,6 +113,41 @@ export default async function WorkspaceDetailPage({
           )}
         </div>
       </div>
+
+      {/* Nudge the member themselves if they haven't started participating */}
+      {myParticipation?.inactive && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div className="text-sm">
+            <p className="font-medium">You haven&apos;t started contributing to this group yet.</p>
+            <p className="text-muted-foreground">
+              Pick up a task or log some work so your team and supervisor can see your
+              participation.{" "}
+              <Link href="/dashboard/tasks" className="font-medium text-primary hover:underline">
+                Go to tasks
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Leader-only heads-up about inactive members */}
+      {isLeader && inactiveCount > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <p className="text-sm">
+            <span className="font-medium">
+              {inactiveCount} member{inactiveCount > 1 ? "s" : ""} not participating.
+            </span>{" "}
+            <span className="text-muted-foreground">
+              Members with no completed tasks or recent activity are marked{" "}
+              <span className="font-medium text-amber-700">Inactive</span> below — use
+              &ldquo;Nudge&rdquo; to remind them.
+            </span>
+          </p>
+        </div>
+      )}
 
       {/* Quick links to group collaboration spaces */}
       <div className="flex flex-wrap gap-2">
@@ -203,13 +244,26 @@ export default async function WorkspaceDetailPage({
                 <li key={m.id} className="py-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate font-medium">
+                      <p className="flex items-center gap-2 truncate font-medium">
                         {m.user.name ?? m.user.email}
+                        {(isLeader || m.userId === userId) &&
+                          participation[m.userId]?.inactive && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.65rem] font-semibold text-amber-700">
+                              <AlertCircle className="h-3 w-3" /> Inactive
+                            </span>
+                          )}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
                         {m.title ? `${m.title} · ` : ""}
                         {m.user.email}
                       </p>
+                      {(isLeader || m.userId === userId) &&
+                        participation[m.userId] && (
+                          <p className="mt-0.5 text-[0.7rem] text-muted-foreground">
+                            {participation[m.userId].tasksDone}/
+                            {participation[m.userId].tasksAssigned} tasks done
+                          </p>
+                        )}
                     </div>
                     <span
                       className={

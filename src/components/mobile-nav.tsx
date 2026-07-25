@@ -46,9 +46,9 @@ export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) 
         aria-label="Open menu"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground hover:bg-accent active:scale-95"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-md text-foreground hover:bg-accent active:scale-95 sm:h-12 sm:w-12"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-6 w-6 sm:h-7 sm:w-7" />
       </button>
 
       {/* Overlay (always mounted so it can animate). */}
@@ -73,7 +73,7 @@ export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) 
           role="dialog"
           aria-modal="true"
           className={cn(
-            "absolute left-0 top-0 flex h-full w-72 max-w-[82%] flex-col border-r bg-background shadow-xl transition-transform duration-300 ease-out will-change-transform",
+            "absolute left-0 top-0 flex h-full w-80 max-w-[86%] flex-col border-r bg-background shadow-xl transition-transform duration-300 ease-out will-change-transform sm:w-96",
             open ? "translate-x-0" : "-translate-x-full",
           )}
         >
@@ -110,13 +110,13 @@ export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) 
                       href={item.href}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "flex items-start gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                        "flex items-start gap-3 rounded-md px-3 py-3 text-[0.95rem] font-medium transition-colors",
                         active
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                       )}
                     >
-                      <item.icon className="mt-0.5 h-4 w-4 shrink-0" />
+                      <item.icon className="mt-0.5 h-5 w-5 shrink-0" />
                       <span className="flex flex-col">
                         {item.label}
                         <span

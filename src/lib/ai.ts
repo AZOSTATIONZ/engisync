@@ -66,9 +66,15 @@ export async function chatComplete({
 }: ChatArgs): Promise<string> {
   const provider = getProvider();
   if (!provider) {
-    throw new Error("AI is not configured. Add an API key to your environment.");
+    throw new Error(
+      "AI is not configured. Set a provider key in your environment — the free option is GEMINI_API_KEY (see .env.example).",
+    );
   }
   const model = defaultModel(provider);
+
+  // Lightweight structured logging so provider/model/status show up in server logs.
+  const log = (msg: string) =>
+    console.error(`[ai] provider=${provider} model=${model} ${msg}`);
 
   if (provider === "anthropic") {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -87,6 +93,7 @@ export async function chatComplete({
     });
     if (!res.ok) {
       const detail = await res.text();
+      log(`request failed status=${res.status}`);
       throw new Error(`Anthropic API error (${res.status}): ${detail.slice(0, 300)}`);
     }
     const data = await res.json();
@@ -109,7 +116,14 @@ export async function chatComplete({
     });
     if (!res.ok) {
       const detail = await res.text();
-      throw new Error(`Gemini API error (${res.status}): ${detail.slice(0, 300)}`);
+      log(`request failed status=${res.status}`);
+      const hint =
+        res.status === 400 || res.status === 403
+          ? " — check that GEMINI_API_KEY is valid and the Generative Language API is enabled."
+          : "";
+      throw new Error(
+        `Gemini API error (${res.status}): ${detail.slice(0, 300)}${hint}`,
+      );
     }
     const data = await res.json();
     return (
@@ -146,6 +160,7 @@ export async function chatComplete({
   });
   if (!res.ok) {
     const detail = await res.text();
+    log(`request failed status=${res.status}`);
     throw new Error(`AI API error (${res.status}): ${detail.slice(0, 300)}`);
   }
   const data = await res.json();
