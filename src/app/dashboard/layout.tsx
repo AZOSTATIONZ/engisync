@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isEmailConfigured } from "@/lib/email";
+import { isSupervisor } from "@/lib/supervisor";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import { VerifyBanner } from "@/components/verify-banner";
@@ -24,12 +25,14 @@ export default async function DashboardLayout({
     showVerify = !user?.emailVerified;
   }
 
+  const supervises = await isSupervisor(session.user.id);
+
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar />
+      <Navbar isSupervisor={supervises} />
       {showVerify && <VerifyBanner />}
       <div className="container flex flex-1 gap-0">
-        <Sidebar />
+        <Sidebar isSupervisor={supervises} />
         <main className="flex-1 py-8 md:pl-8">{children}</main>
       </div>
     </div>

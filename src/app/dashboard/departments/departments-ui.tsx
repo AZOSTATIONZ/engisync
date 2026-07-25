@@ -220,6 +220,7 @@ export function MemberAdminControls({
         onChange={(e) => run(() => setMemberRole(departmentId, userId, e.target.value))}
       >
         <option value="MEMBER">Member</option>
+        <option value="SUPERVISOR">Supervisor</option>
         <option value="ADMIN">Admin</option>
       </select>
       <Button

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { navItems, isNavActive } from "@/components/nav-items";
+import { getNavSections, isNavActive } from "@/components/nav-items";
 
 /**
  * Mobile slide-out navigation.
@@ -14,9 +14,10 @@ import { navItems, isNavActive } from "@/components/nav-items";
  * - Locks background scroll while open.
  * - Sits above all other UI (z-[100]).
  */
-export function MobileNav() {
+export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const sections = getNavSections(isSupervisor);
 
   // Close whenever the route changes (i.e. a menu item was tapped).
   useEffect(() => {
@@ -95,38 +96,45 @@ export function MobileNav() {
             </button>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1 overflow-y-auto overscroll-contain p-4">
-            {navItems.map((item) => {
-              const active = isNavActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-start gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  )}
-                >
-                  <item.icon className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span className="flex flex-col">
-                    {item.label}
-                    <span
+          <nav className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4">
+            {sections.map((section) => (
+              <div key={section.title} className="flex flex-col gap-1">
+                <p className="px-3 pb-1 text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {section.title}
+                </p>
+                {section.items.map((item) => {
+                  const active = isNavActive(pathname, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
                       className={cn(
-                        "text-xs font-normal",
+                        "flex items-start gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                         active
-                          ? "text-primary-foreground/80"
-                          : "text-muted-foreground/70",
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                       )}
                     >
-                      {item.description}
-                    </span>
-                  </span>
-                </Link>
-              );
-            })}
+                      <item.icon className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span className="flex flex-col">
+                        {item.label}
+                        <span
+                          className={cn(
+                            "text-xs font-normal",
+                            active
+                              ? "text-primary-foreground/80"
+                              : "text-muted-foreground/70",
+                          )}
+                        >
+                          {item.description}
+                        </span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
       </div>

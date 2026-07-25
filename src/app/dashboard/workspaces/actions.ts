@@ -17,6 +17,7 @@ import {
 import { createNotification } from "@/lib/notifications";
 import { sendEmail, emailLayout, isEmailConfigured } from "@/lib/email";
 import { getBaseUrl } from "@/lib/qr";
+import { getTemplate } from "@/lib/templates";
 import {
   createWorkspaceSchema,
   joinWorkspaceSchema,
@@ -111,15 +112,38 @@ export async function createWorkspace(
   const joinCode = await uniqueJoinCode();
   const pinHash = pin ? await bcrypt.hash(pin, 12) : null;
 
+  // Optional starter template seeds objectives, scope, milestones, deliverables.
+  const template = getTemplate(String(formData.get("template") ?? ""));
+
   const workspace = await prisma.workspace.create({
     data: {
       name,
       description: description || null,
+      objectives: template?.objectives || null,
+      scope: template?.scope || null,
       joinCode,
       pinHash,
       departmentId,
       leaderId: userId,
       members: { create: { userId, role: WorkspaceRole.LEADER } },
+      ...(template && template.milestones.length
+        ? {
+            milestones: {
+              create: template.milestones.map((m, i) => ({
+                title: m.title,
+                order: i,
+                dueDate: new Date(Date.now() + m.offsetDays * 86400000),
+              })),
+            },
+          }
+        : {}),
+      ...(template && template.deliverables.length
+        ? {
+            deliverables: {
+              create: template.deliverables.map((title) => ({ title })),
+            },
+          }
+        : {}),
     },
   });
 

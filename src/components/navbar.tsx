@@ -11,7 +11,7 @@ import {
   generateDueSoonNotifications,
 } from "@/lib/notifications";
 
-export async function Navbar() {
+export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean }) {
   const session = await auth();
 
   let unread = 0;
@@ -28,7 +28,7 @@ export async function Navbar() {
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-1">
-          {session?.user && <MobileNav />}
+          {session?.user && <MobileNav isSupervisor={isSupervisor} />}
           <Link href="/" className="flex items-center gap-2 font-bold">
             <Cpu className="h-6 w-6 text-primary" />
             <span>EngiSync</span>

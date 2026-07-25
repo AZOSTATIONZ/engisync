@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { ImageSlider, type Slide } from "@/components/image-slider";
 import { RotatingText } from "@/components/rotating-text";
+import { OnboardingCard } from "@/components/onboarding-card";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -41,24 +42,49 @@ export default async function DashboardPage() {
     })
   ).map((m) => m.workspaceId);
 
-  const [workspaceCount, memberships, openTasks] = await Promise.all([
-    prisma.workspace.count({ where: { members: { some: { userId } } } }),
-    prisma.workspaceMember.findMany({
-      where: { userId },
-      include: { workspace: true },
-      take: 5,
-    }),
-    prisma.task.count({
-      where: {
-        status: { not: "DONE" },
-        OR: [
-          { creatorId: userId },
-          { assigneeId: userId },
-          { workspaceId: { in: wsIds } },
-        ],
-      },
-    }),
-  ]);
+  const [workspaceCount, memberships, openTasks, deptCount, totalTaskCount] =
+    await Promise.all([
+      prisma.workspace.count({ where: { members: { some: { userId } } } }),
+      prisma.workspaceMember.findMany({
+        where: { userId },
+        include: { workspace: true },
+        take: 5,
+      }),
+      prisma.task.count({
+        where: {
+          status: { not: "DONE" },
+          OR: [
+            { creatorId: userId },
+            { assigneeId: userId },
+            { workspaceId: { in: wsIds } },
+          ],
+        },
+      }),
+      prisma.departmentMember.count({ where: { userId } }),
+      prisma.task.count({
+        where: {
+          OR: [
+            { creatorId: userId },
+            { assigneeId: userId },
+            { workspaceId: { in: wsIds } },
+          ],
+        },
+      }),
+    ]);
+
+  const projectWithObjectives = await prisma.workspace.count({
+    where: {
+      members: { some: { userId } },
+      NOT: { objectives: null },
+    },
+  });
+
+  const onboardingSteps = [
+    { label: "Join your engineering department", href: "/dashboard/departments", done: deptCount > 0 },
+    { label: "Create or join a project group", href: "/dashboard/workspaces", done: workspaceCount > 0 },
+    { label: "Add your first task", href: "/dashboard/tasks", done: totalTaskCount > 0 },
+    { label: "Set your project objectives", href: "/dashboard/projects", done: projectWithObjectives > 0 },
+  ];
 
   const stats = [
     { label: "My Workspaces", value: workspaceCount, icon: FolderKanban },
@@ -92,6 +118,8 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      <OnboardingCard steps={onboardingSteps} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (

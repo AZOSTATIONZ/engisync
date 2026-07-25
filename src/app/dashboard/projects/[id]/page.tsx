@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Target, Flag, AlertTriangle, Package } from "lucide-react";
+import { ArrowLeft, Target, Flag, AlertTriangle, Package, MessageSquare } from "lucide-react";
 import { auth } from "@/auth";
 import { getProject } from "@/lib/project";
 import {
@@ -131,6 +131,29 @@ export default async function ProjectDetailPage({
           />
         </CardContent>
       </Card>
+
+      {project.feedback.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-5 w-5 text-primary" /> Supervisor feedback
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {project.feedback.map((f) => (
+                <li key={f.id} className="rounded-md border p-3 text-sm">
+                  <p className="whitespace-pre-wrap">{f.body}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {f.authorName} ·{" "}
+                    {new Date(f.createdAt).toLocaleDateString("en-GB")}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

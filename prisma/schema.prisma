@@ -33,6 +33,7 @@ enum WorkspaceRole {
 enum DepartmentRole {
   ADMIN
   MEMBER
+  SUPERVISOR
 }
 
 enum JoinRequestStatus {
@@ -292,6 +293,7 @@ model Workspace {
   milestones    Milestone[]
   risks         ProjectRisk[]
   deliverables  Deliverable[]
+  feedback      ProjectFeedback[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -307,6 +309,22 @@ model AppSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// ── Supervisor feedback (per group) ───────────
+
+model ProjectFeedback {
+  id          String @id @default(cuid())
+  workspaceId String
+  authorId    String
+  authorName  String
+  body        String
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId])
 }
 
 // ── Project management (per group) ────────────

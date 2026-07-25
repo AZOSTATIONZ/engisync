@@ -69,7 +69,7 @@ export const announcementSchema = z.object({
   body: z.string().min(3, "Write an announcement").max(4000),
 });
 
-export const deptRoleEnum = z.enum(["ADMIN", "MEMBER"]);
+export const deptRoleEnum = z.enum(["ADMIN", "MEMBER", "SUPERVISOR"]);
 
 export const joinWorkspaceSchema = z.object({
   joinCode: z

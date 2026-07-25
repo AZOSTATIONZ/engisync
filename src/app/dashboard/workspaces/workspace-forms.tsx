@@ -13,6 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { PROJECT_TEMPLATES } from "@/lib/templates";
+
+const selectClass =
+  "flex h-11 w-full rounded-md border border-input bg-background px-3.5 py-2 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/35";
 
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -70,6 +74,24 @@ export function CreateWorkspaceForm({
             </option>
           ))}
         </select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="template">Starter template (optional)</Label>
+        <select
+          id="template"
+          name="template"
+          defaultValue="blank"
+          className={selectClass}
+        >
+          {PROJECT_TEMPLATES.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.label} — {t.description}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Seeds milestones and deliverables you can edit later.
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="description">Description (optional)</Label>

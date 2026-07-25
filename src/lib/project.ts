@@ -40,6 +40,7 @@ export async function getProject(workspaceId: string, userId: string) {
         milestones: { orderBy: [{ done: "asc" }, { dueDate: "asc" }] },
         risks: { orderBy: { createdAt: "desc" } },
         deliverables: { orderBy: { createdAt: "asc" } },
+        feedback: { orderBy: { createdAt: "desc" }, take: 10 },
       },
     }),
     isWorkspaceLeader(workspaceId, userId),
@@ -69,6 +70,12 @@ export async function getProject(workspaceId: string, userId: string) {
       id: d.id,
       title: d.title,
       done: d.done,
+    })),
+    feedback: workspace.feedback.map((f) => ({
+      id: f.id,
+      authorName: f.authorName,
+      body: f.body,
+      createdAt: f.createdAt.toISOString(),
     })),
   };
 }
