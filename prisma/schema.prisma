@@ -275,6 +275,7 @@ model Workspace {
   collaborations WorkspaceCollaboration[]
   discussions   DiscussionThread[]
   quizzes       Quiz[]
+  evaluation    AIEvaluation?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -282,6 +283,21 @@ model Workspace {
   @@index([leaderId])
   @@index([joinCode])
   @@index([departmentId])
+}
+
+// ── AI project evaluation (cached report) ─────
+
+model AIEvaluation {
+  id          String @id @default(cuid())
+  workspaceId String @unique
+  data        Json // structured report from the AI
+  model       String?
+  createdById String
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ── Discussions & quizzes (per group) ─────────

@@ -10,6 +10,7 @@ import {
   MessageSquare,
   GraduationCap,
   CheckSquare,
+  Sparkles,
 } from "lucide-react";
 import { WorkspaceRole } from "@prisma/client";
 
@@ -122,6 +123,11 @@ export default async function WorkspaceDetailPage({
         <Button asChild variant="outline" size="sm">
           <Link href={`/dashboard/tasks`}>
             <CheckSquare className="h-4 w-4" /> Tasks
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/dashboard/workspaces/${workspace.id}/evaluation`}>
+            <Sparkles className="h-4 w-4" /> AI Evaluation
           </Link>
         </Button>
       </div>
