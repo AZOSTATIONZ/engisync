@@ -9,6 +9,7 @@ import { getMeetingForUser, PROVIDER_LABELS } from "@/lib/meeting";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -126,6 +127,11 @@ export default async function MeetingDetailPage({
       <Card>
         <CardHeader>
           <CardTitle>Attendance ({meeting.workspace.members.length})</CardTitle>
+          <CardDescription>
+            Tap <strong>Check in</strong> at the top when you join the meeting —
+            it marks you present (or late if it&apos;s already started). The
+            group leader can adjust anyone&apos;s status here.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="divide-y">

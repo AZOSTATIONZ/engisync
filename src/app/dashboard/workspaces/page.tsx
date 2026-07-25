@@ -60,9 +60,12 @@ export default async function WorkspacesPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Join a workspace</CardTitle>
+            <CardTitle>Join a group</CardTitle>
             <CardDescription>
-              Enter the code your group leader shared with you.
+              Enter the join code (and PIN, if set) your group leader shared. If
+              the group requires approval, your request is sent to the leader —
+              you&apos;ll get a notification when you&apos;re added. You can only
+              see groups you&apos;ve been given access to.
             </CardDescription>
           </CardHeader>
           <CardContent>

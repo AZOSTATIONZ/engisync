@@ -67,14 +67,24 @@ export function MobileNav() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                      "flex items-start gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                       active
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
+                    <item.icon className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span className="flex flex-col">
+                      {item.label}
+                      <span
+                        className={cn(
+                          "text-xs font-normal",
+                          active ? "text-primary-foreground/80" : "text-muted-foreground/70",
+                        )}
+                      >
+                        {item.description}
+                      </span>
+                    </span>
                   </Link>
                 );
               })}

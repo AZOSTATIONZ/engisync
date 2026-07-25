@@ -49,9 +49,14 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Prevent accidental horizontal scroll / zoom-out on small screens. */
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
   }
 }
 
