@@ -110,7 +110,12 @@ export async function getSupervisedProject(workspaceId: string, userId: string) 
       name: m.user.name ?? m.user.email,
       role: m.role as string,
     })),
-    milestones: ws.milestones.map((m) => ({ title: m.title, done: m.done })),
+    milestones: ws.milestones.map((m) => ({
+      id: m.id,
+      title: m.title,
+      done: m.done,
+      approved: m.approved,
+    })),
     risks: ws.risks.map((r) => ({ title: r.title, severity: r.severity })),
     deliverables: ws.deliverables.map((d) => ({ title: d.title, done: d.done })),
     feedback: ws.feedback.map((f) => ({

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, MessageSquare, FileText } from "lucide-react";
 import { auth } from "@/auth";
 import { getSupervisedProject } from "@/lib/supervisor";
 import {
@@ -10,7 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { FeedbackForm } from "../feedback-form";
+import { MilestoneApproveButton } from "./milestone-approve";
 
 export const metadata: Metadata = { title: "Supervise project" };
 
@@ -33,8 +35,17 @@ export default async function SuperviseProjectPage({
         >
           <ArrowLeft className="h-4 w-4" /> All supervised projects
         </Link>
-        <h1 className="text-2xl font-bold">{p.name}</h1>
-        {p.department && <p className="text-muted-foreground">{p.department}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">{p.name}</h1>
+            {p.department && <p className="text-muted-foreground">{p.department}</p>}
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/dashboard/supervisor/${id}/documentation`}>
+              <FileText className="h-4 w-4" /> Review documentation
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
@@ -89,11 +100,14 @@ export default async function SuperviseProjectPage({
         <Card>
           <CardHeader><CardTitle className="text-base">Milestones</CardTitle></CardHeader>
           <CardContent>
-            <ul className="space-y-1 text-sm">
+            <ul className="space-y-1.5 text-sm">
               {p.milestones.length === 0 && <li className="text-muted-foreground">None.</li>}
-              {p.milestones.map((m, i) => (
-                <li key={i} className={m.done ? "text-muted-foreground line-through" : ""}>
-                  {m.done ? "✓" : "○"} {m.title}
+              {p.milestones.map((m) => (
+                <li key={m.id} className="flex items-center justify-between gap-2">
+                  <span className={m.done ? "text-muted-foreground line-through" : ""}>
+                    {m.done ? "✓" : "○"} {m.title}
+                  </span>
+                  <MilestoneApproveButton milestoneId={m.id} approved={m.approved} />
                 </li>
               ))}
             </ul>

@@ -12,6 +12,7 @@ import {
   CheckSquare,
   Sparkles,
   AlertCircle,
+  FileText,
 } from "lucide-react";
 import { WorkspaceRole } from "@prisma/client";
 
@@ -151,6 +152,11 @@ export default async function WorkspaceDetailPage({
 
       {/* Quick links to group collaboration spaces */}
       <div className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/dashboard/workspaces/${workspace.id}/documentation`}>
+            <FileText className="h-4 w-4" /> Documentation
+          </Link>
+        </Button>
         <Button asChild variant="outline" size="sm">
           <Link href={`/dashboard/workspaces/${workspace.id}/discussions`}>
             <MessageSquare className="h-4 w-4" /> Discussions

@@ -294,6 +294,7 @@ model Workspace {
   risks         ProjectRisk[]
   deliverables  Deliverable[]
   feedback      ProjectFeedback[]
+  document      ProjectDocument?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -327,6 +328,90 @@ model ProjectFeedback {
   @@index([workspaceId])
 }
 
+// ── Structured project documentation + supervisor review ──
+
+enum SectionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model ProjectDocument {
+  id          String @id @default(cuid())
+  workspaceId String @unique
+
+  // When locked, students cannot edit any section (supervisor-controlled).
+  locked     Boolean @default(false)
+  // Final-report approval (all sections signed off).
+  approved   Boolean @default(false)
+  approvedAt DateTime?
+  // Overall project-completion sign-off by the supervisor.
+  completionApproved   Boolean @default(false)
+  completionApprovedAt DateTime?
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sections  DocumentSection[]
+  versions  ReportVersion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReportVersion {
+  id            String @id @default(cuid())
+  documentId    String
+  versionNumber Int
+  submittedById String
+  submittedByName String
+  note          String? @db.Text
+  // JSON snapshot of every section's title + content at submission time.
+  snapshot      String  @db.Text
+
+  document ProjectDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+}
+
+model DocumentSection {
+  id         String        @id @default(cuid())
+  documentId String
+  key        String // stable section identifier (e.g. "abstract")
+  title      String
+  content    String        @default("") @db.Text
+  order      Int           @default(0)
+  status     SectionStatus @default(DRAFT)
+  locked     Boolean       @default(false)
+
+  document ProjectDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  comments SectionComment[]
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([documentId, key])
+  @@index([documentId])
+}
+
+model SectionComment {
+  id         String  @id @default(cuid())
+  sectionId  String
+  authorId   String
+  authorName String
+  body       String  @db.Text
+  // True when the comment is a supervisor's correction request.
+  isCorrection Boolean @default(false)
+
+  section DocumentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([sectionId])
+}
+
 // ── Project management (per group) ────────────
 
 model Milestone {
@@ -335,6 +420,7 @@ model Milestone {
   title       String
   dueDate     DateTime?
   done        Boolean   @default(false)
+  approved    Boolean   @default(false)
   order       Int       @default(0)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
