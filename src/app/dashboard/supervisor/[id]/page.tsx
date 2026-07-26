@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageSquare, FileText } from "lucide-react";
+import { ArrowLeft, MessageSquare, FileText, BarChart3 } from "lucide-react";
 import { auth } from "@/auth";
 import { getSupervisedProject } from "@/lib/supervisor";
 import {
@@ -40,11 +40,18 @@ export default async function SuperviseProjectPage({
             <h1 className="text-2xl font-bold">{p.name}</h1>
             {p.department && <p className="text-muted-foreground">{p.department}</p>}
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/dashboard/supervisor/${id}/documentation`}>
-              <FileText className="h-4 w-4" /> Review documentation
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/dashboard/supervisor/${id}/documentation`}>
+                <FileText className="h-4 w-4" /> Review documentation
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/dashboard/supervisor/${id}/report`}>
+                <BarChart3 className="h-4 w-4" /> Analytics report
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
