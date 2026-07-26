@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
+import { socialProviders } from "@/auth";
 
 export const metadata: Metadata = { title: "Log in" };
 
@@ -13,7 +14,7 @@ export default function LoginPage() {
           Log in to your EngiSync account
         </p>
       </div>
-      <LoginForm />
+      <LoginForm social={socialProviders} />
       <p className="mt-4 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link href="/register" className="font-medium text-primary hover:underline">

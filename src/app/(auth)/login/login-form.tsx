@@ -10,7 +10,11 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { preLogin } from "./actions";
 
-export function LoginForm() {
+export function LoginForm({
+  social = { google: false, microsoft: false },
+}: {
+  social?: { google: boolean; microsoft: boolean };
+}) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -59,28 +63,36 @@ export function LoginForm() {
     await finishSignIn();
   }
 
+  const anySocial = social.google || social.microsoft;
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-2">
-        <Button
-          variant="outline"
-          type="button"
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-        >
-          Continue with Google
-        </Button>
-        <Button
-          variant="outline"
-          type="button"
-          onClick={() =>
-            signIn("microsoft-entra-id", { callbackUrl: "/dashboard" })
-          }
-        >
-          Continue with Microsoft
-        </Button>
-      </div>
+      {anySocial && (
+        <div className="grid gap-2">
+          {social.google && (
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            >
+              Continue with Google
+            </Button>
+          )}
+          {social.microsoft && (
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() =>
+                signIn("microsoft-entra-id", { callbackUrl: "/dashboard" })
+              }
+            >
+              Continue with Microsoft
+            </Button>
+          )}
+        </div>
+      )}
 
-      <div className="relative">
+      <div className={anySocial ? "relative" : "hidden"}>
         <div className="absolute inset-0 flex items-center">
           <span className="w-full border-t" />
         </div>

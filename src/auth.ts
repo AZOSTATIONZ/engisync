@@ -10,21 +10,51 @@ import { authConfig } from "@/auth.config";
 import { loginSchema } from "@/lib/validations";
 import { verifyTotp } from "@/lib/totp";
 
+// Accept either naming convention: AUTH_* (Auth.js default) or the
+// GOOGLE_CLIENT_* / MICROSOFT_CLIENT_* names documented in .env.example.
+const googleId = process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID;
+const googleSecret =
+  process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
+const msId =
+  process.env.AUTH_MICROSOFT_ENTRA_ID_ID ?? process.env.MICROSOFT_CLIENT_ID;
+const msSecret =
+  process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET ??
+  process.env.MICROSOFT_CLIENT_SECRET;
+
+/**
+ * Which social providers are actually usable. Registering a provider without
+ * credentials makes the button render but fail at Google with
+ * "401 invalid_client", so we only enable what's configured — and the UI hides
+ * the rest (see `socialProviders`).
+ */
+export const socialProviders = {
+  google: Boolean(googleId && googleSecret),
+  microsoft: Boolean(msId && msSecret),
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      allowDangerousEmailAccountLinking: true,
-    }),
-    MicrosoftEntraID({
-      clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
-      clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
-      issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
-      allowDangerousEmailAccountLinking: true,
-    }),
+    ...(socialProviders.google
+      ? [
+          Google({
+            clientId: googleId,
+            clientSecret: googleSecret,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
+    ...(socialProviders.microsoft
+      ? [
+          MicrosoftEntraID({
+            clientId: msId,
+            clientSecret: msSecret,
+            issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
     Credentials({
       name: "credentials",
       credentials: {
