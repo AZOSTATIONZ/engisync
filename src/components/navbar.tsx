@@ -4,6 +4,7 @@ import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileNav } from "@/components/mobile-nav";
+import { CommandPalette } from "@/components/command-palette";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import {
   countUnread,
@@ -36,6 +37,7 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
         </div>
 
         <nav className="flex items-center gap-2">
+          {session?.user && <CommandPalette isSupervisor={isSupervisor} />}
           <ThemeToggle />
           {session?.user ? (
             <>

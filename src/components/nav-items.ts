@@ -47,53 +47,52 @@ const SUPERVISOR: NavItem = {
  * The Supervisor section only appears for users who supervise a department.
  */
 export function getNavSections(isSupervisor = false): NavSection[] {
+  // Four top-level areas instead of seven. Sections that held a single item
+  // were pure visual noise; related destinations are now grouped by the job
+  // the user is trying to do, not by the module that implements them.
   const sections: NavSection[] = [
-    { title: "Overview", items: [OVERVIEW] },
+    { title: "Home", items: [OVERVIEW] },
     {
-      title: "Workspace",
+      title: "My work",
       items: [
-        { href: "/dashboard/departments", label: "Departments", icon: Building2, description: "Join your engineering department to access its project groups." },
         { href: "/dashboard/workspaces", label: "Groups", icon: Users, description: "Your project teams — create one or join with a code/invite." },
         { href: "/dashboard/projects", label: "Projects", icon: FolderKanban, description: "Project objectives, scope, milestones, and deliverables." },
         { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare, description: "Assign work with priorities, deadlines, and time tracking." },
-      ],
-    },
-    {
-      title: "Schedule",
-      items: [
         { href: "/dashboard/calendar", label: "Calendar", icon: Calendar, description: "Deadlines, meetings, and countdowns in one view." },
         { href: "/dashboard/meetings", label: "Meetings", icon: Video, description: "Schedule sessions, share join links, and track attendance." },
       ],
     },
     {
-      title: "Collaborate",
+      title: "Learning",
       items: [
+        { href: "/dashboard/departments", label: "Departments", icon: Building2, description: "Your department, announcements, and the AI-curated Resource Hub." },
+        { href: "/dashboard/resources", label: "Files", icon: FolderArchive, description: "Share engineering files with secure, expiring links." },
         { href: "/dashboard/collaboration", label: "Collaboration", icon: MessagesSquare, description: "Discussions, announcements, and cross-department work." },
-        { href: "/dashboard/resources", label: "Resources", icon: FolderArchive, description: "Share engineering files with secure, expiring links." },
+        { href: "/dashboard/assistant", label: "AI Assistant", icon: Sparkles, description: "Summaries, task generation, and engineering guidance." },
       ],
     },
     {
       title: "Insights",
       items: [
-        { href: "/dashboard/budget", label: "Budget", icon: Wallet, description: "Track contributions (EcoCash and more) and expenses." },
         { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, description: "Project health, workload, burndown, and AI insights." },
-        { href: "/dashboard/assistant", label: "AI Assistant", icon: Sparkles, description: "Summaries, task generation, and engineering guidance." },
+        { href: "/dashboard/budget", label: "Budget", icon: Wallet, description: "Track contributions (EcoCash and more) and expenses." },
+        ...(isSupervisor ? [SUPERVISOR] : []),
+      ],
+    },
+    {
+      title: "Account",
+      items: [
+        { href: "/dashboard/settings", label: "Settings", icon: Settings, description: "Account, notifications, and two-factor security." },
       ],
     },
   ];
 
-  if (isSupervisor) {
-    sections.push({ title: "Teaching", items: [SUPERVISOR] });
-  }
-
-  sections.push({
-    title: "Account",
-    items: [
-      { href: "/dashboard/settings", label: "Settings", icon: Settings, description: "Account, notifications, and two-factor security." },
-    ],
-  });
-
   return sections;
+}
+
+/** Flat list of every destination — used by the command palette. */
+export function getAllNavItems(isSupervisor = false): NavItem[] {
+  return getNavSections(isSupervisor).flatMap((s) => s.items);
 }
 
 /** Active-state check shared by desktop + mobile nav. */

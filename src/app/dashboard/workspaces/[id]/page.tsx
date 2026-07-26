@@ -14,6 +14,7 @@ import {
   Sparkles,
   AlertCircle,
   FileText,
+  History,
 } from "lucide-react";
 import { WorkspaceRole } from "@prisma/client";
 
@@ -43,6 +44,7 @@ import {
   DeleteWorkspaceButton,
 } from "./workspace-controls";
 import { MemberControls } from "./member-controls";
+import { MoreMenu } from "@/components/more-menu";
 import {
   AccessSettingsForm,
   JoinRequestRow,
@@ -151,8 +153,13 @@ export default async function WorkspaceDetailPage({
         </div>
       )}
 
-      {/* Quick links to group collaboration spaces */}
-      <div className="flex flex-wrap gap-2">
+      {/* Primary actions lead; advanced tools live under "More". */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild size="sm">
+          <Link href={`/dashboard/tasks`}>
+            <CheckSquare className="h-4 w-4" /> Tasks
+          </Link>
+        </Button>
         <Button asChild variant="outline" size="sm">
           <Link href={`/dashboard/workspaces/${workspace.id}/documentation`}>
             <FileText className="h-4 w-4" /> Documentation
@@ -163,21 +170,28 @@ export default async function WorkspaceDetailPage({
             <MessageSquare className="h-4 w-4" /> Discussions
           </Link>
         </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/dashboard/workspaces/${workspace.id}/quizzes`}>
-            <GraduationCap className="h-4 w-4" /> Quizzes
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/dashboard/tasks`}>
-            <CheckSquare className="h-4 w-4" /> Tasks
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="sm">
-          <Link href={`/dashboard/workspaces/${workspace.id}/evaluation`}>
-            <Sparkles className="h-4 w-4" /> AI Evaluation
-          </Link>
-        </Button>
+        <MoreMenu
+          items={[
+            {
+              href: `/dashboard/workspaces/${workspace.id}/quizzes`,
+              label: "Quizzes",
+              icon: GraduationCap,
+              description: "Practice questions for your group",
+            },
+            {
+              href: `/dashboard/workspaces/${workspace.id}/evaluation`,
+              label: "AI Evaluation",
+              icon: Sparkles,
+              description: "Automated project assessment",
+            },
+            {
+              href: `/dashboard/workspaces/${workspace.id}/documentation/history`,
+              label: "Version history",
+              icon: History,
+              description: "Compare submitted report versions",
+            },
+          ]}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
