@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Crown, Lock, Megaphone, Users } from "lucide-react";
+import { ArrowLeft, Crown, Lock, Megaphone, Users, Library } from "lucide-react";
 import { auth } from "@/auth";
 import { getDepartment } from "@/lib/department";
+import { Button } from "@/components/ui/button";
 import {
   listCollaborationRequests,
   listCollaboratingGroups,
@@ -77,6 +78,17 @@ export default async function DepartmentDetailPage({
           />
         </div>
       </div>
+
+      {/* Quick links */}
+      {dept.isMember && (
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/dashboard/departments/${dept.id}/resources`}>
+              <Library className="h-4 w-4" /> Resource Hub
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Announcements */}
       {dept.isMember && (

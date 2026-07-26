@@ -328,6 +328,117 @@ model ProjectFeedback {
   @@index([workspaceId])
 }
 
+// ── AI-driven Department Resource Hub ─────────
+
+enum ResourceType {
+  LINK
+  PDF
+  GITHUB
+  YOUTUBE
+  SOFTWARE
+  TUTORIAL
+  DOCUMENTATION
+  PAPER
+  DATASET
+  TEMPLATE
+  OTHER
+}
+
+enum ResourceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ResourceDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum InteractionType {
+  VIEW
+  SAVE
+  HELPFUL
+}
+
+model DepartmentResource {
+  id              String       @id @default(cuid())
+  departmentId    String
+  submittedById   String
+  submittedByName String
+  type            ResourceType @default(LINK)
+  title           String
+  url             String?
+  studentNote     String?      @db.Text
+
+  status ResourceStatus @default(PENDING)
+
+  // AI-generated metadata (filled on approval).
+  description  String?             @db.Text
+  difficulty   ResourceDifficulty?
+  category     String?
+  whyUseful    String?             @db.Text
+  tags         String[]            @default([])
+  topics       String[]            @default([])
+
+  // Moderation.
+  moderationReason  String?  @db.Text
+  suggestedCategory String?
+  moderatedByAI     Boolean  @default(false)
+  moderatedAt       DateTime?
+
+  department   Department            @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  interactions ResourceInteraction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId, status])
+}
+
+model ResourceInteraction {
+  id         String          @id @default(cuid())
+  resourceId String
+  userId     String
+  type       InteractionType @default(VIEW)
+
+  resource DepartmentResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([resourceId, userId, type])
+  @@index([userId])
+}
+
+// Curated + AI-suggested external catalog used for recommendations.
+model TrustedResource {
+  id             String             @id @default(cuid())
+  departmentCode String? // null = all engineering
+  name           String
+  url            String
+  category       String
+  description    String             @db.Text
+  difficulty     ResourceDifficulty @default(INTERMEDIATE)
+  tags           String[]           @default([])
+  topics         String[]           @default([])
+  status         ResourceStatus     @default(APPROVED) // AI-suggested start PENDING
+  source         String             @default("admin") // seed | ai-suggested | admin
+
+  createdAt DateTime @default(now())
+
+  @@index([departmentCode, status])
+}
+
+// Optional learner context to personalize recommendations.
+model LearnerProfile {
+  userId    String   @id
+  modules   String[] @default([])
+  skills    String[] @default([])
+  goals     String?  @db.Text
+  updatedAt DateTime @updatedAt
+}
+
 // ── Structured project documentation + supervisor review ──
 
 enum SectionStatus {
@@ -599,6 +710,7 @@ model Department {
   workspaces    Workspace[]
   announcements DepartmentAnnouncement[]
   collaborations WorkspaceCollaboration[]
+  resources     DepartmentResource[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
