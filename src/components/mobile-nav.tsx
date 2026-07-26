@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Cpu } from "lucide-react";
@@ -12,12 +13,19 @@ import { getNavSections, isNavActive } from "@/components/nav-items";
  * - Smooth open/close (the drawer is always mounted and animated via transform).
  * - Closes on route change, backdrop tap, Escape, or the close button.
  * - Locks background scroll while open.
- * - Sits above all other UI (z-[100]).
+ * - Rendered through a portal on <body>: the navbar uses backdrop-blur, which
+ *   makes it a containing block for fixed children — without the portal the
+ *   drawer would be trapped inside the header strip instead of covering the
+ *   viewport.
  */
 export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const sections = getNavSections(isSupervisor);
+
+  // Portals need the DOM; only render after mount to keep SSR markup stable.
+  useEffect(() => setMounted(true), []);
 
   // Close whenever the route changes (i.e. a menu item was tapped).
   useEffect(() => {
@@ -51,14 +59,16 @@ export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) 
         <Menu className="h-6 w-6 sm:h-7 sm:w-7" />
       </button>
 
-      {/* Overlay (always mounted so it can animate). */}
-      <div
-        className={cn(
-          "fixed inset-0 z-[100] transition-[visibility] duration-300",
-          open ? "visible" : "invisible",
-        )}
-        aria-hidden={!open}
-      >
+      {/* Overlay rendered on <body> so it escapes the blurred header. */}
+      {mounted &&
+        createPortal(
+          <div
+            className={cn(
+              "fixed inset-0 z-[100] md:hidden transition-[visibility] duration-300",
+              open ? "visible" : "invisible",
+            )}
+            aria-hidden={!open}
+          >
         {/* Backdrop */}
         <div
           onClick={() => setOpen(false)}
@@ -136,8 +146,10 @@ export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) 
               </div>
             ))}
           </nav>
-        </div>
-      </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
