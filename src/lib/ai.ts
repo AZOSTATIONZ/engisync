@@ -46,7 +46,7 @@ function defaultModel(provider: AIProvider): string {
     case "openai":
       return "gpt-4o-mini";
     case "gemini":
-      return "gemini-1.5-flash";
+      return "gemini-2.0-flash";
     case "local":
       return "llama3";
   }
