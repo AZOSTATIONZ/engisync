@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { EmailNotificationToggle, PushToggle } from "./settings-ui";
 import { TwoFactor } from "./twofactor-ui";
+import { DeleteAccountSection } from "./delete-account";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -127,6 +128,20 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="text-base text-destructive">Danger zone</CardTitle>
+          <CardDescription>
+            Permanent actions that affect your whole account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DeleteAccountSection
+            twoFactorEnabled={user?.twoFactorEnabled ?? false}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

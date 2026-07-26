@@ -328,6 +328,35 @@ model ProjectFeedback {
   @@index([workspaceId])
 }
 
+// ── Account lifecycle & identity security ─────
+
+/**
+ * Reserves a deleted account's email/username for a cooling-off period so a
+ * third party can't immediately re-register it and inherit the old identity
+ * (account recycling / impersonation).
+ */
+model ReservedIdentity {
+  id        String   @id @default(cuid())
+  emailHash String   @unique // SHA-256 of the lowercased email — never the raw address
+  until     DateTime
+  reason    String   @default("account-deleted")
+  createdAt DateTime @default(now())
+
+  @@index([until])
+}
+
+/** Pending, verified account-deletion requests (two-step confirmation). */
+model AccountDeletionRequest {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 // ── AI-driven Department Resource Hub ─────────
 
 enum ResourceType {

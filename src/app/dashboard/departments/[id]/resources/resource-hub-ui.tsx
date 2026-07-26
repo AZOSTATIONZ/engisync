@@ -263,7 +263,7 @@ export function ProfileForm({
         <Input id="modules" name="modules" defaultValue={profile.modules.join(", ")} placeholder="Embedded Systems, Signals" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="skills">Skills you're learning</Label>
+        <Label htmlFor="skills">Skills you&apos;re learning</Label>
         <Input id="skills" name="skills" defaultValue={profile.skills.join(", ")} placeholder="PCB design, C, MATLAB" />
       </div>
       <div className="space-y-2">

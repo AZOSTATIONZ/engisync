@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { displayName } from "@/lib/identity";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -55,7 +56,7 @@ export default async function TasksPage({
   const assigneeMap = new Map<string, string>();
   assigneeMap.set(userId, `${session!.user.name ?? "Me"} (me)`);
   for (const m of members) {
-    assigneeMap.set(m.user.id, m.user.name ?? m.user.email);
+    assigneeMap.set(m.user.id, displayName(m.user));
   }
   const assigneeOptions: Option[] = [...assigneeMap].map(([id, label]) => ({
     id,
@@ -77,7 +78,7 @@ export default async function TasksPage({
     estimatedMinutes: t.estimatedMinutes,
     loggedMinutes: t.loggedMinutes,
     workspaceName: t.workspace?.name ?? null,
-    assigneeName: t.assignee?.name ?? t.assignee?.email ?? null,
+    assigneeName: t.assignee ? displayName(t.assignee) : null,
     dependsOn: t.dependsOn.map((d) => ({
       id: d.id,
       title: d.title,

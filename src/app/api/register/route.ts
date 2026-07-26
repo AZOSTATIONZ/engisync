@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { sendVerificationEmail } from "@/lib/verification";
+import { isEmailReserved } from "@/lib/account-lifecycle";
 
 export async function POST(req: Request) {
   try {
@@ -34,6 +35,18 @@ export async function POST(req: Request) {
     if (existing) {
       return NextResponse.json(
         { error: "An account with this email already exists." },
+        { status: 409 },
+      );
+    }
+
+    // Identity security: block re-registration of a recently deleted account's
+    // email during the cooling-off window (anti account-recycling/impersonation).
+    if (await isEmailReserved(email)) {
+      return NextResponse.json(
+        {
+          error:
+            "This email was recently used by a deleted account and is temporarily reserved. Please try again later or contact support.",
+        },
         { status: 409 },
       );
     }

@@ -5,6 +5,7 @@ import { ArrowLeft, Crown, Lock, Megaphone, Users, Library } from "lucide-react"
 import { auth } from "@/auth";
 import { getDepartment } from "@/lib/department";
 import { Button } from "@/components/ui/button";
+import { displayName } from "@/lib/identity";
 import {
   listCollaborationRequests,
   listCollaboratingGroups,
@@ -237,11 +238,15 @@ export default async function DepartmentDetailPage({
                 <li key={m.id} className="flex items-center justify-between gap-2 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {m.name}
+                      {displayName(m)}
                       {m.id === userId && " (you)"}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {m.email}
+                      {m.role === "ADMIN"
+                        ? "Department admin"
+                        : m.role === "SUPERVISOR"
+                          ? "Supervisor"
+                          : "Member"}
                     </p>
                   </div>
                   {dept.isAdmin && m.id !== userId ? (

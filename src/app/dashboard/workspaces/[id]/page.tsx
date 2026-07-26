@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { displayName } from "@/lib/identity";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -251,7 +252,7 @@ export default async function WorkspaceDetailPage({
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="flex items-center gap-2 truncate font-medium">
-                        {m.user.name ?? m.user.email}
+                        {displayName(m.user)}
                         {(isLeader || m.userId === userId) &&
                           participation[m.userId]?.inactive && (
                             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.65rem] font-semibold text-amber-700">
@@ -260,8 +261,7 @@ export default async function WorkspaceDetailPage({
                           )}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {m.title ? `${m.title} · ` : ""}
-                        {m.user.email}
+                        {m.title ?? "Team member"}
                       </p>
                       {(isLeader || m.userId === userId) &&
                         participation[m.userId] && (
@@ -292,7 +292,7 @@ export default async function WorkspaceDetailPage({
                     <MemberControls
                       workspaceId={workspace.id}
                       memberUserId={m.userId}
-                      memberName={m.user.name ?? m.user.email}
+                      memberName={displayName(m.user)}
                       role={m.role}
                       title={m.title}
                       isOwner={m.userId === workspace.leaderId}
@@ -392,7 +392,7 @@ export default async function WorkspaceDetailPage({
                     <JoinRequestRow
                       key={r.id}
                       requestId={r.id}
-                      name={r.user.name ?? r.user.email}
+                      name={displayName(r.user)}
                     />
                   ))}
                 </div>

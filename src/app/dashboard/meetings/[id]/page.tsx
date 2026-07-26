@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { displayName } from "@/lib/identity";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
@@ -160,7 +161,7 @@ export default async function MeetingDetailPage({
                 <li key={m.userId} className="flex items-center justify-between py-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">
-                      {m.user.name ?? m.user.email}
+                      {displayName(m.user)}
                       {m.userId === userId && " (you)"}
                     </p>
                     {att?.checkedInAt && (

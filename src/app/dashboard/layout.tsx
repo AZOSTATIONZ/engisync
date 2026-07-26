@@ -5,6 +5,7 @@ import { isEmailConfigured } from "@/lib/email";
 import { isSupervisor } from "@/lib/supervisor";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { VerifyBanner } from "@/components/verify-banner";
 
 export default async function DashboardLayout({
@@ -33,8 +34,12 @@ export default async function DashboardLayout({
       {showVerify && <VerifyBanner />}
       <div className="container flex flex-1 gap-0">
         <Sidebar isSupervisor={supervises} />
-        <main className="flex-1 py-8 md:pl-8">{children}</main>
+        {/* pb-24 on mobile keeps content clear of the fixed bottom nav. */}
+        <main className="flex-1 py-6 pb-24 md:py-8 md:pb-8 md:pl-8">
+          {children}
+        </main>
       </div>
+      <BottomNav />
     </div>
   );
 }

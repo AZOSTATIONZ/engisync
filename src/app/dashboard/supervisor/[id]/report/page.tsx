@@ -136,7 +136,41 @@ export default async function ProjectReportPage({
       {/* Individual performance */}
       <div>
         <h2 className="mb-2 text-lg font-semibold">Individual performance</h2>
-        <Card>
+        {/* Mobile: one card per student — wide tables are unusable on phones. */}
+        <div className="space-y-3 md:hidden">
+          {report.individuals.map((s) => (
+            <Card key={s.userId}>
+              <CardContent className="py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate font-medium">{s.name}</p>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                    {s.contributionPct}%
+                  </span>
+                </div>
+                <dl className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
+                  {[
+                    ["Done", `${s.tasksCompleted}/${s.tasksAssigned}`],
+                    ["Attend.", `${s.attendancePct}%`],
+                    ["Product.", s.productivityScore],
+                    ["Files", s.filesUploaded],
+                    ["Comments", s.commentsMade],
+                    ["Avg days", s.avgCompletionDays ?? "—"],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="rounded-md bg-muted/40 py-1.5">
+                      <dt className="text-[0.65rem] uppercase text-muted-foreground">
+                        {label}
+                      </dt>
+                      <dd className="font-semibold">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop: full comparison table. */}
+        <Card className="hidden md:block">
           <CardContent className="overflow-x-auto py-3">
             <table className="w-full text-sm">
               <thead>
