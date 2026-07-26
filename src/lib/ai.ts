@@ -7,6 +7,17 @@
 
 export type AIProvider = "anthropic" | "openai" | "gemini" | "local";
 
+/**
+ * Master kill switch. When true, every AI feature reports "out of service"
+ * regardless of any provider key that happens to be present in the
+ * environment. Set AI_DISABLED="false" to re-enable later — no code changes.
+ */
+export const AI_DISABLED = process.env.AI_DISABLED !== "false";
+
+/** User-facing message shown wherever an AI feature is invoked while disabled. */
+export const AI_OUT_OF_SERVICE =
+  "AI features are currently out of service. Everything else in EngiSync works as normal.";
+
 function keyFor(p: AIProvider): boolean {
   if (p === "anthropic") return !!process.env.ANTHROPIC_API_KEY;
   if (p === "openai") return !!process.env.OPENAI_API_KEY;
@@ -16,6 +27,7 @@ function keyFor(p: AIProvider): boolean {
 }
 
 export function getProvider(): AIProvider | null {
+  if (AI_DISABLED) return null;
   const explicit = process.env.AI_PROVIDER?.toLowerCase() as AIProvider | undefined;
   if (explicit && keyFor(explicit)) return explicit;
   // Auto-detect by whichever credential is present.
@@ -30,6 +42,7 @@ export function isAIConfigured(): boolean {
 }
 
 export function providerLabel(): string {
+  if (AI_DISABLED) return "Out of service";
   const p = getProvider();
   if (p === "anthropic") return "Anthropic (Claude)";
   if (p === "openai") return "OpenAI (GPT)";
@@ -64,6 +77,9 @@ export async function chatComplete({
   prompt,
   maxTokens = 1024,
 }: ChatArgs): Promise<string> {
+  if (AI_DISABLED) {
+    throw new Error(AI_OUT_OF_SERVICE);
+  }
   const provider = getProvider();
   if (!provider) {
     throw new Error(

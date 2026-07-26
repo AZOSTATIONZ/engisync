@@ -31,6 +31,19 @@ function fromAddress(): string {
   return process.env.EMAIL_FROM || "EngiSync <onboarding@resend.dev>";
 }
 
+/** Non-secret config summary for diagnostics (never exposes credentials). */
+export function emailDiagnostics(): {
+  provider: string;
+  configured: boolean;
+  from: string;
+} {
+  return {
+    provider: providerName(),
+    configured: isEmailConfigured(),
+    from: fromAddress(),
+  };
+}
+
 type SendArgs = {
   to: string;
   subject: string;
@@ -63,7 +76,17 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
         }),
       });
       if (!res.ok) {
-        return { sent: false, error: `Resend error ${res.status}` };
+        const detail = await res.text().catch(() => "");
+        console.error(
+          `[email] Resend failed status=${res.status} to=${args.to} ${detail.slice(0, 300)}`,
+        );
+        const hint =
+          res.status === 403 && detail.includes("domain")
+            ? " — your EMAIL_FROM domain isn't verified in Resend. Use onboarding@resend.dev while testing."
+            : res.status === 401
+              ? " — RESEND_API_KEY is invalid."
+              : "";
+        return { sent: false, error: `Resend error ${res.status}${hint}` };
       }
       return { sent: true };
     }
@@ -85,7 +108,9 @@ export async function sendEmail(args: SendArgs): Promise<SendResult> {
     });
     return { sent: true };
   } catch (e) {
-    return { sent: false, error: e instanceof Error ? e.message : "send failed" };
+    const msg = e instanceof Error ? e.message : "send failed";
+    console.error(`[email] ${provider} send failed to=${args.to}: ${msg}`);
+    return { sent: false, error: msg };
   }
 }
 

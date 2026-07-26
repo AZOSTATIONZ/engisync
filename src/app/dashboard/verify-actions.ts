@@ -29,6 +29,14 @@ export async function resendVerification(): Promise<ResendState> {
   if (!user) return { error: "Account not found." };
   if (user.emailVerified) return { success: "Your email is already verified." };
 
-  await sendVerificationEmail(session.user.id, user.email);
-  return { success: "Verification email sent — check your inbox." };
+  const res = await sendVerificationEmail(session.user.id, user.email);
+  if (!res.ok) {
+    return {
+      error:
+        res.reason === "not-configured"
+          ? "Email isn't configured on this server yet — ask the administrator to set it up."
+          : `Couldn't send the email: ${res.error ?? "unknown error"}. Please try again.`,
+    };
+  }
+  return { success: "Verification email sent — check your inbox (and spam)." };
 }

@@ -48,10 +48,18 @@ export async function POST(req: Request) {
       data: { userId: user.id, action: "USER_REGISTERED", target: user.email },
     });
 
-    // Send a verification email (no-op if email isn't configured).
-    await sendVerificationEmail(user.id, user.email).catch(() => {});
+    // Send a verification email. Never blocks registration, but the outcome is
+    // logged and reported so a misconfiguration is visible instead of silent.
+    let verification: { sent: boolean; reason?: string } = { sent: false };
+    try {
+      const res = await sendVerificationEmail(user.id, user.email);
+      verification = res.ok ? { sent: true } : { sent: false, reason: res.reason };
+    } catch (e) {
+      console.error("[register] verification email threw:", e);
+      verification = { sent: false, reason: "send-failed" };
+    }
 
-    return NextResponse.json({ user }, { status: 201 });
+    return NextResponse.json({ user, verification }, { status: 201 });
   } catch (err) {
     console.error("[register]", err);
     return NextResponse.json(

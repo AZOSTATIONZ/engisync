@@ -1,6 +1,6 @@
 import { Plan } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { isAIConfigured } from "@/lib/ai";
+import { isAIConfigured, AI_DISABLED, AI_OUT_OF_SERVICE } from "@/lib/ai";
 import { isAiEnabledByAdmin } from "@/lib/app-settings";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -19,6 +19,10 @@ const FREE_DAILY_AI = 8;
 export async function canUseAI(
   userId: string,
 ): Promise<{ ok: boolean; reason?: string }> {
+  // Master kill switch takes precedence over every other check.
+  if (AI_DISABLED) {
+    return { ok: false, reason: AI_OUT_OF_SERVICE };
+  }
   if (!(await isAiEnabledByAdmin())) {
     return { ok: false, reason: "AI is currently switched off by the administrator." };
   }
