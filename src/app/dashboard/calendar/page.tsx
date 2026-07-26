@@ -151,7 +151,55 @@ export default async function CalendarPage({
             </Link>
           </div>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        {/* Mobile: day-by-day agenda instead of a cramped grid. */}
+        <CardContent className="space-y-2 md:hidden">
+          {cells
+            .filter((d) => d.getMonth() === month)
+            .map((date) => {
+              const key = dayKey(date);
+              const dayItems = byDay.get(key) ?? [];
+              if (dayItems.length === 0) return null;
+              return (
+                <div key={key} className="rounded-md border p-2.5">
+                  <p
+                    className={cn(
+                      "mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                      key === todayKey && "text-primary",
+                    )}
+                  >
+                    {date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+                    {key === todayKey && " · Today"}
+                  </p>
+                  <div className="space-y-1.5">
+                    {dayItems.map((it) => (
+                      <div
+                        key={`${it.kind}-${it.id}`}
+                        className="flex items-center gap-2 rounded bg-accent/60 px-2 py-1.5 text-sm"
+                      >
+                        {it.kind === "task" ? (
+                          <span className={cn("h-2 w-2 shrink-0 rounded-full", PRIORITY_DOT[it.type])} />
+                        ) : (
+                          <span className="shrink-0">{it.time ? "🕒" : "📌"}</span>
+                        )}
+                        <span className="truncate">{it.title}</span>
+                        {it.time && (
+                          <span className="ml-auto shrink-0 text-xs text-muted-foreground">{it.time}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          {cells.filter((d) => d.getMonth() === month && (byDay.get(dayKey(d))?.length ?? 0) > 0).length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nothing scheduled this month.
+            </p>
+          )}
+        </CardContent>
+
+        {/* Desktop/tablet: full month grid. */}
+        <CardContent className="hidden overflow-x-auto md:block">
           <div className="grid min-w-[560px] grid-cols-7 gap-px overflow-hidden rounded-lg border bg-border text-sm">
             {WEEKDAYS.map((d) => (
               <div
