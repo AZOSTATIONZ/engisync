@@ -28,10 +28,10 @@ export default async function ResourceHubPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ q?: string; type?: string; difficulty?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; difficulty?: string; ai?: string }>;
 }) {
   const { id } = await params;
-  const { q, type, difficulty } = await searchParams;
+  const { q, type, difficulty, ai } = await searchParams;
   const session = await auth();
   const userId = session!.user.id;
 
@@ -45,7 +45,7 @@ export default async function ResourceHubPage({
     listApprovedResources(id, userId, { q, type, difficulty }),
     listMySubmissions(id, userId),
     listPendingResources(id, userId),
-    getRecommendations(userId),
+    getRecommendations(userId, 8, ai === "1"),
     getLearnerProfile(userId),
     isDeptAdmin(id, userId),
   ]);
@@ -84,9 +84,19 @@ export default async function ResourceHubPage({
           <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="h-5 w-5 text-primary" /> Recommended for you
           </CardTitle>
-          <span className="text-xs text-muted-foreground">
-            {rec.aiRanked ? "AI-personalized" : "Based on your department"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {rec.aiRanked ? "AI-personalized" : "Based on your department & project"}
+            </span>
+            {!rec.aiRanked && (
+              <Link
+                href={`/dashboard/departments/${id}/resources?ai=1${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs hover:bg-accent"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Personalize with AI
+              </Link>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {rec.items.length === 0 ? (

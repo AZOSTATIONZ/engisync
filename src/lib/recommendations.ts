@@ -155,13 +155,16 @@ async function interactionBoosts(userId: string): Promise<Map<string, number>> {
 export async function getRecommendations(
   userId: string,
   limit = 8,
+  useAI = false,
 ): Promise<{ items: Recommendation[]; aiRanked: boolean; context: LearnerContext }> {
   const ctx = await getLearnerContext(userId);
   const pool = await candidatePool(ctx.departmentCode);
   const boosts = await interactionBoosts(userId);
 
-  const gate = await canUseAI(userId);
-  if (!gate.ok || !isAIConfigured()) {
+  // Default: the free, instant heuristic. AI only runs when explicitly asked,
+  // so browsing the hub never burns the Gemini free-tier quota.
+  const gate = useAI ? await canUseAI(userId) : { ok: false };
+  if (!useAI || !gate.ok || !isAIConfigured()) {
     return { items: heuristicRank(pool, ctx, boosts, limit), aiRanked: false, context: ctx };
   }
 

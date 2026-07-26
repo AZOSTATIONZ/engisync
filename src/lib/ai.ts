@@ -105,7 +105,7 @@ export async function chatComplete({
 
   if (provider === "gemini") {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
-    const res = await fetch(url, {
+    const init = {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -113,10 +113,22 @@ export async function chatComplete({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: maxTokens },
       }),
-    });
+    };
+    // Retry once on transient rate-limit / overload (429/503).
+    let res = await fetch(url, init);
+    if (res.status === 429 || res.status === 503) {
+      log(`transient status=${res.status}; retrying once`);
+      await new Promise((r) => setTimeout(r, 1800));
+      res = await fetch(url, init);
+    }
     if (!res.ok) {
       const detail = await res.text();
       log(`request failed status=${res.status}`);
+      if (res.status === 429) {
+        throw new Error(
+          "AI is temporarily rate-limited on Google Gemini's free tier (about 15 requests/minute and ~1,500/day). Please wait a minute and try again.",
+        );
+      }
       const hint =
         res.status === 400 || res.status === 403
           ? " — check that GEMINI_API_KEY is valid and the Generative Language API is enabled."
