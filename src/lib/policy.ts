@@ -91,7 +91,10 @@ export type Action =
   | "quiz.manage"
   // Money
   | "budget.view"
-  | "budget.manage";
+  | "budget.manage"
+  // Repository
+  | "project.publish"
+  | "publication.approve";
 
 /** Actions any member of the project — including read-only viewers — may do. */
 const VIEWER_ACTIONS: ReadonlySet<Action> = new Set<Action>([
@@ -126,8 +129,17 @@ const CAPABILITY_ACTIONS: Record<keyof Capabilities, readonly Action[]> = {
  * needs arrives in `ctx`, which is what makes the whole matrix testable.
  */
 export function can(ctx: PolicyContext, action: Action): boolean {
-  // Platform admins bypass workspace roles. Kept as the first rule so it is
-  // impossible to miss when reading this function.
+  // Publication approval is the ONE write a supervisor may perform, and the
+  // one action a leader may NOT perform on their own project. It is checked
+  // before every other rule precisely so that "leaders can do everything"
+  // cannot leak self-approval — the person who assembled a submission must
+  // not be the person who signs it off.
+  if (action === "publication.approve") {
+    return ctx.isSystemAdmin || ctx.isSupervisor;
+  }
+
+  // Platform admins bypass workspace roles. Kept as the first rule (after the
+  // approval carve-out) so it is impossible to miss when reading this function.
   if (ctx.isSystemAdmin) return true;
 
   // Supervisors observe every project in their department, but never write.

@@ -37,6 +37,8 @@ const ALL_ACTIONS: Action[] = [
   "quiz.manage",
   "budget.view",
   "budget.manage",
+  "project.publish",
+  "publication.approve",
 ];
 
 function ctx(
@@ -68,11 +70,28 @@ describe("non-members", () => {
 });
 
 describe("leaders", () => {
-  it("can do everything in their own project", () => {
+  it("can do everything in their own project except approve their own publication", () => {
     const c = ctx("LEADER");
     for (const a of ALL_ACTIONS) {
-      expect(can(c, a), `expected leader to be allowed ${a}`).toBe(true);
+      const expected = a !== "publication.approve";
+      expect(can(c, a), `leader / ${a}`).toBe(expected);
     }
+  });
+
+  it("can submit for publication", () => {
+    expect(can(ctx("LEADER"), "project.publish")).toBe(true);
+    expect(can(ctx("MEMBER"), "project.publish")).toBe(false);
+  });
+});
+
+describe("publication approval — separation of duties", () => {
+  it("only supervisors and admins can approve", () => {
+    expect(can(ctx(null, {}, { isSupervisor: true }), "publication.approve")).toBe(true);
+    expect(can(ctx(null, {}, { isSystemAdmin: true }), "publication.approve")).toBe(true);
+    expect(can(ctx("LEADER"), "publication.approve")).toBe(false);
+    expect(can(ctx("MEMBER", { canApprove: true }), "publication.approve")).toBe(false);
+    expect(can(ctx("VIEWER"), "publication.approve")).toBe(false);
+    expect(can(ctx(null), "publication.approve")).toBe(false);
   });
 });
 
@@ -238,6 +257,16 @@ describe("system admins", () => {
     for (const a of ALL_ACTIONS) {
       expect(can(c, a), `admin should be allowed ${a}`).toBe(true);
     }
+  });
+});
+
+describe("supervisors can approve publications but still cannot write anything else", () => {
+  it("approval is the single supervisor write", () => {
+    const c = ctx(null, {}, { isSupervisor: true });
+    expect(can(c, "publication.approve")).toBe(true);
+    expect(can(c, "project.publish")).toBe(false);
+    expect(can(c, "document.approve")).toBe(false);
+    expect(can(c, "project.edit")).toBe(false);
   });
 });
 

@@ -35,7 +35,12 @@ export const routes = {
   meetings: "/dashboard/meetings",
   tasks: "/dashboard/tasks",
   collaboration: "/dashboard/collaboration",
+  repository: "/dashboard/repository",
 } as const;
+
+export function repositoryEntry(slug: string): string {
+  return `/dashboard/repository/${slug}`;
+}
 
 /**
  * A project's main page.

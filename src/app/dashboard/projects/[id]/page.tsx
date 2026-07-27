@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Target, Flag, AlertTriangle, Package, MessageSquare, Route } from "lucide-react";
+import { ArrowLeft, Target, Flag, AlertTriangle, Package, MessageSquare, Route, Archive } from "lucide-react";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { getProject } from "@/lib/project";
+import { PublishForm } from "./publish-form";
 import { STAGE_META } from "@/lib/lifecycle";
 import { ProjectStepper } from "@/components/project-stepper";
 import { PaceBadge } from "@/components/pace-badge";
@@ -33,6 +35,27 @@ export default async function ProjectDetailPage({
   const session = await auth();
   const project = await getProject(id, session!.user.id);
   if (!project) notFound();
+
+  // Publication state + files available for archiving.
+  const [publication, workspaceFiles] = await Promise.all([
+    prisma.publishedProject.findFirst({
+      where: { workspaceId: id, status: { not: "REJECTED" } },
+      orderBy: { createdAt: "desc" },
+      select: { status: true, slug: true },
+    }),
+    prisma.fileResource.findMany({
+      where: { workspaceId: id },
+      select: { id: true, name: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+  const lastRejection = publication
+    ? null
+    : await prisma.publishedProject.findFirst({
+        where: { workspaceId: id, status: "REJECTED" },
+        orderBy: { createdAt: "desc" },
+        select: { rejectionReason: true },
+      });
 
   return (
     <div className="space-y-6">
@@ -196,6 +219,61 @@ export default async function ProjectDetailPage({
           </CardContent>
         </Card>
       )}
+
+      {/* ── Publication — the final lifecycle step ─────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Archive className="h-5 w-5 text-primary" /> Repository publication
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {publication?.status === "PUBLISHED" ? (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+              <p className="font-medium text-emerald-600 dark:text-emerald-400">
+                Published as {publication.slug}
+              </p>
+              <Link
+                href={`/dashboard/repository/${publication.slug}`}
+                className="text-xs text-primary hover:underline"
+              >
+                View in the repository →
+              </Link>
+            </div>
+          ) : publication?.status === "PENDING_APPROVAL" ? (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-muted-foreground">
+              Submitted — awaiting your supervisor&apos;s approval.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                When the project is complete, publish it to the department
+                repository so future students can build on your work instead of
+                starting from zero.
+              </p>
+              {lastRejection?.rejectionReason && (
+                <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                  <span className="font-medium text-destructive">
+                    Previous submission was sent back:
+                  </span>{" "}
+                  {lastRejection.rejectionReason}
+                </p>
+              )}
+              {project.isLeader ? (
+                <PublishForm
+                  workspaceId={project.id}
+                  projectName={project.name}
+                  files={workspaceFiles}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Your group leader submits the publication.
+                </p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

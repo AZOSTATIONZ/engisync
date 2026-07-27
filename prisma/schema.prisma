@@ -114,9 +114,41 @@ enum ContributionMethod {
   ECOCASH
   ONEMONEY
   INNBUCKS
+  ZIPIT
   CASH
   BANK
   OTHER
+}
+
+/// Verification state of a declared payment.
+///
+/// NOTE there is deliberately no "AI checked" state. AI/OCR assistance is
+/// advisory metadata hanging off the record, never a rung on this ladder —
+/// otherwise a payment would stall in limbo whenever AI is disabled or
+/// rate-limited, which is most of the time on a free tier.
+enum ContributionStatus {
+  /// Member says they paid. Nothing confirmed yet.
+  DECLARED
+  /// A leader (or member with canApprove) confirmed it against their own records.
+  VERIFIED
+  /// Rejected by a leader — the member may dispute.
+  REJECTED
+  /// Member disagrees with a rejection. Visible to the supervisor.
+  DISPUTED
+}
+
+/// Append-only ledger events.
+///
+/// Verification decisions are NEVER overwritten in place. This is what makes
+/// the money trail tamper-evident: a leader cannot quietly flip a payment from
+/// verified back to unverified without leaving the history behind.
+enum LedgerEventType {
+  DECLARED
+  VERIFIED
+  REJECTED
+  DISPUTED
+  RESOLVED
+  NOTE
 }
 
 enum ExpenseCategory {
@@ -336,6 +368,8 @@ model Workspace {
   feedback      ProjectFeedback[]
   document      ProjectDocument?
   activity      Activity[]
+  contributionRequests ContributionRequest[]
+  paymentInstruction   PaymentInstruction?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -856,6 +890,109 @@ model WorkspaceMember {
   @@index([userId])
 }
 
+// ── Engineering repository (publication & archive) ──
+
+enum PublicationStatus {
+  /// Leader is assembling the submission.
+  DRAFT
+  /// Submitted, waiting for supervisor sign-off.
+  PENDING_APPROVAL
+  /// In the permanent archive.
+  PUBLISHED
+  /// Supervisor sent it back with a reason.
+  REJECTED
+}
+
+enum PublishedFileKind {
+  REPORT
+  PRESENTATION
+  SOURCE_CODE
+  CAD
+  SIMULATION
+  BOM
+  IMAGE
+  VIDEO
+  OTHER
+}
+
+/// Who can see a published project. The multi-tenancy seam: today DEPARTMENT
+/// vs UNIVERSITY; a future cross-university tier slots in as a new value.
+enum PublishedVisibility {
+  DEPARTMENT
+  UNIVERSITY
+}
+
+/// A published project — the department's permanent knowledge base.
+///
+/// DESIGN: this is a SNAPSHOT, deliberately without foreign keys to User,
+/// Workspace or Department. Authors are stored as display-name strings, the
+/// department as a name. The source workspace can be deleted, members can
+/// delete their accounts, and the archive record survives untouched — an
+/// archive that can be mutated or cascaded away by its source is not an
+/// archive. The optional id fields below are plain strings for provenance,
+/// not relations.
+model PublishedProject {
+  id   String @id @default(cuid())
+  /// Permanent human-readable identifier, e.g. "ES-2026-0042".
+  slug String @unique
+
+  status     PublicationStatus   @default(DRAFT)
+  visibility PublishedVisibility @default(DEPARTMENT)
+
+  title    String
+  abstract String @db.Text
+  year     Int
+  license  String @default("All rights reserved")
+
+  /// Searchable facets.
+  keywords    String[]
+  disciplines String[]
+  components  String[] // e.g. "ESP32", "L298N"
+  languages   String[] // e.g. "C++", "Python"
+
+  /// Snapshotted names — never joined, never cascaded.
+  departmentName String
+  authors        String[]
+  supervisorName String?
+
+  /// Provenance (plain strings, no FK — see design note).
+  workspaceId    String?
+  departmentId   String?
+  submittedById  String
+  approvedById   String?
+
+  rejectionReason String?
+  downloads       Int     @default(0)
+
+  createdAt   DateTime  @default(now())
+  submittedAt DateTime?
+  publishedAt DateTime?
+
+  files PublishedFile[]
+
+  @@index([status, year])
+  @@index([departmentId, status])
+  @@index([workspaceId])
+}
+
+/// Archived file bytes, copied from the workspace at approval time.
+/// Deliberately duplicates storage rather than referencing FileResource:
+/// the workspace's files cascade-delete with the workspace; these must not.
+model PublishedFile {
+  id          String            @id @default(cuid())
+  publishedId String
+  published   PublishedProject  @relation(fields: [publishedId], references: [id], onDelete: Cascade)
+  kind        PublishedFileKind @default(OTHER)
+  name        String
+  mimeType    String
+  size        Int
+  data        Bytes
+
+  createdAt DateTime @default(now())
+
+  @@index([publishedId])
+}
+
 // ── Activity feed ─────────────────────────────
 
 /// Categories of recorded activity. Only events that CANNOT be derived from
@@ -1092,12 +1229,79 @@ model Attendance {
 
 // ── Budget: contributions & expenses ──────────
 
+/// A request for money: "PCB manufacturing, US$120, $15 each, due 15 August".
+model ContributionRequest {
+  id       String  @id @default(cuid())
+  title    String
+  purpose  String?
+  /// Total the project needs to raise.
+  targetAmount    Decimal  @db.Decimal(12, 2)
+  /// Expected share per member, if the leader split it evenly.
+  perMemberAmount Decimal? @db.Decimal(12, 2)
+  currency String   @default("USD")
+  dueDate  DateTime?
+  closed   Boolean  @default(false)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contributions Contribution[]
+
+  @@index([workspaceId, closed])
+}
+
+/// Where members should send money. EngiSync only displays these details —
+/// it never touches the funds.
+model PaymentInstruction {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  ecocashNumber     String?
+  ecocashName       String?
+  oneMoneyNumber    String?
+  bankName          String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  notes             String?
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
 model Contribution {
   id          String             @id @default(cuid())
   amount      Decimal            @db.Decimal(12, 2)
   method      ContributionMethod @default(ECOCASH)
   reference   String? // e.g. EcoCash transaction reference
   note        String?
+
+  status ContributionStatus @default(DECLARED)
+
+  /// Currency the member actually paid in. Zimbabwe runs USD and ZWG side by
+  /// side, so a single project currency would make totals meaningless.
+  currency     String  @default("USD")
+  /// Rate to the project's base currency, captured at declaration time so
+  /// historical totals stay stable when rates move.
+  exchangeRate Decimal @default(1) @db.Decimal(18, 6)
+  /// amount × exchangeRate, denormalised so totals never re-derive from a
+  /// rate that has since changed.
+  baseAmount   Decimal @db.Decimal(12, 2)
+
+  /// When the member says the transfer happened (not when they logged it).
+  paidAt DateTime?
+
+  requestId String?
+  request   ContributionRequest? @relation(fields: [requestId], references: [id])
+
+  receiptFileId String?
+  /// SHA-256 of the uploaded receipt bytes — catches an identical file being
+  /// submitted twice. Deterministic and explainable, unlike AI image forensics.
+  receiptHash   String?
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -1106,11 +1310,39 @@ model Contribution {
   userId String
   user   User   @relation("Contributor", fields: [userId], references: [id])
 
+  verifiedById String?
+  verifiedAt   DateTime?
+
   recordedById String // who logged this entry
   createdAt    DateTime @default(now())
 
+  events LedgerEvent[]
+
+  /// The single strongest anti-fraud control in this module: the same
+  /// transaction reference cannot be claimed twice within a project.
+  /// Postgres treats NULLs as distinct, so cash payments (no reference) are
+  /// unaffected.
+  @@unique([workspaceId, reference])
   @@index([workspaceId])
   @@index([userId])
+  @@index([workspaceId, status])
+}
+
+/// Append-only history for a payment. Never updated, never deleted.
+model LedgerEvent {
+  id             String          @id @default(cuid())
+  contributionId String
+  contribution   Contribution    @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  type           LedgerEventType
+  note           String?
+
+  actorId   String?
+  /// Denormalised so history stays readable after an account is deleted.
+  actorName String
+
+  createdAt DateTime @default(now())
+
+  @@index([contributionId, createdAt])
 }
 
 model Expense {
@@ -1119,6 +1351,16 @@ model Expense {
   category    ExpenseCategory @default(OTHER)
   description String
   reference   String?
+
+  /// Same per-transaction currency handling as contributions.
+  currency     String  @default("USD")
+  exchangeRate Decimal @default(1) @db.Decimal(18, 6)
+  baseAmount   Decimal @db.Decimal(12, 2)
+
+  vendor        String?
+  spentAt       DateTime?
+  /// Receipt / invoice / quotation backing this expense.
+  receiptFileId String?
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

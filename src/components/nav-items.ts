@@ -1,4 +1,5 @@
 import {
+  Archive,
   LayoutDashboard,
   Building2,
   CheckSquare,
@@ -72,16 +73,16 @@ export function getPrimaryNav(): NavItem[] {
       description: "Your project teams, plans, tasks, documents and budget.",
     },
     {
+      href: routes.repository,
+      label: "Repository",
+      icon: Archive,
+      description: "Published projects from past cohorts — search before you build.",
+    },
+    {
       href: routes.library,
       label: "Library",
       icon: Building2,
       description: "Department resources, announcements and curated material.",
-    },
-    {
-      href: routes.files,
-      label: "Files",
-      icon: FolderArchive,
-      description: "Engineering files shared with secure, expiring links.",
     },
   ];
 }
@@ -97,6 +98,12 @@ export function getSecondaryNav(
   opts: { isSupervisor?: boolean; isAdmin?: boolean } = {},
 ): NavItem[] {
   const items: NavItem[] = [
+    {
+      href: routes.files,
+      label: "Files",
+      icon: FolderArchive,
+      description: "Engineering files shared with secure, expiring links.",
+    },
     {
       href: routes.tasks,
       label: "All tasks",

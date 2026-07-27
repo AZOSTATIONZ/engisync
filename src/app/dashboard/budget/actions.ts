@@ -67,15 +67,23 @@ export async function addContribution(
     contributorId = data.userId;
   }
 
+  // Leader-entered records are trusted at source and land VERIFIED — the
+  // DECLARED → VERIFIED flow exists for members declaring their own payments.
+  // baseAmount mirrors amount here because this path is single-currency.
   await prisma.contribution.create({
     data: {
       workspaceId: data.workspaceId,
       userId: contributorId,
       amount: data.amount,
+      baseAmount: data.amount,
+      status: contributorId === userId ? "DECLARED" : "VERIFIED",
       method: data.method,
       reference: data.reference ?? null,
       note: data.note ?? null,
       recordedById: userId,
+      ...(contributorId !== userId
+        ? { verifiedById: userId, verifiedAt: new Date() }
+        : {}),
     },
   });
   await prisma.auditLog.create({
@@ -113,6 +121,7 @@ export async function addExpense(
     data: {
       workspaceId: data.workspaceId,
       amount: data.amount,
+      baseAmount: data.amount,
       category: data.category,
       description: data.description,
       reference: data.reference ?? null,
