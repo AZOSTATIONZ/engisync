@@ -40,10 +40,10 @@ import { Button } from "@/components/ui/button";
 import {
   CopyButton,
   RegenerateCodeButton,
-  LeaveWorkspaceButton,
   DeleteWorkspaceButton,
 } from "./workspace-controls";
 import { MemberControls } from "./member-controls";
+import { RequestWithdrawal, WithdrawalQueue } from "./withdrawal-section";
 import { MoreMenu } from "@/components/more-menu";
 import {
   AccessSettingsForm,
@@ -72,6 +72,22 @@ export default async function WorkspaceDetailPage({
   const participation = await getWorkspaceParticipation(workspace.id);
   const myParticipation = participation[userId];
   const inactiveCount = Object.values(participation).filter((p) => p.inactive).length;
+
+  // Open withdrawal requests — leaving is a process, not a button.
+  const withdrawals = await prisma.withdrawalRequest.findMany({
+    where: { workspaceId: id, status: { in: ["PENDING", "LEADER_APPROVED"] } },
+    include: { user: { select: { name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  const withdrawalInfos = withdrawals.map((w) => ({
+    id: w.id,
+    memberName: displayName(w.user),
+    reason: w.reason,
+    status: w.status as "PENDING" | "LEADER_APPROVED",
+    isMine: w.userId === userId,
+    createdAt: w.createdAt.toISOString(),
+  }));
+  const myWithdrawal = withdrawalInfos.find((w) => w.isMine) ?? null;
 
   const joinUrl = await buildJoinUrl(workspace.joinCode);
   const qr = await generateQrDataUrl(joinUrl);
@@ -113,10 +129,16 @@ export default async function WorkspaceDetailPage({
               <Crown className="h-4 w-4" /> Group Leader
             </span>
           ) : (
-            <LeaveWorkspaceButton workspaceId={workspace.id} />
+            <RequestWithdrawal
+              workspaceId={workspace.id}
+              myRequest={myWithdrawal}
+            />
           )}
         </div>
       </div>
+
+      {/* Leaders see pending withdrawal requests up top — they block people. */}
+      {isLeader && <WithdrawalQueue requests={withdrawalInfos} />}
 
       {/* Nudge the member themselves if they haven't started participating */}
       {myParticipation?.inactive && (

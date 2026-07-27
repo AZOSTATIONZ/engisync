@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MessageSquare, FileText, BarChart3 } from "lucide-react";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { getSupervisedProject } from "@/lib/supervisor";
+import { WithdrawalConfirm } from "./withdrawal-confirm";
 import {
   Card,
   CardContent,
@@ -25,6 +28,13 @@ export default async function SuperviseProjectPage({
   const session = await auth();
   const p = await getSupervisedProject(id, session!.user.id);
   if (!p) notFound();
+
+  // Withdrawals the leader has approved — waiting on this supervisor.
+  const pendingWithdrawals = await prisma.withdrawalRequest.findMany({
+    where: { workspaceId: id, status: "LEADER_APPROVED" },
+    include: { user: { select: { name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
 
   return (
     <div className="space-y-6">
@@ -54,6 +64,16 @@ export default async function SuperviseProjectPage({
           </div>
         </div>
       </div>
+
+      <WithdrawalConfirm
+        items={pendingWithdrawals.map((w) => ({
+          id: w.id,
+          memberName: displayName(w.user),
+          reason: w.reason,
+          leaderNote: w.leaderNote,
+          createdAt: w.createdAt.toISOString(),
+        }))}
+      />
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         {[

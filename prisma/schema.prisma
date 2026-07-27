@@ -198,6 +198,7 @@ model User {
   attendances   Attendance[]
   contributions Contribution[] @relation("Contributor")
   expensesSpent Expense[]      @relation("ExpenseSpender")
+  withdrawalRequests WithdrawalRequest[] @relation("WithdrawalRequester")
   deptMemberships   DepartmentMember[]
   createdDepartments Department[]     @relation("DeptCreator")
   deptAnnouncements DepartmentAnnouncement[] @relation("DeptAnnouncementAuthor")
@@ -370,6 +371,7 @@ model Workspace {
   activity      Activity[]
   contributionRequests ContributionRequest[]
   paymentInstruction   PaymentInstruction?
+  withdrawalRequests   WithdrawalRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -887,6 +889,45 @@ model WorkspaceMember {
   joinedAt DateTime @default(now())
 
   @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+// ── Professional withdrawal from a group ──────
+
+enum WithdrawalStatus {
+  /// Member asked to leave; leader hasn't decided.
+  PENDING
+  /// Leader agreed; waiting for supervisor confirmation (departments only).
+  LEADER_APPROVED
+  /// Fully approved — membership removed.
+  COMPLETED
+  /// Leader or supervisor said no, with a reason.
+  REJECTED
+  /// Requester changed their mind while pending.
+  CANCELLED
+}
+
+/// A member cannot simply vanish from a group. Leaving is a request with a
+/// reason, blocked while the member still owns open tasks, approved by the
+/// leader, and (when the group belongs to a department) confirmed by a
+/// supervisor. The record survives the departure — it IS the accountability.
+model WithdrawalRequest {
+  id          String           @id @default(cuid())
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation("WithdrawalRequester", fields: [userId], references: [id], onDelete: Cascade)
+  status      WithdrawalStatus @default(PENDING)
+  reason      String
+
+  leaderNote     String?
+  supervisorNote String?
+  decidedById    String?
+
+  createdAt DateTime  @default(now())
+  decidedAt DateTime?
+
+  @@index([workspaceId, status])
   @@index([userId])
 }
 
