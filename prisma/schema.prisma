@@ -250,6 +250,26 @@ model EmailVerificationToken {
 
 // ── Workspaces (group projects) ───────────────
 
+/// The engineering project lifecycle.
+///
+/// These are ADVISORY, not gates. Nothing in the app blocks an action because
+/// of the current stage — a student who needs to upload a document during
+/// "Planning" must always be able to. The stage describes where the project is
+/// so progress can be communicated and paced; it never restricts what a team
+/// can do.
+enum ProjectStage {
+  IDEA
+  PROPOSAL
+  PLANNING
+  DESIGN
+  SIMULATION
+  IMPLEMENTATION
+  TESTING
+  DOCUMENTATION
+  PRESENTATION
+  COMPLETED
+}
+
 model Workspace {
   id          String  @id @default(cuid())
   name        String
@@ -261,6 +281,14 @@ model Workspace {
   // Project management
   objectives String?
   scope      String?
+
+  // Engineering lifecycle. `stageEnteredAt` is what makes "are we behind
+  // schedule?" answerable — without a timestamp we can only say where a
+  // project is, never how long it has been stuck there.
+  stage         ProjectStage @default(IDEA)
+  stageEnteredAt DateTime    @default(now())
+  /// Optional target end date, used to pace expected progress.
+  targetEndDate DateTime?
 
   // Budget
   budgetTarget Decimal? @db.Decimal(12, 2)

@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   Building2,
-  Users,
   CheckSquare,
   FolderKanban,
   Calendar,
@@ -13,8 +12,11 @@ import {
   Sparkles,
   Settings,
   GraduationCap,
+  ListChecks,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
+import { routes } from "@/lib/routes";
 
 export type NavItem = {
   href: string;
@@ -28,74 +30,165 @@ export type NavSection = {
   items: NavItem[];
 };
 
-const OVERVIEW: NavItem = {
-  href: "/dashboard",
-  label: "Dashboard",
-  icon: LayoutDashboard,
-  description: "Your overview: open tasks, workspaces, and activity.",
-};
-
-const SUPERVISOR: NavItem = {
-  href: "/dashboard/supervisor",
-  label: "Supervisor",
-  icon: GraduationCap,
-  description: "Read-only view of every project in the departments you supervise.",
-};
+/**
+ * PRIMARY navigation — the five destinations that are always visible.
+ *
+ * The app previously exposed 16 top-level items, eight of which were
+ * cross-project aggregate views of features that ALSO live inside a project.
+ * That "axis collision" (organised by feature at the top level, by container
+ * underneath) is why users could not form a mental model of where anything
+ * lived.
+ *
+ * We now commit to one axis — project-first, the GitHub model — with a single
+ * explicitly-labelled personal lens on top:
+ *
+ *   Home        what needs me right now
+ *   My Work     MY tasks/meetings/deadlines pulled from every project
+ *   Projects    the projects themselves; everything else lives inside one
+ *   Library     department learning material
+ *   Files       shared engineering files
+ *
+ * "My Work" is a lens, "Projects" is a place. Keeping exactly one lens is what
+ * stops it feeling like a duplicate of a project's own task list.
+ */
+export function getPrimaryNav(): NavItem[] {
+  return [
+    {
+      href: routes.home,
+      label: "Home",
+      icon: LayoutDashboard,
+      description: "What needs your attention right now.",
+    },
+    {
+      href: routes.myWork,
+      label: "My Work",
+      icon: ListChecks,
+      description: "Your tasks, meetings and deadlines across every project.",
+    },
+    {
+      href: routes.projects,
+      label: "Projects",
+      icon: FolderKanban,
+      description: "Your project teams, plans, tasks, documents and budget.",
+    },
+    {
+      href: routes.library,
+      label: "Library",
+      icon: Building2,
+      description: "Department resources, announcements and curated material.",
+    },
+    {
+      href: routes.files,
+      label: "Files",
+      icon: FolderArchive,
+      description: "Engineering files shared with secure, expiring links.",
+    },
+  ];
+}
 
 /**
- * Grouped navigation. Sections keep the sidebar scannable as the app grows.
- * The Supervisor section only appears for users who supervise a department.
+ * SECONDARY navigation — reachable from the sidebar's "More" group, the mobile
+ * More sheet, and the ⌘K palette, but never competing for primary attention.
+ *
+ * Nothing here is removed; these are either cross-project rollups that most
+ * users reach from inside a project, or role-specific tools.
  */
-export function getNavSections(isSupervisor = false): NavSection[] {
-  // Four top-level areas instead of seven. Sections that held a single item
-  // were pure visual noise; related destinations are now grouped by the job
-  // the user is trying to do, not by the module that implements them.
-  const sections: NavSection[] = [
-    { title: "Home", items: [OVERVIEW] },
+export function getSecondaryNav(
+  opts: { isSupervisor?: boolean; isAdmin?: boolean } = {},
+): NavItem[] {
+  const items: NavItem[] = [
     {
-      title: "My work",
-      items: [
-        { href: "/dashboard/workspaces", label: "Groups", icon: Users, description: "Your project teams — create one or join with a code/invite." },
-        { href: "/dashboard/projects", label: "Projects", icon: FolderKanban, description: "Project objectives, scope, milestones, and deliverables." },
-        { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare, description: "Assign work with priorities, deadlines, and time tracking." },
-        { href: "/dashboard/calendar", label: "Calendar", icon: Calendar, description: "Deadlines, meetings, and countdowns in one view." },
-        { href: "/dashboard/meetings", label: "Meetings", icon: Video, description: "Schedule sessions, share join links, and track attendance." },
-      ],
+      href: routes.tasks,
+      label: "All tasks",
+      icon: CheckSquare,
+      description: "Every task across your projects, with filters.",
     },
     {
-      title: "Learning",
-      items: [
-        { href: "/dashboard/departments", label: "Departments", icon: Building2, description: "Your department, announcements, and the AI-curated Resource Hub." },
-        { href: "/dashboard/resources", label: "Files", icon: FolderArchive, description: "Share engineering files with secure, expiring links." },
-        { href: "/dashboard/collaboration", label: "Collaboration", icon: MessagesSquare, description: "Discussions, announcements, and cross-department work." },
-        { href: "/dashboard/assistant", label: "AI Assistant", icon: Sparkles, description: "Summaries, task generation, and engineering guidance." },
-      ],
+      href: routes.calendar,
+      label: "Calendar",
+      icon: Calendar,
+      description: "Deadlines, meetings and countdowns in one view.",
     },
     {
-      title: "Insights",
-      items: [
-        { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3, description: "Project health, workload, burndown, and AI insights." },
-        { href: "/dashboard/budget", label: "Budget", icon: Wallet, description: "Track contributions (EcoCash and more) and expenses." },
-        ...(isSupervisor ? [SUPERVISOR] : []),
-      ],
+      href: routes.meetings,
+      label: "Meetings",
+      icon: Video,
+      description: "Schedule sessions, share links, track attendance.",
     },
     {
-      title: "Account",
-      items: [
-        { href: "/dashboard/settings", label: "Settings", icon: Settings, description: "Account, notifications, and two-factor security." },
-      ],
+      href: routes.analytics,
+      label: "Analytics",
+      icon: BarChart3,
+      description: "Project health, workload and burndown across projects.",
+    },
+    {
+      href: routes.budget,
+      label: "Budget",
+      icon: Wallet,
+      description: "Contributions (EcoCash and more) and expenses.",
+    },
+    {
+      href: routes.collaboration,
+      label: "Collaboration",
+      icon: MessagesSquare,
+      description: "Discussions and cross-department work.",
+    },
+    {
+      href: routes.assistant,
+      label: "AI Assistant",
+      icon: Sparkles,
+      description: "Summaries, task generation and engineering guidance.",
     },
   ];
 
-  return sections;
+  if (opts.isSupervisor) {
+    items.push({
+      href: routes.supervisor,
+      label: "Supervisor",
+      icon: GraduationCap,
+      description: "Every project in the departments you supervise.",
+    });
+  }
+
+  if (opts.isAdmin) {
+    items.push({
+      href: routes.admin,
+      label: "Admin",
+      icon: Shield,
+      description: "Platform settings and user administration.",
+    });
+  }
+
+  items.push({
+    href: routes.settings,
+    label: "Settings",
+    icon: Settings,
+    description: "Account, notifications and two-factor security.",
+  });
+
+  return items;
+}
+
+/**
+ * Sidebar structure: five primary destinations, then everything else grouped
+ * under "More" so it is present but visually subordinate.
+ */
+export function getNavSections(isSupervisor = false, isAdmin = false): NavSection[] {
+  return [
+    { title: "", items: getPrimaryNav() },
+    { title: "More", items: getSecondaryNav({ isSupervisor, isAdmin }) },
+  ];
 }
 
 /** Flat list of every destination — used by the command palette. */
-export function getAllNavItems(isSupervisor = false): NavItem[] {
-  return getNavSections(isSupervisor).flatMap((s) => s.items);
+export function getAllNavItems(isSupervisor = false, isAdmin = false): NavItem[] {
+  return [...getPrimaryNav(), ...getSecondaryNav({ isSupervisor, isAdmin })];
 }
 
 /** Active-state check shared by desktop + mobile nav. */
 export function isNavActive(pathname: string, href: string): boolean {
-  return href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+  if (href === routes.home) return pathname === href;
+  // Strip query strings before comparing (e.g. tasks?workspace=…).
+  const base = href.split("?")[0];
+  return pathname.startsWith(base);
 }

@@ -108,10 +108,12 @@ export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) 
 
           <nav className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-4">
             {sections.map((section) => (
-              <div key={section.title} className="flex flex-col gap-1">
-                <p className="px-3 pb-1 text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                  {section.title}
-                </p>
+              <div key={section.title || "primary"} className="flex flex-col gap-1">
+                {section.title && (
+                  <p className="px-3 pb-1 pt-2 text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    {section.title}
+                  </p>
+                )}
                 {section.items.map((item) => {
                   const active = isNavActive(pathname, item.href);
                   return (

@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isWorkspaceLeader } from "@/lib/workspace";
+import {
+  PROJECT_STAGES,
+  STAGE_META,
+  type ProjectStage,
+} from "@/lib/lifecycle";
 
 export type ProjectState = { error?: string; success?: string } | null;
 
@@ -23,6 +28,73 @@ async function requireLeader(workspaceId: string): Promise<string | null> {
 
 function rev(workspaceId: string) {
   revalidatePath(`/dashboard/projects/${workspaceId}`);
+}
+
+/**
+ * Move the project to a stage.
+ *
+ * Any stage is reachable in either direction — teams genuinely do go back to
+ * Design after Testing fails, and forcing a linear march would make the
+ * feature lie about what happened. `stageEnteredAt` resets on every change so
+ * "days in this stage" stays honest.
+ */
+export async function setProjectStage(
+  workspaceId: string,
+  stage: string,
+): Promise<ProjectState> {
+  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  if (!(PROJECT_STAGES as readonly string[]).includes(stage)) {
+    return { error: "Unknown stage." };
+  }
+
+  const current = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { stage: true },
+  });
+  if (!current) return { error: "Project not found." };
+  if (current.stage === stage) return null;
+
+  await prisma.workspace.update({
+    where: { id: workspaceId },
+    data: {
+      stage: stage as ProjectStage,
+      stageEnteredAt: new Date(),
+    },
+  });
+
+  rev(workspaceId);
+  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  revalidatePath("/dashboard");
+  return { success: `Moved to ${STAGE_META[stage as ProjectStage].label}.` };
+}
+
+/** Target end date drives the "are we behind?" arithmetic. */
+export async function setTargetDate(
+  workspaceId: string,
+  _prev: ProjectState,
+  formData: FormData,
+): Promise<ProjectState> {
+  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  const raw = String(formData.get("targetEndDate") ?? "").trim();
+
+  if (!raw) {
+    await prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { targetEndDate: null },
+    });
+    rev(workspaceId);
+    return { success: "Target date cleared." };
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return { error: "Use a valid date." };
+
+  await prisma.workspace.update({
+    where: { id: workspaceId },
+    data: { targetEndDate: new Date(raw) },
+  });
+  rev(workspaceId);
+  revalidatePath("/dashboard");
+  return { success: "Target date saved." };
 }
 
 export async function setProjectInfo(
