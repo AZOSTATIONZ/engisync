@@ -3,13 +3,20 @@ import type { Metadata } from "next";
 import {
   AlertTriangle,
   ArrowRight,
+  BadgeCheck,
   CalendarClock,
   CheckCircle2,
   CheckSquare,
+  FileText,
   FileUp,
   FolderKanban,
+  Info,
   MessageSquare,
+  Route,
+  Sparkles,
+  Users,
   Video,
+  Wallet,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
@@ -24,10 +31,19 @@ import { OnboardingCard } from "@/components/onboarding-card";
 export const metadata: Metadata = { title: "Home" };
 
 const ACTIVITY_ICON: Record<ActivityKind, typeof CheckSquare> = {
+  // Derived from existing rows
   task: CheckCircle2,
   file: FileUp,
   meeting: Video,
   message: MessageSquare,
+  // Stored events (see lib/activity-log.ts)
+  stage: Route,
+  approval: BadgeCheck,
+  member: Users,
+  budget: Wallet,
+  document: FileText,
+  ai: Sparkles,
+  system: Info,
 };
 
 function dueLabel(d: Date | null, now: Date): string {

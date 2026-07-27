@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isWorkspaceLeader } from "@/lib/workspace";
+import { authorize, type Action } from "@/lib/policy";
+import { recordActivity } from "@/lib/activity-log";
 import {
   PROJECT_STAGES,
   STAGE_META,
@@ -20,10 +21,22 @@ async function requireUserId() {
   return session.user.id;
 }
 
-async function requireLeader(workspaceId: string): Promise<string | null> {
+/**
+ * Single authorization gate for this file.
+ *
+ * Previously every action here hand-rolled an `isWorkspaceLeader()` check and
+ * returned a hardcoded "Leaders only." string — which was both duplicated and
+ * wrong once capabilities existed (a member granted `canManageBudget` is not
+ * a leader but may still act). All decisions now come from `@/lib/policy`.
+ */
+async function gate(
+  workspaceId: string,
+  action: Action,
+): Promise<{ userId: string } | { error: string }> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) return null;
-  return userId;
+  const authz = await authorize(workspaceId, userId, action);
+  if (!authz.ok) return { error: authz.error };
+  return { userId };
 }
 
 function rev(workspaceId: string) {
@@ -42,7 +55,8 @@ export async function setProjectStage(
   workspaceId: string,
   stage: string,
 ): Promise<ProjectState> {
-  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  const g = await gate(workspaceId, "project.stage.set");
+  if ("error" in g) return { error: g.error };
   if (!(PROJECT_STAGES as readonly string[]).includes(stage)) {
     return { error: "Unknown stage." };
   }
@@ -62,6 +76,15 @@ export async function setProjectStage(
     },
   });
 
+  // A stage change has no row of its own to derive from, so it is recorded.
+  await recordActivity({
+    workspaceId,
+    actorId: g.userId,
+    kind: "STAGE",
+    action: "moved the project to",
+    subject: STAGE_META[stage as ProjectStage].label,
+  });
+
   rev(workspaceId);
   revalidatePath(`/dashboard/workspaces/${workspaceId}`);
   revalidatePath("/dashboard");
@@ -74,7 +97,8 @@ export async function setTargetDate(
   _prev: ProjectState,
   formData: FormData,
 ): Promise<ProjectState> {
-  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  const g = await gate(workspaceId, "project.edit");
+  if ("error" in g) return { error: g.error };
   const raw = String(formData.get("targetEndDate") ?? "").trim();
 
   if (!raw) {
@@ -102,7 +126,8 @@ export async function setProjectInfo(
   _prev: ProjectState,
   formData: FormData,
 ): Promise<ProjectState> {
-  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  const g = await gate(workspaceId, "project.edit");
+  if ("error" in g) return { error: g.error };
   await prisma.workspace.update({
     where: { id: workspaceId },
     data: {
@@ -119,7 +144,8 @@ export async function addMilestone(
   _prev: ProjectState,
   formData: FormData,
 ): Promise<ProjectState> {
-  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  const g = await gate(workspaceId, "project.milestone.manage");
+  if ("error" in g) return { error: g.error };
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "Add a milestone title." };
   const dueRaw = String(formData.get("dueDate") ?? "");
@@ -138,7 +164,8 @@ export async function toggleMilestone(id: string): Promise<ProjectState> {
   const userId = await requireUserId();
   const m = await prisma.milestone.findUnique({ where: { id } });
   if (!m) return { error: "Not found." };
-  if (!(await isWorkspaceLeader(m.workspaceId, userId))) return { error: "Leaders only." };
+  const authz = await authorize(m.workspaceId, userId, "project.milestone.manage");
+  if (!authz.ok) return { error: authz.error };
   await prisma.milestone.update({ where: { id }, data: { done: !m.done } });
   rev(m.workspaceId);
   return null;
@@ -148,7 +175,8 @@ export async function deleteMilestone(id: string): Promise<ProjectState> {
   const userId = await requireUserId();
   const m = await prisma.milestone.findUnique({ where: { id } });
   if (!m) return { error: "Not found." };
-  if (!(await isWorkspaceLeader(m.workspaceId, userId))) return { error: "Leaders only." };
+  const authz = await authorize(m.workspaceId, userId, "project.milestone.manage");
+  if (!authz.ok) return { error: authz.error };
   await prisma.milestone.delete({ where: { id } });
   rev(m.workspaceId);
   return null;
@@ -159,7 +187,8 @@ export async function addRisk(
   _prev: ProjectState,
   formData: FormData,
 ): Promise<ProjectState> {
-  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  const g = await gate(workspaceId, "project.risk.manage");
+  if ("error" in g) return { error: g.error };
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "Describe the risk." };
   const severity = String(formData.get("severity") ?? "MEDIUM");
@@ -179,7 +208,8 @@ export async function deleteRisk(id: string): Promise<ProjectState> {
   const userId = await requireUserId();
   const r = await prisma.projectRisk.findUnique({ where: { id } });
   if (!r) return { error: "Not found." };
-  if (!(await isWorkspaceLeader(r.workspaceId, userId))) return { error: "Leaders only." };
+  const authz = await authorize(r.workspaceId, userId, "project.risk.manage");
+  if (!authz.ok) return { error: authz.error };
   await prisma.projectRisk.delete({ where: { id } });
   rev(r.workspaceId);
   return null;
@@ -190,7 +220,8 @@ export async function addDeliverable(
   _prev: ProjectState,
   formData: FormData,
 ): Promise<ProjectState> {
-  if (!(await requireLeader(workspaceId))) return { error: "Leaders only." };
+  const g = await gate(workspaceId, "project.deliverable.manage");
+  if ("error" in g) return { error: g.error };
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "Add a deliverable." };
   await prisma.deliverable.create({ data: { workspaceId, title } });
@@ -202,7 +233,8 @@ export async function toggleDeliverable(id: string): Promise<ProjectState> {
   const userId = await requireUserId();
   const d = await prisma.deliverable.findUnique({ where: { id } });
   if (!d) return { error: "Not found." };
-  if (!(await isWorkspaceLeader(d.workspaceId, userId))) return { error: "Leaders only." };
+  const authz = await authorize(d.workspaceId, userId, "project.deliverable.manage");
+  if (!authz.ok) return { error: authz.error };
   await prisma.deliverable.update({ where: { id }, data: { done: !d.done } });
   rev(d.workspaceId);
   return null;
@@ -212,7 +244,8 @@ export async function deleteDeliverable(id: string): Promise<ProjectState> {
   const userId = await requireUserId();
   const d = await prisma.deliverable.findUnique({ where: { id } });
   if (!d) return { error: "Not found." };
-  if (!(await isWorkspaceLeader(d.workspaceId, userId))) return { error: "Leaders only." };
+  const authz = await authorize(d.workspaceId, userId, "project.deliverable.manage");
+  if (!authz.ok) return { error: authz.error };
   await prisma.deliverable.delete({ where: { id } });
   rev(d.workspaceId);
   return null;

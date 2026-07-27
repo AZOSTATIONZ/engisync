@@ -21,7 +21,29 @@ import { userWorkspaceIds } from "@/lib/task";
  * the body swaps to a dedicated `Activity` table.
  */
 
-export type ActivityKind = "task" | "file" | "meeting" | "message";
+export type ActivityKind =
+  | "task"
+  | "file"
+  | "meeting"
+  | "message"
+  | "stage"
+  | "approval"
+  | "member"
+  | "budget"
+  | "document"
+  | "ai"
+  | "system";
+
+/** Maps the stored ActivityKind enum onto the feed's display kinds. */
+const STORED_KIND: Record<string, ActivityKind> = {
+  STAGE: "stage",
+  APPROVAL: "approval",
+  MEMBER: "member",
+  BUDGET: "budget",
+  DOCUMENT: "document",
+  AI: "ai",
+  SYSTEM: "system",
+};
 
 export type ActivityItem = {
   id: string;
@@ -51,7 +73,22 @@ export async function getActivity(
 
   const perSource = Math.max(limit, 8);
 
-  const [tasks, files, meetings, messages] = await Promise.all([
+  const [stored, tasks, files, meetings, messages] = await Promise.all([
+    // Events that cannot be derived — stage changes, approvals, joins.
+    prisma.activity.findMany({
+      where: { workspaceId: { in: workspaceIds } },
+      select: {
+        id: true,
+        kind: true,
+        action: true,
+        subject: true,
+        actorName: true,
+        createdAt: true,
+        workspace: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: Math.max(limit, 8),
+    }),
     prisma.task.findMany({
       where: {
         workspaceId: { in: workspaceIds },
@@ -118,6 +155,19 @@ export async function getActivity(
   ]);
 
   const items: ActivityItem[] = [];
+
+  for (const a of stored) {
+    items.push({
+      id: `act-${a.id}`,
+      kind: STORED_KIND[a.kind] ?? "system",
+      actor: a.actorName,
+      action: a.action,
+      subject: a.subject,
+      projectId: a.workspace?.id ?? null,
+      projectName: a.workspace?.name ?? null,
+      at: a.createdAt,
+    });
+  }
 
   for (const t of tasks) {
     if (!t.completedAt) continue;

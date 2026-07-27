@@ -15,6 +15,8 @@ import {
   getExistingGroupsInfo,
 } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications";
+import { authorize } from "@/lib/policy";
+import { recordActivity } from "@/lib/activity-log";
 import { sendEmail, emailLayout, isEmailConfigured } from "@/lib/email";
 import { getBaseUrl } from "@/lib/qr";
 import { getTemplate } from "@/lib/templates";
@@ -309,6 +311,72 @@ export async function setMemberTitle(
 }
 
 /** Promote a member to co-leader. */
+/**
+ * Grant or revoke a delegated capability.
+ *
+ * This is the mechanism behind "assistant leader": rather than inventing a
+ * role tier, a leader hands a member one specific power. Only a leader may do
+ * this — otherwise a member holding `canInvite` could grant themselves
+ * `canApprove`, which is privilege escalation.
+ */
+export async function setMemberCapability(
+  workspaceId: string,
+  memberUserId: string,
+  capability: "canApprove" | "canManageBudget" | "canInvite",
+  value: boolean,
+): Promise<ActionState> {
+  const userId = await requireUserId();
+
+  const authz = await authorize(workspaceId, userId, "member.capability.set");
+  if (!authz.ok) return { error: authz.error };
+
+  const allowed = ["canApprove", "canManageBudget", "canInvite"] as const;
+  if (!(allowed as readonly string[]).includes(capability)) {
+    return { error: "Unknown permission." };
+  }
+
+  const target = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: memberUserId } },
+    select: { role: true },
+  });
+  if (!target) return { error: "That person isn't in this group." };
+  if (target.role === "LEADER") {
+    return { error: "Leaders already have every permission." };
+  }
+
+  await prisma.workspaceMember.update({
+    where: { workspaceId_userId: { workspaceId, userId: memberUserId } },
+    data: { [capability]: value },
+  });
+
+  const LABEL: Record<typeof capability, string> = {
+    canApprove: "approve work",
+    canManageBudget: "manage the budget",
+    canInvite: "invite members",
+  };
+
+  await createNotification({
+    userId: memberUserId,
+    type: NotificationType.WORKSPACE,
+    title: value ? "New permission granted" : "Permission removed",
+    body: value
+      ? `You can now ${LABEL[capability]} in this group.`
+      : `You can no longer ${LABEL[capability]} in this group.`,
+    link: `/dashboard/workspaces/${workspaceId}`,
+  });
+
+  await recordActivity({
+    workspaceId,
+    actorId: userId,
+    kind: "MEMBER",
+    action: value ? "granted permission to" : "removed permission from",
+    subject: LABEL[capability],
+  });
+
+  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  return { success: value ? "Permission granted." : "Permission removed." };
+}
+
 export async function promoteToLeader(
   workspaceId: string,
   memberUserId: string,

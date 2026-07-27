@@ -25,9 +25,21 @@ enum Plan {
   UNIVERSITY
 }
 
+/// Workspace roles.
+///
+/// Deliberately THREE, not six. "Assistant Leader" is not an identity — it is
+/// one capability (approving things) that a leader delegates. Modelling it as
+/// a role would add a permission tier every future check has to reason about;
+/// modelling it as a capability grant on WorkspaceMember keeps the tier count
+/// low while expressing exactly the same thing.
+///
+/// Department Admin and Supervisor are deliberately NOT here: they operate at
+/// the department level and are checked separately.
 enum WorkspaceRole {
   LEADER
   MEMBER
+  /// Read-only: supervisors observing, and guests on shared links.
+  VIEWER
 }
 
 enum DepartmentRole {
@@ -323,6 +335,7 @@ model Workspace {
   deliverables  Deliverable[]
   feedback      ProjectFeedback[]
   document      ProjectDocument?
+  activity      Activity[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -827,6 +840,13 @@ model WorkspaceMember {
   role        WorkspaceRole @default(MEMBER)
   title       String? // responsibility label set by the leader (e.g. "Design lead")
 
+  // Capability grants — a leader can delegate specific powers to a member
+  // without promoting them to a whole new role tier. A member with
+  // `canApprove` is what other products would call an "assistant leader".
+  canApprove      Boolean @default(false)
+  canManageBudget Boolean @default(false)
+  canInvite       Boolean @default(false)
+
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -834,6 +854,51 @@ model WorkspaceMember {
 
   @@unique([workspaceId, userId])
   @@index([userId])
+}
+
+// ── Activity feed ─────────────────────────────
+
+/// Categories of recorded activity. Only events that CANNOT be derived from
+/// existing rows are stored here — see the note on `model Activity`.
+enum ActivityKind {
+  STAGE
+  APPROVAL
+  MEMBER
+  BUDGET
+  DOCUMENT
+  AI
+  SYSTEM
+}
+
+/// User-facing activity feed.
+///
+/// IMPORTANT — this is NOT the audit log. `AuditLog` is security-shaped
+/// (actor, IP, redacted on account deletion) and must not be shown to users.
+///
+/// This table deliberately stores ONLY events that cannot be derived from
+/// existing data: stage changes, approvals, budget updates, members joining.
+/// Things that already have a row and a timestamp — completed tasks, uploaded
+/// files, scheduled meetings, discussion posts — stay derived at read time, so
+/// they need no write path, no backfill, and can never drift out of sync with
+/// the records they describe. See `src/lib/activity.ts`, which merges both.
+model Activity {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  kind        ActivityKind
+  /// Verb phrase, e.g. "moved the project to".
+  action      String
+  /// What was acted on, e.g. "Testing".
+  subject     String
+
+  /// Denormalised so the feed survives account deletion (the User row goes,
+  /// the history stays readable and anonymised).
+  actorId   String?
+  actorName String
+
+  createdAt DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
 }
 
 // ── Tasks & time tracking ─────────────────────

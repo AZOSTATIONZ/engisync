@@ -310,6 +310,11 @@ export default async function WorkspaceDetailPage({
                       role={m.role}
                       title={m.title}
                       isOwner={m.userId === workspace.leaderId}
+                      capabilities={{
+                        canApprove: m.canApprove,
+                        canManageBudget: m.canManageBudget,
+                        canInvite: m.canInvite,
+                      }}
                     />
                   )}
                 </li>
