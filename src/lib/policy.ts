@@ -86,9 +86,11 @@ export type Action =
   | "document.edit"
   | "document.approve"
   | "discussion.post"
+  | "discussion.moderate"
   | "meeting.create"
   | "file.upload"
   | "quiz.manage"
+  | "collaboration.manage"
   // Money
   | "budget.view"
   | "budget.manage"

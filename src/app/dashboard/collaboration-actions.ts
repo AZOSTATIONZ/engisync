@@ -6,7 +6,7 @@ import { NotificationType } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isWorkspaceLeader } from "@/lib/workspace";
+import { authorize } from "@/lib/policy";
 import { isDeptAdmin } from "@/lib/department";
 import { createNotification } from "@/lib/notifications";
 
@@ -24,9 +24,8 @@ export async function requestCollaboration(
   departmentId: string,
 ): Promise<CollabState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only the group leader can request collaboration." };
-  }
+  const authz = await authorize(workspaceId, userId, "collaboration.manage");
+  if (!authz.ok) return { error: authz.error };
 
   const workspace = await prisma.workspace.findUnique({
     where: { id: workspaceId },
@@ -123,7 +122,7 @@ export async function removeCollaboration(collabId: string): Promise<CollabState
   if (!collab) return { error: "Not found." };
 
   const allowed =
-    (await isWorkspaceLeader(collab.workspaceId, userId)) ||
+    (await authorize(collab.workspaceId, userId, "collaboration.manage")).ok ||
     (await isDeptAdmin(collab.departmentId, userId));
   if (!allowed) return { error: "You can't remove this collaboration." };
 

@@ -9,11 +9,7 @@ import { WorkspaceRole, NotificationType } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateJoinCode } from "@/lib/utils";
-import {
-  getMembership,
-  isWorkspaceLeader,
-  getExistingGroupsInfo,
-} from "@/lib/workspace";
+import { getMembership, getExistingGroupsInfo } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications";
 import { authorize } from "@/lib/policy";
 import { recordActivity } from "@/lib/activity-log";
@@ -233,9 +229,8 @@ export async function regenerateJoinCode(
   workspaceId: string,
 ): Promise<ActionState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only the group leader can regenerate the join code." };
-  }
+  const authz = await authorize(workspaceId, userId, "project.edit");
+  if (!authz.ok) return { error: authz.error };
 
   const joinCode = await uniqueJoinCode();
   await prisma.workspace.update({ where: { id: workspaceId }, data: { joinCode } });
@@ -252,9 +247,8 @@ export async function removeMember(
   memberUserId: string,
 ): Promise<ActionState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only the group leader can remove members." };
-  }
+  const authz = await authorize(workspaceId, userId, "member.remove");
+  if (!authz.ok) return { error: authz.error };
   if (memberUserId === userId) {
     return { error: "The leader cannot remove themselves. Delete the workspace instead." };
   }
@@ -298,9 +292,8 @@ export async function setMemberTitle(
   title: string,
 ): Promise<ActionState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only a group leader can set member roles." };
-  }
+  const authz = await authorize(workspaceId, userId, "member.role.set");
+  if (!authz.ok) return { error: authz.error };
   const clean = title.trim().slice(0, 60);
   await prisma.workspaceMember.update({
     where: { workspaceId_userId: { workspaceId, userId: memberUserId } },
@@ -382,9 +375,8 @@ export async function promoteToLeader(
   memberUserId: string,
 ): Promise<ActionState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only a group leader can promote members." };
-  }
+  const authz = await authorize(workspaceId, userId, "member.role.set");
+  if (!authz.ok) return { error: authz.error };
   await prisma.workspaceMember.update({
     where: { workspaceId_userId: { workspaceId, userId: memberUserId } },
     data: { role: WorkspaceRole.LEADER },
@@ -406,9 +398,8 @@ export async function demoteToMember(
   memberUserId: string,
 ): Promise<ActionState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only a group leader can change roles." };
-  }
+  const authz = await authorize(workspaceId, userId, "member.role.set");
+  if (!authz.ok) return { error: authz.error };
   const workspace = await prisma.workspace.findUnique({
     where: { id: workspaceId },
     select: { leaderId: true },
@@ -431,9 +422,8 @@ export async function nudgeMember(
   message: string,
 ): Promise<ActionState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only a group leader can nudge members." };
-  }
+  const authz = await authorize(workspaceId, userId, "member.role.set");
+  if (!authz.ok) return { error: authz.error };
   const workspace = await prisma.workspace.findUnique({
     where: { id: workspaceId },
     select: { name: true },
@@ -451,9 +441,8 @@ export async function nudgeMember(
 
 export async function deleteWorkspace(workspaceId: string): Promise<ActionState> {
   const userId = await requireUserId();
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only the group leader can delete the workspace." };
-  }
+  const authz = await authorize(workspaceId, userId, "project.delete");
+  if (!authz.ok) return { error: authz.error };
 
   await prisma.workspace.delete({ where: { id: workspaceId } });
   await prisma.auditLog.create({
@@ -472,9 +461,8 @@ export async function updateGroupAccess(
 ): Promise<ActionState> {
   const userId = await requireUserId();
   const workspaceId = String(formData.get("workspaceId") ?? "");
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only the group leader can change access settings." };
-  }
+  const authz = await authorize(workspaceId, userId, "project.edit");
+  if (!authz.ok) return { error: authz.error };
 
   const rawMax = String(formData.get("maxMembers") ?? "").trim();
   const requireApproval = formData.get("requireApproval") === "on";
@@ -503,9 +491,8 @@ export async function approveJoinRequest(requestId: string): Promise<ActionState
     include: { workspace: true },
   });
   if (!req) return { error: "Request not found." };
-  if (!(await isWorkspaceLeader(req.workspaceId, userId))) {
-    return { error: "Only the group leader can approve requests." };
-  }
+  const authz = await authorize(req.workspaceId, userId, "joinRequest.decide");
+  if (!authz.ok) return { error: authz.error };
 
   const count = await prisma.workspaceMember.count({ where: { workspaceId: req.workspaceId } });
   if (req.workspace.maxMembers !== null && count >= req.workspace.maxMembers) {
@@ -536,9 +523,8 @@ export async function rejectJoinRequest(requestId: string): Promise<ActionState>
   const userId = await requireUserId();
   const req = await prisma.joinRequest.findUnique({ where: { id: requestId } });
   if (!req) return { error: "Request not found." };
-  if (!(await isWorkspaceLeader(req.workspaceId, userId))) {
-    return { error: "Only the group leader can reject requests." };
-  }
+  const authz = await authorize(req.workspaceId, userId, "joinRequest.decide");
+  if (!authz.ok) return { error: authz.error };
 
   await prisma.joinRequest.update({ where: { id: requestId }, data: { status: "REJECTED" } });
   await createNotification({
@@ -559,9 +545,8 @@ export async function createInvite(
 ): Promise<(ActionState & { token?: string }) | null> {
   const userId = await requireUserId();
   const workspaceId = String(formData.get("workspaceId") ?? "");
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only the group leader can create invites." };
-  }
+  const authz = await authorize(workspaceId, userId, "member.invite");
+  if (!authz.ok) return { error: authz.error };
 
   const expiresInHours = parseInt(String(formData.get("expiresInHours") ?? "0"), 10);
   const rawMaxUses = String(formData.get("maxUses") ?? "").trim();
@@ -587,9 +572,8 @@ export async function inviteByEmail(
   const workspaceId = String(formData.get("workspaceId") ?? "");
   const email = String(formData.get("email") ?? "").trim();
 
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only the group leader can send invites." };
-  }
+  const authz = await authorize(workspaceId, userId, "member.invite");
+  if (!authz.ok) return { error: authz.error };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Enter a valid email address." };
   }
@@ -632,9 +616,8 @@ export async function revokeInvite(inviteId: string): Promise<ActionState> {
   const userId = await requireUserId();
   const invite = await prisma.groupInvite.findUnique({ where: { id: inviteId } });
   if (!invite) return { error: "Invite not found." };
-  if (!(await isWorkspaceLeader(invite.workspaceId, userId))) {
-    return { error: "Only the group leader can revoke invites." };
-  }
+  const authz = await authorize(invite.workspaceId, userId, "member.invite");
+  if (!authz.ok) return { error: authz.error };
   await prisma.groupInvite.update({ where: { id: inviteId }, data: { revoked: true } });
   revalidatePath(`/dashboard/workspaces/${invite.workspaceId}`);
   return { success: "Invite revoked." };

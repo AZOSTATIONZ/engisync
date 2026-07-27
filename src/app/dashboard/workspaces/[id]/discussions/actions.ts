@@ -6,7 +6,8 @@ import { NotificationType } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getMembership, isWorkspaceLeader } from "@/lib/workspace";
+import { authorize } from "@/lib/policy";
+import { getMembership } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications";
 
 export type DiscussionState = { error?: string; success?: string } | null;
@@ -98,9 +99,11 @@ export async function deleteThread(threadId: string): Promise<DiscussionState> {
     select: { workspaceId: true, authorId: true },
   });
   if (!thread) return { error: "Not found." };
+  // Authors may delete their own threads; anyone else needs moderation
+  // rights (leader-only via the policy layer).
   const allowed =
     thread.authorId === user.id ||
-    (await isWorkspaceLeader(thread.workspaceId, user.id));
+    (await authorize(thread.workspaceId, user.id, "discussion.moderate")).ok;
   if (!allowed) return { error: "You can't delete this thread." };
 
   await prisma.discussionThread.delete({ where: { id: threadId } });

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getMembership, isWorkspaceLeader } from "@/lib/workspace";
+import { authorize } from "@/lib/policy";
+import { getMembership } from "@/lib/workspace";
 
 export type QuizState = { error?: string; success?: string } | null;
 export type SubmitState =
@@ -31,9 +32,8 @@ export async function createQuiz(
   formData: FormData,
 ): Promise<QuizState> {
   const user = await requireUser();
-  if (!(await isWorkspaceLeader(workspaceId, user.id))) {
-    return { error: "Only a group leader can create quizzes." };
-  }
+  const authz = await authorize(workspaceId, user.id, "quiz.manage");
+  if (!authz.ok) return { error: authz.error };
 
   const title = String(formData.get("title") ?? "").trim();
   if (title.length < 3) return { error: "Give the quiz a title." };
@@ -120,9 +120,11 @@ export async function deleteQuiz(quizId: string): Promise<QuizState> {
     select: { workspaceId: true, createdById: true },
   });
   if (!quiz) return { error: "Not found." };
+  // The quiz's author may always delete their own; otherwise leader-level
+  // moderation is required.
   const allowed =
     quiz.createdById === user.id ||
-    (await isWorkspaceLeader(quiz.workspaceId, user.id));
+    (await authorize(quiz.workspaceId, user.id, "quiz.manage")).ok;
   if (!allowed) return { error: "You can't delete this quiz." };
 
   await prisma.quiz.delete({ where: { id: quizId } });

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isWorkspaceLeader, getMembership } from "@/lib/workspace";
+import { authorize } from "@/lib/policy";
+import { getMembership } from "@/lib/workspace";
 import { canUseAI } from "@/lib/plan";
 import { chatComplete } from "@/lib/ai";
 import { runMentorCheck, type MentorAlert } from "@/lib/mentor";
@@ -62,9 +63,8 @@ export async function generateEvaluation(workspaceId: string): Promise<EvalState
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  if (!(await isWorkspaceLeader(workspaceId, userId))) {
-    return { error: "Only a group leader can run the AI evaluation." };
-  }
+  const authz = await authorize(workspaceId, userId, "project.edit");
+  if (!authz.ok) return { error: authz.error };
   const gate = await canUseAI(userId);
   if (!gate.ok) return { error: gate.reason };
 
