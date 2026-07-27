@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { FolderKanban } from "lucide-react";
 import { auth } from "@/auth";
 import { listProjects } from "@/lib/project";
+import { STAGE_META } from "@/lib/lifecycle";
+import { projectPlan } from "@/lib/routes";
+import { PaceBadge } from "@/components/pace-badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Projects" };
@@ -32,13 +35,19 @@ export default async function ProjectsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <Link key={p.id} href={`/dashboard/projects/${p.id}`}>
+            <Link key={p.id} href={projectPlan(p.id)}>
               <Card className="card-hover h-full">
                 <CardContent className="space-y-2 py-4">
-                  <p className="font-medium">{p.name}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 font-medium">{p.name}</p>
+                    {p.pace && <PaceBadge status={p.pace.status} showLabel={false} />}
+                  </div>
+                  <p className="text-xs font-medium text-primary">
+                    {STAGE_META[p.stage].label}
+                  </p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>{p.role === "LEADER" ? "You lead this" : "Member"}</span>
-                    <span>{p.completionPct}% done</span>
+                    <span>{p.completionPct}% of tasks done</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div className="h-full bg-primary" style={{ width: `${p.completionPct}%` }} />

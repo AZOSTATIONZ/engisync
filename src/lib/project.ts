@@ -1,25 +1,54 @@
 import { prisma } from "@/lib/prisma";
 import { getMembership, isWorkspaceLeader } from "@/lib/workspace";
 import { listWorkspacesForUser } from "@/lib/workspace";
+import { getPace, type ProjectStage } from "@/lib/lifecycle";
 
 /** Projects (= groups) the user belongs to, with quick progress. */
 export async function listProjects(userId: string) {
   const memberships = await listWorkspacesForUser(userId);
   const ids = memberships.map((m) => m.workspace.id);
-  const taskGroups = await prisma.task.groupBy({
-    by: ["workspaceId", "status"],
-    where: { workspaceId: { in: ids } },
-    _count: true,
-  });
+  const [taskGroups, lifecycles] = await Promise.all([
+    prisma.task.groupBy({
+      by: ["workspaceId", "status"],
+      where: { workspaceId: { in: ids } },
+      _count: true,
+    }),
+    prisma.workspace.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        stage: true,
+        stageEnteredAt: true,
+        targetEndDate: true,
+        createdAt: true,
+      },
+    }),
+  ]);
+
+  const byId = new Map(lifecycles.map((w) => [w.id, w]));
+  const now = new Date();
+
   return memberships.map((m) => {
     const rows = taskGroups.filter((t) => t.workspaceId === m.workspace.id);
     const total = rows.reduce((s, r) => s + r._count, 0);
     const done = rows.filter((r) => r.status === "DONE").reduce((s, r) => s + r._count, 0);
+    const w = byId.get(m.workspace.id);
+
     return {
       id: m.workspace.id,
       name: m.workspace.name,
       role: m.role as string,
       completionPct: total ? Math.round((done / total) * 100) : 0,
+      stage: (w?.stage ?? "IDEA") as ProjectStage,
+      pace: w
+        ? getPace(
+            w.stage as ProjectStage,
+            w.stageEnteredAt,
+            w.targetEndDate,
+            w.createdAt,
+            now,
+          )
+        : null,
     };
   });
 }
@@ -51,12 +80,25 @@ export async function getProject(workspaceId: string, userId: string) {
   ]);
   if (!workspace) return null;
 
+  const pace = getPace(
+    workspace.stage as ProjectStage,
+    workspace.stageEnteredAt,
+    workspace.targetEndDate,
+    workspace.createdAt,
+  );
+
   return {
     id: workspace.id,
     name: workspace.name,
     department: workspace.department?.name ?? null,
     objectives: workspace.objectives,
     scope: workspace.scope,
+    stage: workspace.stage as ProjectStage,
+    stageEnteredAt: workspace.stageEnteredAt.toISOString(),
+    targetEndDate: workspace.targetEndDate
+      ? workspace.targetEndDate.toISOString().slice(0, 10)
+      : "",
+    pace,
     isLeader,
     milestones: workspace.milestones.map((m) => ({
       id: m.id,

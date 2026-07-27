@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { getFocus, greeting, untilLabel } from "@/lib/focus";
 import { getActivityForUser, timeAgo, type ActivityKind } from "@/lib/activity";
 import { projectHome, routes } from "@/lib/routes";
+import { PaceBadge } from "@/components/pace-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingCard } from "@/components/onboarding-card";
@@ -195,14 +196,19 @@ export default async function DashboardPage() {
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{p.name}</span>
                     <span className="block text-xs text-muted-foreground">
+                      {p.stageLabel}
+                      {" · "}
                       {p.role === "LEADER" ? "You lead this" : "Member"}
                       {p.needsMe > 0 && ` · ${p.needsMe} task${p.needsMe === 1 ? "" : "s"} need you`}
                     </span>
                   </span>
-                  <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                    {p.completionPct}%
-                  </span>
+                  <PaceBadge status={p.pace.status} showLabel={false} />
                 </div>
+                {p.pace.status === "behind" && (
+                  <p className="mt-1.5 text-xs font-medium text-destructive">
+                    {p.pace.message}
+                  </p>
+                )}
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
                     className="h-full rounded-full bg-primary transition-all"

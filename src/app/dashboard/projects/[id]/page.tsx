@@ -1,9 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Target, Flag, AlertTriangle, Package, MessageSquare } from "lucide-react";
+import { ArrowLeft, Target, Flag, AlertTriangle, Package, MessageSquare, Route } from "lucide-react";
 import { auth } from "@/auth";
 import { getProject } from "@/lib/project";
+import { STAGE_META } from "@/lib/lifecycle";
+import { ProjectStepper } from "@/components/project-stepper";
+import { PaceBadge } from "@/components/pace-badge";
+import { TargetDateForm } from "../projects-ui";
 import {
   Card,
   CardContent,
@@ -51,6 +55,44 @@ export default async function ProjectDetailPage({
           </Button>
         </div>
       </div>
+
+      {/* Lifecycle — the first thing anyone should see: where are we, and
+          are we behind? */}
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Route className="h-5 w-5 text-primary" /> Project lifecycle
+          </CardTitle>
+          <PaceBadge status={project.pace.status} />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ProjectStepper
+            workspaceId={project.id}
+            stage={project.stage}
+            canEdit={project.isLeader}
+          />
+
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <p className="text-sm">{project.pace.message}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {project.pace.daysInStage === 0
+                ? `Moved to ${STAGE_META[project.stage].label} today.`
+                : `${project.pace.daysInStage} day${
+                    project.pace.daysInStage === 1 ? "" : "s"
+                  } in ${STAGE_META[project.stage].label}.`}
+              {project.pace.expectedProgress !== null &&
+                ` Schedule expects ~${project.pace.expectedProgress}%, project is at ${project.pace.actualProgress}%.`}
+            </p>
+          </div>
+
+          {project.isLeader && (
+            <TargetDateForm
+              workspaceId={project.id}
+              targetEndDate={project.targetEndDate}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Objectives & scope */}
       <Card>

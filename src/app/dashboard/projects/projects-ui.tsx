@@ -16,6 +16,7 @@ import {
   addDeliverable,
   toggleDeliverable,
   deleteDeliverable,
+  setTargetDate,
   type ProjectState,
 } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,39 @@ export function ProjectInfoForm({
       </div>
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       <SaveBtn label="Save" />
+    </form>
+  );
+}
+
+/**
+ * Target end date — the input that turns "which stage are we at?" into
+ * "are we behind?". Deliberately optional: a project without a date still
+ * gets stall detection, just not schedule comparison.
+ */
+export function TargetDateForm({
+  workspaceId,
+  targetEndDate,
+}: {
+  workspaceId: string;
+  targetEndDate: string;
+}) {
+  const [state, action] = useToastAction(setTargetDate.bind(null, workspaceId));
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-2">
+      <div className="space-y-1">
+        <Label htmlFor="targetEndDate" className="text-xs">
+          Target completion date
+        </Label>
+        <Input
+          id="targetEndDate"
+          name="targetEndDate"
+          type="date"
+          defaultValue={targetEndDate}
+          className="h-9 w-44"
+        />
+      </div>
+      <SaveBtn label="Save date" />
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
     </form>
   );
 }

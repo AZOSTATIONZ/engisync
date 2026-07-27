@@ -1,5 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { userWorkspaceIds } from "@/lib/task";
+import {
+  getPace,
+  STAGE_META,
+  type Pace,
+  type ProjectStage,
+} from "@/lib/lifecycle";
 
 /**
  * "What should I do right now?" — the data behind Home and My Work.
@@ -37,6 +43,9 @@ export type ProjectSummary = {
   openTasks: number;
   needsMe: number;
   nextDue: Date | null;
+  stage: ProjectStage;
+  stageLabel: string;
+  pace: Pace;
 };
 
 export type FocusData = {
@@ -105,7 +114,16 @@ export async function getFocus(userId: string, now: Date = new Date()): Promise<
       where: { userId },
       select: {
         role: true,
-        workspace: { select: { id: true, name: true } },
+        workspace: {
+          select: {
+            id: true,
+            name: true,
+            stage: true,
+            stageEnteredAt: true,
+            targetEndDate: true,
+            createdAt: true,
+          },
+        },
       },
     }),
 
@@ -181,27 +199,45 @@ export async function getFocus(userId: string, now: Date = new Date()): Promise<
   }
 
   const projects: ProjectSummary[] = memberships.map((m) => {
-    const id = m.workspace.id;
+    const w = m.workspace;
+    const id = w.id;
     const total = totalByProject.get(id) ?? 0;
     const open = openByProject.get(id) ?? 0;
     const mine = myTasksByProject.get(id) ?? [];
     const dated = mine
       .filter((t) => t.dueDate)
       .sort((a, b) => a.dueDate!.getTime() - b.dueDate!.getTime());
+    const stage = w.stage as ProjectStage;
 
     return {
       id,
-      name: m.workspace.name,
+      name: w.name,
       role: m.role as string,
       completionPct: total ? Math.round(((total - open) / total) * 100) : 0,
       openTasks: open,
       needsMe: mine.length,
       nextDue: dated[0]?.dueDate ?? null,
+      stage,
+      stageLabel: STAGE_META[stage].label,
+      pace: getPace(stage, w.stageEnteredAt, w.targetEndDate, w.createdAt, now),
     };
   });
 
-  // Projects that need me most come first.
-  projects.sort((a, b) => b.needsMe - a.needsMe || a.name.localeCompare(b.name));
+  // Behind-schedule projects first, then those needing my attention most.
+  // A project that is slipping is the single most useful thing to surface.
+  const PACE_RANK: Record<string, number> = {
+    behind: 0,
+    watch: 1,
+    "on-track": 2,
+    unknown: 3,
+    done: 4,
+  };
+  projects.sort(
+    (a, b) =>
+      PACE_RANK[a.pace.status] - PACE_RANK[b.pace.status] ||
+      b.needsMe - a.needsMe ||
+      a.name.localeCompare(b.name),
+  );
 
   return {
     overdue,
