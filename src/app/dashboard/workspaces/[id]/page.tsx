@@ -11,6 +11,7 @@ import {
   MessageSquare,
   GraduationCap,
   CheckSquare,
+  ClipboardCheck,
   Sparkles,
   AlertCircle,
   FileText,
@@ -177,7 +178,14 @@ export default async function WorkspaceDetailPage({
 
       {/* Primary actions lead; advanced tools live under "More". */}
       <div className="flex flex-wrap items-center gap-2">
-        <Button asChild size="sm">
+        {isLeader && (
+          <Button asChild size="sm">
+            <Link href={`/dashboard/workspaces/${workspace.id}/manage`}>
+              <ClipboardCheck className="h-4 w-4" /> Manage
+            </Link>
+          </Button>
+        )}
+        <Button asChild size="sm" variant={isLeader ? "outline" : "default"}>
           <Link href={`/dashboard/tasks`}>
             <CheckSquare className="h-4 w-4" /> Tasks
           </Link>
