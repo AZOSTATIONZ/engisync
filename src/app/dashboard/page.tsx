@@ -84,7 +84,7 @@ export default async function DashboardPage() {
   const hasFocus = focusItems.length > 0 || focus.meetingsToday.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       <div>
         <h1 className="text-2xl font-bold">
           {greeting(now)}, {firstName}
@@ -227,7 +227,7 @@ export default async function DashboardPage() {
                 )}
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-primary transition-all"
+                    className="animate-grow-x h-full rounded-full bg-primary"
                     style={{ width: `${p.completionPct}%` }}
                   />
                 </div>

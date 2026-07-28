@@ -68,7 +68,13 @@ export function NotificationBell({
         aria-label="Notifications"
         onClick={() => setOpen((o) => !o)}
       >
-        {count > 0 ? <BellRing className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+        {/* Swings once when unread items exist — arrival is information;
+            a bell that swings on hover would just be a toy. */}
+        {count > 0 ? (
+          <BellRing className="animate-bell h-5 w-5" />
+        ) : (
+          <Bell className="h-5 w-5" />
+        )}
         {count > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
             {count > 9 ? "9+" : count}

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Archive, Download, Search, ShieldCheck } from "lucide-react";
+import { Download, Search, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { searchRepository } from "@/lib/repository";
 import { isSupervisor } from "@/lib/supervisor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { PendingApprovals } from "./pending-approvals";
 
@@ -119,21 +120,18 @@ export default async function RepositoryPage({
 
       {/* Results */}
       {entries.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-            <Archive className="h-9 w-9 text-primary" />
-            <p className="font-medium">
-              {q ? "Nothing matches that search." : "The repository is empty so far."}
-            </p>
-            <p className="max-w-md text-sm text-muted-foreground">
-              {q
-                ? "Try a broader term — a component name, microcontroller, or topic."
-                : "When a group completes a project and their supervisor approves it, it's preserved here for future students."}
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title={q ? "Nothing matches that search" : "The archive starts with you"}
+          description={
+            q
+              ? "Try a broader term — a component name, microcontroller, or topic."
+              : "When a group completes a project and their supervisor approves it, it's preserved here so future students never start from zero."
+          }
+          actionLabel={q ? undefined : "Go to your projects"}
+          actionHref={q ? undefined : "/dashboard/projects"}
+        />
       ) : (
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {entries.map((e) => (
             <Link
               key={e.id}

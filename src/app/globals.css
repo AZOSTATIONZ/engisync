@@ -77,15 +77,43 @@
 }
 
 @layer utilities {
+  /* ── Motion system ─────────────────────────────────────────────────
+     One easing grammar for the whole app. Motion communicates state; it
+     never decorates. Anything here must read as "the interface responded",
+     not "the interface performed".                                      */
+  :root {
+    /* Spring-ish overshoot for entrances; standard ease for exits. */
+    --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   /* Smooth interactive transitions across the app */
   a,
   button,
   .card-hover {
-    @apply transition-[transform,background-color,border-color,box-shadow,color] duration-200;
+    @apply transition-[transform,background-color,border-color,box-shadow,color,opacity] duration-200;
   }
   .card-hover:hover {
     @apply -translate-y-0.5 shadow-soft;
   }
+
+  /* Interactive rows/tiles: consistent hover grammar everywhere. */
+  .row-hover {
+    @apply transition-[transform,background-color,border-color] duration-150;
+  }
+  .row-hover:hover {
+    @apply translate-x-0.5;
+  }
+
+  /* Icon nudge inside any `group` link — the single, consistent nav
+     hover treatment (see design note in nav-items.ts). */
+  .group:hover .icon-nudge {
+    transform: translateY(-1px) scale(1.08);
+  }
+  .icon-nudge {
+    transition: transform 0.18s var(--ease-spring);
+  }
+
   /* Subtle route-change fade (see template.tsx) */
   @keyframes fade-in-up {
     from {
@@ -98,14 +126,111 @@
     }
   }
   .animate-page {
-    animation: fade-in-up 0.28s ease-out;
+    animation: fade-in-up 0.28s var(--ease-out);
   }
+
+  /* Staggered list/card entrances — apply .stagger to a parent; direct
+     children fade up in sequence. Communicates "content arriving", and
+     caps at 8 so long lists don't feel slow. */
+  .stagger > * {
+    opacity: 0;
+    animation: fade-in-up 0.32s var(--ease-out) forwards;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.06s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.1s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.14s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.18s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.22s; }
+  .stagger > *:nth-child(7) { animation-delay: 0.26s; }
+  .stagger > *:nth-child(n + 8) { animation-delay: 0.3s; }
+
   @keyframes float-slow {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
   }
   .animate-float {
     animation: float-slow 5s ease-in-out infinite;
+  }
+
+  /* Progress bars grow from zero on load — completion you can see. */
+  @keyframes grow-x {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  .animate-grow-x {
+    transform-origin: left;
+    animation: grow-x 0.6s var(--ease-out) 0.15s backwards;
+  }
+
+  /* Notification bell: swings ONCE when unread items exist. State change,
+     not hover decoration — a bell that swings on hover is a toy; one that
+     swings because something arrived is information. */
+  @keyframes bell-swing {
+    0% { transform: rotate(0); }
+    20% { transform: rotate(12deg); }
+    40% { transform: rotate(-9deg); }
+    60% { transform: rotate(5deg); }
+    80% { transform: rotate(-2deg); }
+    100% { transform: rotate(0); }
+  }
+  .animate-bell {
+    transform-origin: top center;
+    animation: bell-swing 0.7s var(--ease-out) 0.4s 1;
+  }
+
+  /* Skeleton shimmer for loading states. */
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  .skeleton {
+    @apply rounded-md bg-muted;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.06),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* ── Engineering identity ─────────────────────────────────────────
+     A faint drafting-grid, used on empty states and hero surfaces.
+     Blueprint by suggestion, not by cliché — it must disappear when
+     content sits on top of it.                                        */
+  .bg-grid {
+    background-image:
+      linear-gradient(hsl(var(--primary) / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .bg-grid-fade {
+    -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+    mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+  }
+
+  /* Visible keyboard focus everywhere — accessibility is part of the
+     design language, not an exception to it. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ── Reduced motion: everything above collapses to instant. ─────── */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .stagger > * {
+      opacity: 1;
+    }
   }
 }
 

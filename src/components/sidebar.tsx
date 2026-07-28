@@ -30,7 +30,7 @@ export function Sidebar({ isSupervisor = false }: { isSupervisor?: boolean }) {
                   href={item.href}
                   title={item.description}
                   className={cn(
-                    "flex items-center gap-3 rounded-md transition-colors",
+                    "group flex items-center gap-3 rounded-md transition-colors",
                     secondary
                       ? "px-3 py-1.5 text-[0.83rem] lg:gap-3 lg:px-3.5 lg:py-2 lg:text-sm"
                       : "px-3 py-2 text-sm font-medium lg:gap-3.5 lg:px-3.5 lg:py-2.5 lg:text-[0.95rem]",
@@ -41,7 +41,7 @@ export function Sidebar({ isSupervisor = false }: { isSupervisor?: boolean }) {
                 >
                   <item.icon
                     className={cn(
-                      "shrink-0",
+                      "icon-nudge shrink-0",
                       secondary ? "h-4 w-4" : "h-4 w-4 lg:h-[1.15rem] lg:w-[1.15rem]",
                     )}
                   />

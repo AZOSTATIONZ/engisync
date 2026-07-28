@@ -4,13 +4,13 @@ import {
   ArrowRight,
   CalendarDays,
   CheckSquare,
-  Inbox,
   Video,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { getFocus, untilLabel, type FocusTask } from "@/lib/focus";
 import { projectHome, routes } from "@/lib/routes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = { title: "My Work" };
@@ -115,19 +115,12 @@ export default async function MyWorkPage() {
       </div>
 
       {total === 0 && meetings.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-            <Inbox className="h-9 w-9 text-primary" />
-            <p className="font-medium">Nothing assigned to you</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              When a task is assigned to you in any project, it shows up here
-              automatically.
-            </p>
-            <Button asChild size="sm" variant="outline">
-              <Link href={routes.projects}>Go to your projects</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="Nothing assigned to you"
+          description="When a task is assigned to you in any project, it shows up here automatically — a clear board is allowed to feel good."
+          actionLabel="Go to your projects"
+          actionHref={routes.projects}
+        />
       ) : (
         <>
           {meetings.length > 0 && (

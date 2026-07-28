@@ -49,13 +49,13 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   // 56px min touch target — comfortably above the 44px guideline.
-                  "flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[0.68rem] font-medium transition-colors active:scale-95",
+                  "group flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[0.68rem] font-medium transition-colors active:scale-95",
                   active
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <item.icon className={cn("h-5 w-5", active && "stroke-[2.5]")} />
+                <item.icon className={cn("icon-nudge h-5 w-5", active && "stroke-[2.5]")} />
                 {item.label}
                 {active && (
                   <span className="absolute bottom-0 h-0.5 w-8 rounded-full bg-primary" />

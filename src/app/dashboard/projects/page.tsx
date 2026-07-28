@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { FolderKanban } from "lucide-react";
 import { auth } from "@/auth";
 import { listProjects } from "@/lib/project";
 import { STAGE_META } from "@/lib/lifecycle";
 import { projectPlan } from "@/lib/routes";
 import { PaceBadge } from "@/components/pace-badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 
 export const metadata: Metadata = { title: "Projects" };
 
@@ -25,15 +25,14 @@ export default async function ProjectsPage() {
       </div>
 
       {projects.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
-            <FolderKanban className="h-8 w-8 text-primary" />
-            You&apos;re not in any project group yet. Join or create a group to
-            start planning.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No projects yet"
+          description="Create a group for your project or join one with a code from your leader — the plan, tasks, finance and publication all live inside it."
+          actionLabel="Create or join a group"
+          actionHref="/dashboard/workspaces"
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <Link key={p.id} href={projectPlan(p.id)}>
               <Card className="card-hover h-full">
@@ -50,7 +49,7 @@ export default async function ProjectsPage() {
                     <span>{p.completionPct}% of tasks done</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-primary" style={{ width: `${p.completionPct}%` }} />
+                    <div className="animate-grow-x h-full bg-primary" style={{ width: `${p.completionPct}%` }} />
                   </div>
                 </CardContent>
               </Card>
