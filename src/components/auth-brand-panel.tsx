@@ -8,8 +8,49 @@
  * - `prefers-reduced-motion` collapses it to a clean static mark
  *
  * Motif: nodes connecting + a sync pulse — engineering teams coming into sync.
+ *
+ * Copy varies per auth page (log in / sign up / recover) so the panel speaks to
+ * what the person is actually doing, while the artwork and gradient stay
+ * identical — one brand, three moments.
  */
-export function AuthBrandPanel() {
+export type AuthPanelVariant = "login" | "register" | "forgot";
+
+const PANEL_COPY: Record<
+  AuthPanelVariant,
+  { heading: string; bullets: string[] }
+> = {
+  login: {
+    heading: "Where engineering teams stay in sync.",
+    bullets: [
+      "Plan projects, tasks and deadlines in one place",
+      "Structured documentation your supervisor can review",
+      "Fair, measurable contribution for every member",
+    ],
+  },
+  register: {
+    heading: "Start your engineering project properly.",
+    bullets: [
+      "Join your department and group in minutes",
+      "Every contribution recorded and visible",
+      "Publish your finished work to the department archive",
+    ],
+  },
+  forgot: {
+    heading: "Let's get you back to your project.",
+    bullets: [
+      "Reset links expire quickly for your security",
+      "Your project data stays exactly where you left it",
+      "Still stuck? Your group leader can help",
+    ],
+  },
+};
+
+export function AuthBrandPanel({
+  variant = "login",
+}: {
+  variant?: AuthPanelVariant;
+}) {
+  const copy = PANEL_COPY[variant];
   return (
     <aside
       aria-hidden="true"
@@ -22,7 +63,7 @@ export function AuthBrandPanel() {
       <div className="relative">
         <p className="text-sm font-medium tracking-wide text-white/80">EngiSync</p>
         <h2 className="mt-2 max-w-[16ch] text-2xl font-bold leading-tight text-white">
-          Where engineering teams stay in sync.
+          {copy.heading}
         </h2>
       </div>
 
@@ -63,9 +104,9 @@ export function AuthBrandPanel() {
       </div>
 
       <ul className="relative space-y-2 text-sm text-white/85">
-        <li>• Plan projects, tasks and deadlines in one place</li>
-        <li>• Structured documentation your supervisor can review</li>
-        <li>• Fair, measurable contribution for every member</li>
+        {copy.bullets.map((b) => (
+          <li key={b}>• {b}</li>
+        ))}
       </ul>
 
       <style>{`
