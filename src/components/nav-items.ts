@@ -13,6 +13,7 @@ import {
   Sparkles,
   Settings,
   GraduationCap,
+  Lightbulb,
   ListChecks,
   Shield,
   type LucideIcon,
@@ -51,6 +52,13 @@ export type NavSection = {
  *
  * "My Work" is a lens, "Projects" is a place. Keeping exactly one lens is what
  * stops it feeling like a duplicate of a project's own task list.
+ *
+ * A SIXTH item — Project Hub — was added deliberately, not by drift. It answers
+ * "what should I build?", which is a different question from every other
+ * destination here and the one students arrive with at the start of a
+ * semester. It sits beside Repository on purpose: Repository is what previous
+ * cohorts finished, Project Hub is what you could start. Anything further
+ * belongs under "More"; six is the ceiling.
  */
 export function getPrimaryNav(): NavItem[] {
   return [
@@ -71,6 +79,13 @@ export function getPrimaryNav(): NavItem[] {
       label: "Projects",
       icon: FolderKanban,
       description: "Your project teams, plans, tasks, documents and budget.",
+    },
+    {
+      href: routes.projectHub,
+      label: "Project Hub",
+      icon: Lightbulb,
+      description:
+        "Projects you can build, with parts lists, budgets and prerequisites.",
     },
     {
       href: routes.repository,

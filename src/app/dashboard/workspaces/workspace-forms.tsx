@@ -29,8 +29,13 @@ function SubmitButton({ label }: { label: string }) {
 
 export function CreateWorkspaceForm({
   departments = [],
+  seedName,
+  seedDescription,
 }: {
   departments?: { id: string; label: string }[];
+  /** Pre-filled when arriving from a Project Hub brief. Still editable. */
+  seedName?: string;
+  seedDescription?: string;
 }) {
   const [state, action] = useActionState<CreateWorkspaceState, FormData>(
     createWorkspace,
@@ -54,7 +59,13 @@ export function CreateWorkspaceForm({
     <form action={action} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Group name</Label>
-        <Input id="name" name="name" placeholder="Final Year Robotics Project" required />
+        <Input
+          id="name"
+          name="name"
+          placeholder="Final Year Robotics Project"
+          defaultValue={seedName}
+          required
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="departmentId">Department</Label>
@@ -99,6 +110,7 @@ export function CreateWorkspaceForm({
           id="description"
           name="description"
           placeholder="Short summary of the project…"
+          defaultValue={seedDescription}
         />
       </div>
       <div className="space-y-2">

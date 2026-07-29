@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { listWorkspacesForUser } from "@/lib/workspace";
 import { preview } from "@/lib/plain-text";
+import { HUB_PROJECTS } from "@/lib/project-hub-catalog";
 import { userDepartmentIds } from "@/lib/department";
 import {
   Card,
@@ -20,11 +21,19 @@ export const metadata: Metadata = { title: "Workspaces" };
 export default async function WorkspacesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ join?: string }>;
+  searchParams: Promise<{ join?: string; from?: string }>;
 }) {
   const session = await auth();
   const memberships = await listWorkspacesForUser(session!.user.id);
-  const { join } = await searchParams;
+  const { join, from } = await searchParams;
+
+  /* Arriving from the Project Hub pre-fills the form, so "I like this project"
+     turns into a real group in one step instead of retyping the brief. The
+     slug is resolved here rather than trusting free text in the URL — a
+     stranger's link cannot inject arbitrary content into the form. */
+  const seed = from
+    ? HUB_PROJECTS.find((p) => p.slug === from)
+    : undefined;
 
   const deptIds = await userDepartmentIds(session!.user.id);
   const myDepartments = await prisma.department.findMany({
@@ -55,7 +64,11 @@ export default async function WorkspacesPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CreateWorkspaceForm departments={departmentOptions} />
+            <CreateWorkspaceForm
+              departments={departmentOptions}
+              seedName={seed?.title}
+              seedDescription={seed?.summary}
+            />
           </CardContent>
         </Card>
 
