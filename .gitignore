@@ -29,7 +29,11 @@ npm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
-tsconfig.check.json
+# Scratch tsconfigs used to typecheck a subset of files, plus TypeScript's
+# incremental build caches. Both are machine-local: a .tsbuildinfo committed to
+# the repo is a stale cache that every other checkout has to ignore anyway.
+tsconfig.*check.json
+*.tsbuildinfo
 
 # Original full-resolution media (239MB images + 195MB video).
 # The app serves optimised derivatives from public/img and public/vid instead.

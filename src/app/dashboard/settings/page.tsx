@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmailNotificationToggle, PushToggle } from "./settings-ui";
+import { ProfileForm } from "./profile-form";
 import { TwoFactor } from "./twofactor-ui";
 import { DeleteAccountSection } from "./delete-account";
 
@@ -26,6 +27,12 @@ export default async function SettingsPage() {
       emailNotifications: true,
       systemRole: true,
       twoFactorEnabled: true,
+      headline: true,
+      bio: true,
+      skills: true,
+      accentColor: true,
+      avatarStyle: true,
+      image: true,
     },
   });
 
@@ -41,6 +48,32 @@ export default async function SettingsPage() {
           Manage your account and notification preferences.
         </p>
       </div>
+
+      {/* Profile leads: it is the only section that is genuinely about the
+          person rather than about configuration. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Profile &amp; appearance</CardTitle>
+          <CardDescription>
+            How you appear to your team, and the accent colour used across
+            EngiSync.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProfileForm
+            userId={session!.user.id}
+            initial={{
+              name: user?.name ?? "",
+              headline: user?.headline ?? "",
+              bio: user?.bio ?? "",
+              skills: user?.skills ?? [],
+              accentColor: user?.accentColor ?? null,
+              avatarStyle: user?.avatarStyle ?? null,
+              image: user?.image ?? null,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

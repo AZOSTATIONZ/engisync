@@ -182,6 +182,21 @@ model User {
   twoFactorEnabled Boolean @default(false)
   twoFactorSecret  String?
 
+  // ── Personalization ──
+  // Deliberately NO avatar file field. Avatars are generated deterministically
+  // from `id` (see lib/personalization.ts): no object storage, no upload
+  // moderation queue, and no image bytes on every team list over mobile data.
+  // OAuth users keep the provider image in `image` above.
+  //
+  // `accentColor` and `avatarStyle` hold KEYS into fixed palettes, not raw
+  // colours — a free hex value would let a user render their own interface
+  // unreadable, so the palette guarantees contrast instead.
+  accentColor String?
+  avatarStyle String?
+  headline    String? @db.VarChar(80)
+  bio         String? @db.VarChar(280)
+  skills      String[]
+
   accounts     Account[]
   sessions     Session[]
   memberships  WorkspaceMember[]

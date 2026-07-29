@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isEmailConfigured } from "@/lib/email";
 import { isSupervisor } from "@/lib/supervisor";
+import { ACCENTS, resolveAccent } from "@/lib/personalization";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -16,20 +17,29 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  // Show the "verify your email" banner only when relevant.
-  let showVerify = false;
-  if (isEmailConfigured()) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { emailVerified: true },
-    });
-    showVerify = !user?.emailVerified;
-  }
+  // One query for both the verify banner and the chosen accent, rather than
+  // two round trips to a serverless database that suspends when idle.
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true, accentColor: true },
+  });
 
+  const showVerify = isEmailConfigured() && !user?.emailVerified;
   const supervises = await isSupervisor(session.user.id);
+
+  const accent = ACCENTS[resolveAccent(user?.accentColor)];
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* The chosen accent overrides one custom property rather than shipping a
+          stylesheet per colour. Both light and dark values are set because the
+          theme can change client-side without a re-render, and an accent that
+          only worked in one theme would look broken in the other.
+
+          Values come from a fixed palette keyed by `accentColor`, never from
+          user input — see lib/personalization.ts. That is what stops this
+          being a CSS injection point. */}
+      <style>{`:root{--primary:${accent.light}}.dark{--primary:${accent.dark}}`}</style>
       <Navbar isSupervisor={supervises} />
       {showVerify && <VerifyBanner />}
       {/* `min-w-0` lets the main column actually shrink — without it, flex
