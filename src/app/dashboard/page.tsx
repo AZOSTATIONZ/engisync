@@ -29,6 +29,7 @@ import { mediaFor } from "@/lib/media";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingCard } from "@/components/onboarding-card";
+import { QuickActions } from "@/components/quick-actions";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -99,6 +100,7 @@ export default async function DashboardPage() {
           {greeting(now)}, {firstName}
         </h1>
         <p className="text-muted-foreground">
+          {myDept?.department.name ? `${myDept.department.name} · ` : ""}
           {hasFocus
             ? "Here's what needs you today."
             : hasProjects
@@ -107,8 +109,17 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* Discipline imagery, matched to the student's department. */}
-      <DisciplineHero images={media.images} height="h-32 sm:h-44" />
+      {/* WHY THE HERO IMAGE MOVED
+          A student opening EngiSync between lectures needs to know what to do
+          next, not look at a photograph. The imagery was the largest element
+          on the most-visited page and carried no information.
+
+          Quick Actions take its place: the verbs a session starts with, led by
+          "Create project" — which the navigation audit found was not reachable
+          from any nav item at all. The discipline imagery still exists and now
+          runs at the BOTTOM of the page, where identity is welcome and
+          attention is cheap. */}
+      <QuickActions />
 
       {!onboardingDone && <OnboardingCard steps={onboardingSteps} />}
 
@@ -282,6 +293,12 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Discipline identity, demoted from the top of the page to the bottom.
+          It is pleasant and it belongs — it just should not be the first and
+          largest thing a student sees when they open the app to check what is
+          due. */}
+      <DisciplineHero images={media.images} height="h-24 sm:h-32" />
 
       {/* Quiet secondary link — the calendar is still one tap away. */}
       <div className="flex justify-center pb-2">

@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { listProjects } from "@/lib/project";
 import { STAGE_META } from "@/lib/lifecycle";
-import { projectPlan } from "@/lib/routes";
+import { Plus } from "lucide-react";
+import { projectPlan, routes } from "@/lib/routes";
 import { PaceBadge } from "@/components/pace-badge";
-import { DisciplineHero } from "@/components/discipline-hero";
-import { DISCIPLINE_MEDIA } from "@/lib/media";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 
@@ -18,25 +18,31 @@ export default async function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Projects</h1>
-        <p className="text-muted-foreground">
-          Objectives, scope, milestones, risks, and deliverables for each of
-          your groups.
-        </p>
+      {/* The create action is PERSISTENT, not empty-state only. Previously it
+          existed solely inside the "no projects yet" card, so it disappeared
+          the moment a student had one — and there was no other route to it
+          anywhere in the product. */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Projects</h1>
+          <p className="text-muted-foreground">
+            Objectives, scope, milestones, risks, and deliverables for each of
+            your groups.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href={`${routes.projects}/new`}>
+            <Plus className="h-4 w-4" /> New project
+          </Link>
+        </Button>
       </div>
-
-      <DisciplineHero
-        images={DISCIPLINE_MEDIA.general.images}
-        height="h-28 sm:h-36"
-      />
 
       {projects.length === 0 ? (
         <EmptyState
           title="No projects yet"
-          description="Create a group for your project or join one with a code from your leader — the plan, tasks, finance and publication all live inside it."
-          actionLabel="Create or join a group"
-          actionHref="/dashboard/workspaces"
+          description="Create a project and invite your team, or join one with a code from your leader — the plan, tasks, finance and publication all live inside it."
+          actionLabel="Start a project"
+          actionHref={`${routes.projects}/new`}
         />
       ) : (
         <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
