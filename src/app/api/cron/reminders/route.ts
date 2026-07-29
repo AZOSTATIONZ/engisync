@@ -15,9 +15,20 @@ import { generateDueSoonNotifications } from "@/lib/notifications";
  * CRON_SECRET; the check below means a stranger cannot hit this URL and spam
  * every user with notifications.
  *
+ * SCHEDULE: 04:00 UTC daily = 06:00 in Zimbabwe (CAT, UTC+2), so the morning
+ * digest lands before lectures. Daily rather than hourly because Vercel's
+ * Hobby plan permits exactly one cron run per day — an hourly expression makes
+ * the whole DEPLOYMENT fail validation, not just the cron. The 24-hour lookahead
+ * below is matched to this cadence: one run catches everything due that day.
+ *
+ * If sub-daily reminders are needed later, either upgrade to Pro or point a
+ * free external scheduler (e.g. cron-job.org) at this URL with the
+ * `Authorization: Bearer $CRON_SECRET` header — the endpoint is agnostic
+ * about who calls it.
+ *
  * Deliberately bounded: only users with an upcoming or overdue task are
- * processed, and `createNotification` dedupes per task per day, so running
- * hourly cannot produce duplicate alerts.
+ * processed, and `createNotification` dedupes per task per day, so extra runs
+ * cannot produce duplicate alerts.
  */
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;

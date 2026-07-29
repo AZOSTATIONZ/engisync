@@ -70,7 +70,7 @@ export function DisciplineHero({
           priority={i === 0}
           loading={i === 0 ? undefined : "lazy"}
           sizes="(max-width: 768px) 100vw, 900px"
-          className={`object-cover transition-opacity duration-[1200ms] ease-out ${
+          className={`object-cover transition-opacity [transition-duration:1200ms] ease-out ${
             i === index ? "opacity-100" : "opacity-0"
           }`}
         />

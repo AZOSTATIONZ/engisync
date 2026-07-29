@@ -39,3 +39,6 @@ tsconfig.check.json
 !/public/images/README.md
 /public/videos/*
 !/public/videos/README.md
+
+.vercel
+.env*
