@@ -9,13 +9,10 @@ import {
   KeyRound,
   ShieldCheck,
   MessageSquare,
-  GraduationCap,
   CheckSquare,
   ClipboardCheck,
-  Sparkles,
   AlertCircle,
   FileText,
-  History,
 } from "lucide-react";
 import { WorkspaceRole } from "@prisma/client";
 
@@ -205,19 +202,19 @@ export default async function WorkspaceDetailPage({
             {
               href: `/dashboard/workspaces/${workspace.id}/quizzes`,
               label: "Quizzes",
-              icon: GraduationCap,
+              icon: "quizzes",
               description: "Practice questions for your group",
             },
             {
               href: `/dashboard/workspaces/${workspace.id}/evaluation`,
               label: "AI Evaluation",
-              icon: Sparkles,
+              icon: "evaluation",
               description: "Automated project assessment",
             },
             {
               href: `/dashboard/workspaces/${workspace.id}/documentation/history`,
               label: "Version history",
-              icon: History,
+              icon: "history",
               description: "Compare submitted report versions",
             },
           ]}
