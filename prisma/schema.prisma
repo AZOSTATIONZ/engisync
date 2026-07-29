@@ -172,7 +172,16 @@ model User {
   passwordHash  String? // null for OAuth-only users
   systemRole    SystemRole @default(INDIVIDUAL)
 
-  // Notification preferences
+  // Notification preferences.
+  //
+  // Two settings, not one, because they answer different questions:
+  //   essentialEmails — "tell me things I need to know" (default ON)
+  //   emailNotifications — "send me everything else too" (default OFF)
+  //
+  // A single opt-in flag defaulting to false meant a group leader's
+  // announcement reached nobody's inbox, which is a broken product rather
+  // than a respectful default.
+  essentialEmails    Boolean @default(true)
   emailNotifications Boolean @default(false)
 
   // Subscription plan (admin-assigned for now; payments later).

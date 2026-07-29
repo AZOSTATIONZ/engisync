@@ -10,7 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { EmailNotificationToggle, PushToggle } from "./settings-ui";
+import {
+  EmailNotificationToggle,
+  EssentialEmailToggle,
+  PushToggle,
+} from "./settings-ui";
 import { ProfileForm } from "./profile-form";
 import { TwoFactor } from "./twofactor-ui";
 import { DeleteAccountSection } from "./delete-account";
@@ -25,6 +29,7 @@ export default async function SettingsPage() {
       name: true,
       email: true,
       emailNotifications: true,
+      essentialEmails: true,
       systemRole: true,
       twoFactorEnabled: true,
       headline: true,
@@ -103,12 +108,27 @@ export default async function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Essential first — it is on by default and the one most people
+              should leave alone. */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">
+                Announcements and deadlines
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Announcements from your leader, tasks assigned to you, and
+                deadline reminders. Recommended.
+              </p>
+            </div>
+            <EssentialEmailToggle initial={user?.essentialEmails ?? true} />
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm font-medium">Email me notifications</p>
+              <p className="text-sm font-medium">Everything else</p>
               <p className="text-xs text-muted-foreground">
                 {emailReady
-                  ? `Delivered via ${providerName()}.`
+                  ? `Activity, discussions and other updates. Delivered via ${providerName()}.`
                   : "Email isn't configured on this server yet."}
               </p>
             </div>

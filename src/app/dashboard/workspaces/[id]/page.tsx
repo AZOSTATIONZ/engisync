@@ -18,6 +18,7 @@ import { WorkspaceRole } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { Markdown } from "@/components/markdown";
+import { ProjectNav } from "@/components/project-nav";
 import { prisma } from "@/lib/prisma";
 import { getWorkspaceForUser } from "@/lib/workspace";
 import { getWorkspaceParticipation } from "@/lib/participation";
@@ -175,6 +176,9 @@ export default async function WorkspaceDetailPage({
           </p>
         </div>
       )}
+
+      {/* Every destination inside this project, on every page inside it. */}
+      <ProjectNav projectId={workspace.id} />
 
       {/* Primary actions lead; advanced tools live under "More". */}
       <div className="flex flex-wrap items-center gap-2">

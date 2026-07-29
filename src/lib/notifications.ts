@@ -11,16 +11,34 @@ type CreateArgs = {
   body?: string;
   link?: string;
   dedupeKey?: string;
+  /**
+   * Something the recipient needs to KNOW, not something they might enjoy
+   * reading: a leader's announcement, a task assigned to them, a deadline.
+   *
+   * Essential mail is on by default; everything else stays opt-in. The old
+   * behaviour gated ALL email behind a single preference that defaulted to
+   * false, which meant a group leader could post "the meeting moved to
+   * Tuesday" and reach nobody's inbox. Someone declining a weekly digest is
+   * not declining to be told their project changed.
+   *
+   * Recipients can still switch essential mail off — it is a preference, not a
+   * trap — but they have to make that choice rather than have it made for them
+   * by a default.
+   */
+  essential?: boolean;
 };
 
-/** Best-effort opt-in email delivery for a newly created notification. */
+/** Best-effort email delivery for a newly created notification. */
 async function maybeEmail(args: CreateArgs) {
   if (!isEmailConfigured()) return;
   const user = await prisma.user.findUnique({
     where: { id: args.userId },
-    select: { email: true, emailNotifications: true },
+    select: { email: true, emailNotifications: true, essentialEmails: true },
   });
-  if (!user?.emailNotifications || !user.email) return;
+  if (!user?.email) return;
+
+  const allowed = args.essential ? user.essentialEmails : user.emailNotifications;
+  if (!allowed) return;
 
   const base = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
   const url = args.link ? `${base}${args.link}` : base;
@@ -103,6 +121,9 @@ export async function generateDueSoonNotifications(userId: string) {
       })}.`,
       link: "/dashboard/tasks",
       dedupeKey: `task-due:${t.id}`,
+      // The whole point of a deadline reminder is reaching someone who is NOT
+      // currently looking at the app.
+      essential: true,
     });
   }
 }

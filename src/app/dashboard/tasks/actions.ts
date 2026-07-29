@@ -80,6 +80,8 @@ export async function createTask(
       userId: data.assigneeId,
       type: NotificationType.TASK_DUE,
       title: "New task assigned to you",
+      // Work assigned TO someone is not optional reading.
+      essential: true,
       body: `${data.title}.${due}`,
       link: "/dashboard/my-work",
     });

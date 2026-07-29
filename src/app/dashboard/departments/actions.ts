@@ -155,6 +155,8 @@ export async function postAnnouncement(
         userId: m.userId,
         type: NotificationType.SYSTEM,
         title: `Announcement: ${title}`,
+        // A department announcement is the canonical "you need to know this".
+        essential: true,
         body: body.slice(0, 140),
         link: `/dashboard/departments/${departmentId}`,
       }),

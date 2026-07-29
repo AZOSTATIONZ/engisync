@@ -2,8 +2,48 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateEmailNotifications } from "./actions";
+import { updateEmailNotifications, updateEssentialEmails } from "./actions";
 import { Button } from "@/components/ui/button";
+
+/**
+ * Announcements, task assignments and deadline reminders — ON by default.
+ *
+ * Shares the switch markup with the digest toggle below but writes a different
+ * preference, because these are different promises: this one is "we will tell
+ * you things you need to know", the other is "we may also send you extras".
+ */
+export function EssentialEmailToggle({ initial }: { initial: boolean }) {
+  const router = useRouter();
+  const [on, setOn] = useState(initial);
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label="Email me announcements, task assignments and deadline reminders"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        const next = !on;
+        setOn(next);
+        await updateEssentialEmails(next);
+        setBusy(false);
+        router.refresh();
+      }}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+        on ? "bg-primary" : "bg-muted"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          on ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+}
 
 export function EmailNotificationToggle({
   initial,

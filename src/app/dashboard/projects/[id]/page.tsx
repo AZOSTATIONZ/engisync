@@ -9,6 +9,7 @@ import { PublishForm } from "./publish-form";
 import { STAGE_META } from "@/lib/lifecycle";
 import { ProjectStepper } from "@/components/project-stepper";
 import { PaceBadge } from "@/components/pace-badge";
+import { ProjectNav } from "@/components/project-nav";
 import { TargetDateForm } from "../projects-ui";
 import {
   Card,
@@ -16,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   ProjectInfoForm,
   MilestoneManager,
@@ -73,11 +73,13 @@ export default async function ProjectDetailPage({
               <p className="text-muted-foreground">{project.department}</p>
             )}
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/dashboard/workspaces/${project.id}`}>Open group</Link>
-          </Button>
         </div>
       </div>
+
+      {/* Replaces a lone "Open group" button, which was the only exit from
+          this page and gave no hint that tasks, documents, budget and
+          discussions existed at all. */}
+      <ProjectNav projectId={project.id} />
 
       {/* Lifecycle — the first thing anyone should see: where are we, and
           are we behind? */}

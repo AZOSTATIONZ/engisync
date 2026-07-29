@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { listProjects } from "@/lib/project";
 import { STAGE_META } from "@/lib/lifecycle";
 import { Plus } from "lucide-react";
-import { projectPlan, routes } from "@/lib/routes";
+import { projectHome, routes } from "@/lib/routes";
 import { PaceBadge } from "@/components/pace-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,7 +47,10 @@ export default async function ProjectsPage() {
       ) : (
         <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <Link key={p.id} href={projectPlan(p.id)}>
+            /* Opens the project's OVERVIEW, not its plan. Clicking a project
+               previously landed on objectives and milestones — a page with no
+               route to tasks, documents, team or budget. */
+            <Link key={p.id} href={projectHome(p.id)}>
               <Card className="card-hover h-full">
                 <CardContent className="space-y-2 py-4">
                   <div className="flex items-start justify-between gap-2">
