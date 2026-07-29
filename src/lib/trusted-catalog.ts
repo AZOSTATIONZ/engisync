@@ -214,6 +214,26 @@ export const TRUSTED_CATALOG: CatalogEntry[] = [
     offline: true,
   },
 
+  {
+    name: "SimScale",
+    url: "https://www.simscale.com",
+    category: "Simulator",
+    difficulty: "ADVANCED",
+    departmentCode: "MECH",
+    tags: ["cfd", "fea", "thermal", "cloud", "no-install"],
+    topics: ["fluid dynamics", "structural analysis", "thermodynamics"],
+    description:
+      "Cloud CFD, FEA and thermal simulation running in a browser, with a free community tier.",
+    whyItMatters:
+      "CFD and FEA normally need a workstation and a licence costing thousands. This runs the same class of analysis on any laptop, so a final-year student can actually validate a design instead of only asserting it.",
+    useFor:
+      "Airflow over a wind turbine blade, stress in a frame, heat in an enclosure.",
+    // Community projects are PUBLIC on the free tier — fine for coursework,
+    // not for anything a student intends to keep confidential.
+    cost: "FREE_TIER",
+    offline: false,
+  },
+
   /* ── LEARNING BY BUILDING ───────────────────────────────────────────── */
   {
     name: "Arduino Project Hub",
