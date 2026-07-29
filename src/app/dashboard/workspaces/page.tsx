@@ -4,6 +4,7 @@ import { Crown, Users } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { listWorkspacesForUser } from "@/lib/workspace";
+import { preview } from "@/lib/plain-text";
 import { userDepartmentIds } from "@/lib/department";
 import {
   Card,
@@ -100,7 +101,7 @@ export default async function WorkspacesPage({
                     </div>
                     {m.workspace.description && (
                       <CardDescription className="line-clamp-2">
-                        {m.workspace.description}
+                        {preview(m.workspace.description, 160)}
                       </CardDescription>
                     )}
                   </CardHeader>

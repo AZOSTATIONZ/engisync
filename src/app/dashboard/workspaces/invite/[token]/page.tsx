@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Users } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { preview } from "@/lib/plain-text";
 import {
   Card,
   CardContent,
@@ -73,7 +74,7 @@ export default async function InvitePage({
                 )}
                 {invite.workspace.description && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {invite.workspace.description}
+                    {preview(invite.workspace.description, 220)}
                   </p>
                 )}
                 <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">

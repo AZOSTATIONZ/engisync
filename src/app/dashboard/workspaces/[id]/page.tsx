@@ -17,6 +17,7 @@ import {
 import { WorkspaceRole } from "@prisma/client";
 
 import { auth } from "@/auth";
+import { Markdown } from "@/components/markdown";
 import { prisma } from "@/lib/prisma";
 import { getWorkspaceForUser } from "@/lib/workspace";
 import { getWorkspaceParticipation } from "@/lib/participation";
@@ -117,9 +118,11 @@ export default async function WorkspaceDetailPage({
           <div>
             <h1 className="text-2xl font-bold">{workspace.name}</h1>
             {workspace.description && (
-              <p className="max-w-2xl text-muted-foreground">
-                {workspace.description}
-              </p>
+              /* Descriptions are often AI-written and arrive as Markdown, so
+                 they are rendered rather than printed with the asterisks. */
+              <div className="max-w-2xl text-muted-foreground">
+                <Markdown content={workspace.description} />
+              </div>
             )}
           </div>
           {isLeader ? (

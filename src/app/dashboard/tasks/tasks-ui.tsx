@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { preview } from "@/lib/plain-text";
 
 export type TaskDTO = {
   id: string;
@@ -332,7 +333,9 @@ export function TaskItem({ task }: { task: TaskDTO }) {
               </p>
             </div>
             {task.description && (
-              <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {preview(task.description, 240)}
+              </p>
             )}
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {task.workspaceName && <span>📁 {task.workspaceName}</span>}
