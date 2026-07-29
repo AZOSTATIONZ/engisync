@@ -53,6 +53,29 @@
     /* Prevent accidental horizontal scroll / zoom-out on small screens. */
     overflow-x: hidden;
   }
+
+  /* READABILITY ON LAPTOPS AND LARGE SCREENS
+     Everything in this app is sized in rem, so nudging the root font size
+     scales text, padding, gaps and control heights together — the layout
+     keeps its proportions instead of text growing inside boxes that don't.
+     14px body copy is comfortable on a phone held close and noticeably
+     small on a 15" laptop at arm's length, so the base grows with the
+     viewport. */
+  @media (min-width: 1024px) {
+    html {
+      font-size: 16.5px;
+    }
+  }
+  @media (min-width: 1440px) {
+    html {
+      font-size: 17.5px;
+    }
+  }
+  @media (min-width: 1920px) {
+    html {
+      font-size: 18.5px;
+    }
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;

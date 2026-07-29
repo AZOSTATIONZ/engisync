@@ -24,6 +24,8 @@ import { getFocus, greeting, untilLabel } from "@/lib/focus";
 import { getActivityForUser, timeAgo, type ActivityKind } from "@/lib/activity";
 import { projectHome, routes } from "@/lib/routes";
 import { PaceBadge } from "@/components/pace-badge";
+import { DisciplineHero } from "@/components/discipline-hero";
+import { mediaFor } from "@/lib/media";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingCard } from "@/components/onboarding-card";
@@ -60,11 +62,18 @@ export default async function DashboardPage() {
   const userId = session!.user.id;
   const now = new Date();
 
-  const [focus, activity, deptCount] = await Promise.all([
+  const [focus, activity, myDept] = await Promise.all([
     getFocus(userId, now),
     getActivityForUser(userId, 8),
-    prisma.departmentMember.count({ where: { userId } }),
+    // Department drives the imagery: a civil student should not see stock
+    // photos of laptops.
+    prisma.departmentMember.findFirst({
+      where: { userId },
+      select: { department: { select: { name: true, code: true } } },
+    }),
   ]);
+  const deptCount = myDept ? 1 : 0;
+  const media = mediaFor(myDept?.department.name, myDept?.department.code);
 
   const firstName = session?.user.name?.split(" ")[0] ?? "there";
   const hasProjects = focus.projects.length > 0;
@@ -97,6 +106,9 @@ export default async function DashboardPage() {
               : "Let's get your workspace set up."}
         </p>
       </div>
+
+      {/* Discipline imagery, matched to the student's department. */}
+      <DisciplineHero images={media.images} height="h-32 sm:h-44" />
 
       {!onboardingDone && <OnboardingCard steps={onboardingSteps} />}
 

@@ -5,6 +5,8 @@ import { listProjects } from "@/lib/project";
 import { STAGE_META } from "@/lib/lifecycle";
 import { projectPlan } from "@/lib/routes";
 import { PaceBadge } from "@/components/pace-badge";
+import { DisciplineHero } from "@/components/discipline-hero";
+import { DISCIPLINE_MEDIA } from "@/lib/media";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 
@@ -23,6 +25,11 @@ export default async function ProjectsPage() {
           your groups.
         </p>
       </div>
+
+      <DisciplineHero
+        images={DISCIPLINE_MEDIA.general.images}
+        height="h-28 sm:h-36"
+      />
 
       {projects.length === 0 ? (
         <EmptyState

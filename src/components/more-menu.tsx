@@ -66,7 +66,9 @@ export function MoreMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-1.5 w-64 overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl"
+          /* Width is capped to the viewport so this can never widen the page
+             on a narrow phone (see notification-bell for the same fix). */
+          className="absolute right-0 z-50 mt-1.5 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border bg-popover p-1.5 shadow-xl"
         >
           {items.map((item) => (
             <Link

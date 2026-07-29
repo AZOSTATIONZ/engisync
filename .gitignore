@@ -30,3 +30,12 @@ npm-debug.log*
 !.vscode/extensions.json
 .idea
 tsconfig.check.json
+
+# Original full-resolution media (239MB images + 195MB video).
+# The app serves optimised derivatives from public/img and public/vid instead.
+# Keeping the originals out of git avoids permanently bloating history; keep a
+# copy elsewhere if you want to re-crop or re-encode later.
+/public/images/*
+!/public/images/README.md
+/public/videos/*
+!/public/videos/README.md

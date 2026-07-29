@@ -24,7 +24,7 @@ export default async function AdminPage() {
   const configured = isAIConfigured();
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-2">
         <ShieldCheck className="h-6 w-6 text-primary" />
         <div>

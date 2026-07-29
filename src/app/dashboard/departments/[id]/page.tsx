@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Crown, Lock, Megaphone, Users, Library } from "lucide-react";
 import { auth } from "@/auth";
 import { getDepartment } from "@/lib/department";
+import { mediaFor } from "@/lib/media";
+import { DisciplineHero } from "@/components/discipline-hero";
 import { Button } from "@/components/ui/button";
 import { displayName } from "@/lib/identity";
 import {
@@ -37,6 +39,8 @@ export default async function DepartmentDetailPage({
   const dept = await getDepartment(id, userId);
   if (!dept) notFound();
 
+  const media = mediaFor(dept.name, dept.code);
+
   const [collabRequests, collaboratingGroups] = await Promise.all([
     dept.isAdmin ? listCollaborationRequests(id) : Promise.resolve([]),
     listCollaboratingGroups(id),
@@ -65,7 +69,7 @@ export default async function DepartmentDetailPage({
             <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 font-bold text-primary">
               {dept.code}
             </span>
-            <div>
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold">{dept.name}</h1>
               {dept.description && (
                 <p className="text-muted-foreground">{dept.description}</p>
@@ -79,6 +83,14 @@ export default async function DepartmentDetailPage({
           />
         </div>
       </div>
+
+      {/* Discipline imagery — a civil student sees structures, an electronics
+          student sees benches and boards. Chosen from the department name. */}
+      <DisciplineHero
+        images={media.images}
+        title={media.label}
+        subtitle={`Projects, resources and teams across ${dept.name}.`}
+      />
 
       {/* Quick links */}
       {dept.isMember && (

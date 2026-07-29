@@ -83,7 +83,13 @@ export function NotificationBell({
       </Button>
 
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 rounded-lg border bg-card shadow-lg">
+        /* MOBILE OVERFLOW FIX
+           A fixed 320px panel anchored to a bell near the right edge hangs off
+           the left of a 360px phone, which widens the whole document and cuts
+           content off on every page. On small screens the panel is therefore
+           viewport-pinned with equal insets; from sm: up it goes back to
+           dropping neatly under the bell. */
+        <div className="fixed inset-x-2 top-[4.25rem] z-50 rounded-lg border bg-card shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
           <div className="flex items-center justify-between border-b p-3">
             <span className="font-semibold">Notifications</span>
             {count > 0 && (

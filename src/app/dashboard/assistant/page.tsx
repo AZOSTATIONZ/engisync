@@ -50,16 +50,27 @@ export default async function AssistantPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>
-              Add an API key to your <code>.env</code> file, then restart the app:
+              Add an API key to your <code>.env</code> file, then{" "}
+              <strong>restart the server</strong> — environment variables are
+              only read at startup, so editing <code>.env</code> while the app
+              is running changes nothing.
             </p>
             <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 text-xs">
-{`# Choose one:
+{`# Free tier, no card required — recommended:
+GEMINI_API_KEY="AIza…"         # from aistudio.google.com/apikey
+
+# Or a paid provider:
 ANTHROPIC_API_KEY="sk-ant-…"   # from console.anthropic.com
-OPENAI_API_KEY="sk-…"          # from platform.openai.com`}
+OPENAI_API_KEY="sk-…"          # from platform.openai.com
+
+AI_DISABLED="false"            # must also be false`}
             </pre>
             <p>
-              If both are set, <code>AI_PROVIDER</code> (anthropic | openai)
-              decides. You can also set <code>AI_MODEL</code>.
+              Google issues keys in more than one format (<code>AIza…</code>{" "}
+              and <code>AQ.…</code>) — either works. When several keys are set,{" "}
+              <code>AI_PROVIDER</code>{" "}
+              (gemini | anthropic | openai) decides, and <code>AI_MODEL</code>{" "}
+              overrides the default model.
             </p>
           </CardContent>
         </Card>

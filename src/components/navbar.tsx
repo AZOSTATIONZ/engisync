@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Cpu } from "lucide-react";
+import { Cpu, LogOut } from "lucide-react";
 import { auth, signOut } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -27,16 +27,29 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-1">
+      {/* MOBILE WIDTH BUDGET
+          At 360px the container leaves ~328px. Previously this row needed
+          ~404px (hamburger 44 + wordmark 117 + search 41 + theme 40 + bell 40
+          + "Sign out" 94 + gaps), which pushed the whole document wider than
+          the screen and cut content off on every page — not just here.
+          The wordmark and the "Sign out" label are therefore hidden below sm:,
+          and `overflow-hidden` stops any future addition from doing the same. */}
+      <div className="container flex h-16 items-center justify-between gap-2 overflow-hidden">
+        <div className="flex min-w-0 items-center gap-1">
           {session?.user && <MobileNav isSupervisor={isSupervisor} />}
           <Link href="/" className="flex items-center gap-2 font-bold">
-            <Cpu className="h-6 w-6 text-primary" />
-            <span>EngiSync</span>
+            <Cpu className="h-6 w-6 shrink-0 text-primary" />
+            {/* Signed in, the row also carries search/theme/bell/sign-out, so
+                the wordmark yields on phones. Signed out there is room for it,
+                and the landing page needs the branding. */}
+            <span className={session?.user ? "hidden sm:inline" : "inline"}>
+              EngiSync
+            </span>
+            {session?.user && <span className="sr-only sm:hidden">EngiSync</span>}
           </Link>
         </div>
 
-        <nav className="flex items-center gap-2">
+        <nav className="flex shrink-0 items-center gap-1 sm:gap-2">
           {session?.user && <CommandPalette isSupervisor={isSupervisor} />}
           <ThemeToggle />
           {session?.user ? (
@@ -61,7 +74,17 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
                   await signOut({ redirectTo: "/" });
                 }}
               >
-                <Button type="submit" variant="outline">
+                {/* Icon-only on phones; full label from sm: up. */}
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Sign out"
+                  className="sm:hidden"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+                <Button type="submit" variant="outline" className="hidden sm:inline-flex">
                   Sign out
                 </Button>
               </form>

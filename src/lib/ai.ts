@@ -59,7 +59,14 @@ function defaultModel(provider: AIProvider): string {
     case "openai":
       return "gpt-4o-mini";
     case "gemini":
-      return "gemini-2.5-flash";
+      // Use the floating "latest" alias rather than a pinned version.
+      // Google retires specific versions for new API keys (gemini-1.5-flash,
+      // then gemini-2.5-flash), which breaks the app for anyone who signs up
+      // after the retirement date while continuing to work for existing keys.
+      // The alias always resolves to the current free-tier flash model, so
+      // this cannot rot again. Pin a version via AI_MODEL if you ever need
+      // reproducible output.
+      return "gemini-flash-latest";
     case "local":
       return "llama3";
   }
