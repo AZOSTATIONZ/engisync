@@ -1,5 +1,6 @@
 "use client";
 
+import { Markdown } from "@/components/markdown";
 import { useState } from "react";
 import { useActionState } from "react";
 import Link from "next/link";
@@ -41,8 +42,10 @@ function RunButton({ label }: { label: string }) {
 
 function ResultBox({ text }: { text: string }) {
   return (
-    <div className="mt-4 whitespace-pre-wrap rounded-md border bg-muted/40 p-4 text-sm">
-      {text}
+    // Models reply in Markdown. Rendering it as pre-formatted text showed
+    // students raw "### Heading" and "**bold**" syntax, which reads as broken.
+    <div className="mt-4 rounded-lg border bg-muted/40 p-4">
+      <Markdown content={text} />
     </div>
   );
 }

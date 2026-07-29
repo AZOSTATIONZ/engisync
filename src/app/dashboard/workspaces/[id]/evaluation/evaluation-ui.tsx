@@ -1,5 +1,6 @@
 "use client";
 
+import { Markdown } from "@/components/markdown";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -119,8 +120,8 @@ export function SupervisorAsk({ workspaceId }: { workspaceId: string }) {
         {busy ? "Thinking…" : "Ask the supervisor"}
       </Button>
       {answer && (
-        <div className="whitespace-pre-wrap rounded-md border bg-muted/40 p-4 text-sm">
-          {answer}
+        <div className="rounded-lg border bg-muted/40 p-4">
+          <Markdown content={answer} />
         </div>
       )}
     </div>
