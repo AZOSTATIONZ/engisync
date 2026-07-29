@@ -63,6 +63,41 @@ export async function sendVerificationEmail(
 }
 
 /** Validate a verification token and mark the user's email verified. */
+/**
+ * Gate for actions that should only be available to a REAL, reachable account.
+ *
+ * Returns an error string to show the user, or null when they may proceed.
+ *
+ * Two deliberate escape hatches:
+ *
+ *   1. If no email provider is configured, this always passes. Gating on a
+ *      verification email that can never be sent would lock every user out of
+ *      the product permanently — a self-inflicted outage, not a security
+ *      control.
+ *   2. OAuth accounts (Google, Microsoft) are treated as verified. The
+ *      provider already proved ownership of the mailbox; asking again is
+ *      friction with no security gain.
+ *
+ * Applied to actions with real-world consequences — joining a department,
+ * creating a group — rather than to login. Blocking login strands people who
+ * never received the mail, with no way to ask for another one.
+ */
+export async function verifiedAccountGate(
+  userId: string,
+): Promise<string | null> {
+  if (!isEmailConfigured()) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { emailVerified: true, accounts: { select: { id: true }, take: 1 } },
+  });
+  if (!user) return "Account not found.";
+  if (user.emailVerified) return null;
+  if (user.accounts.length > 0) return null;
+
+  return "Verify your email address first — check your inbox for the link, or resend it from the banner at the top of the page.";
+}
+
 export async function verifyEmailToken(
   token: string,
 ): Promise<"ok" | "invalid" | "expired"> {

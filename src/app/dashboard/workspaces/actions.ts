@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { generateJoinCode } from "@/lib/utils";
 import { getMembership, getExistingGroupsInfo } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications";
+import { verifiedAccountGate } from "@/lib/verification";
 import { authorize } from "@/lib/policy";
 import { recordActivity } from "@/lib/activity-log";
 import { sendEmail, emailLayout, isEmailConfigured } from "@/lib/email";
@@ -57,6 +58,11 @@ export async function createWorkspace(
   formData: FormData,
 ): Promise<CreateWorkspaceState> {
   const userId = await requireUserId();
+
+  // Creating a group makes you its leader, with authority over other students'
+  // tasks and money. That should require a reachable, verified account.
+  const unverified = await verifiedAccountGate(userId);
+  if (unverified) return { error: unverified };
 
   const parsed = createWorkspaceSchema.safeParse({
     name: formData.get("name"),

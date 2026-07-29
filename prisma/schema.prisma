@@ -881,6 +881,16 @@ model DepartmentMember {
   joinedAt DateTime @default(now())
 
   @@unique([departmentId, userId])
+  // NOTE: there is deliberately NO `@@unique([userId])` here.
+  //
+  // The rule is "one department per STUDENT", not per person. A university
+  // administrator is legitimately the ADMIN of every department — the seed
+  // data alone puts admin@engisync.dev in eight — so a blanket unique
+  // constraint would strip those departments of their administrator.
+  //
+  // Enforcement therefore lives in `assertSingleDepartment()`
+  // (lib/department.ts), which every write path must call. It applies the rule
+  // to MEMBER rows only.
   @@index([userId])
 }
 

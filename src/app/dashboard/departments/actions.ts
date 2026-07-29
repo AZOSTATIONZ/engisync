@@ -7,8 +7,9 @@ import { DepartmentRole, SystemRole, NotificationType } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { departmentSchema, announcementSchema, deptRoleEnum } from "@/lib/validations";
-import { isDeptAdmin } from "@/lib/department";
+import { assertSingleDepartment, isDeptAdmin } from "@/lib/department";
 import { createNotification } from "@/lib/notifications";
+import { verifiedAccountGate } from "@/lib/verification";
 
 export type ActionState = { error?: string; success?: string } | null;
 
@@ -42,6 +43,16 @@ export async function createDepartment(
   const existing = await prisma.department.findUnique({ where: { code } });
   if (existing) return { error: `A department with code "${code}" already exists.` };
 
+  /**
+   * The creator becomes the new department's ADMIN.
+   *
+   * This is correct and NOT a violation of the one-department rule: only
+   * system administrators reach this code, they are staff rather than
+   * students, and the rule counts MEMBER rows only (see
+   * `assertSingleDepartment`). A university administrator is legitimately the
+   * admin of every department — refusing to enrol them here would leave new
+   * departments with nobody able to manage them.
+   */
   const dept = await prisma.department.create({
     data: {
       name,
@@ -61,19 +72,18 @@ export async function createDepartment(
 
 export async function joinDepartment(departmentId: string): Promise<ActionState> {
   const user = await requireUser();
+
+  // Joining a department puts you on a real roster other students and staff
+  // see, so the account behind it has to be a reachable person.
+  const unverified = await verifiedAccountGate(user.id);
+  if (unverified) return { error: unverified };
+
   const dept = await prisma.department.findUnique({ where: { id: departmentId } });
   if (!dept) return { error: "Department not found." };
 
-  // One department per user: they must leave their current one first.
-  const existing = await prisma.departmentMember.findFirst({
-    where: { userId: user.id, NOT: { departmentId } },
-    include: { department: { select: { name: true } } },
-  });
-  if (existing) {
-    return {
-      error: `You're already in ${existing.department.name}. Leave it before joining another department (one department per student).`,
-    };
-  }
+  // One department per student — defined once, in lib/department.ts.
+  const clash = await assertSingleDepartment(user.id, departmentId);
+  if (clash) return { error: clash };
 
   await prisma.departmentMember.upsert({
     where: { departmentId_userId: { departmentId, userId: user.id } },

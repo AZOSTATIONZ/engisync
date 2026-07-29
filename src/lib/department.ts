@@ -121,6 +121,48 @@ export async function getDepartment(departmentId: string, userId: string) {
   };
 }
 
+/**
+ * THE one-department rule. Every path that adds a department membership must
+ * call this — it is the single place the rule is defined.
+ *
+ * Returns an error message to show the user, or null to proceed.
+ *
+ * WHY IT IS SCOPED TO STUDENTS
+ * The rule is "one department per STUDENT", not per person. A university
+ * administrator is deliberately the ADMIN of every department (the seed alone
+ * puts admin@engisync.dev in eight), and department admins are staff who may
+ * legitimately cover more than one. Applying the rule to everyone would strip
+ * departments of their administrators.
+ *
+ * So it constrains MEMBER rows only: a student may hold exactly one MEMBER
+ * membership. ADMIN rows are unconstrained.
+ *
+ * WHY IT IS NOT A DATABASE CONSTRAINT
+ * A `@@unique([userId])` would be stronger, but it cannot express "only when
+ * role = MEMBER". Postgres can, via a partial unique index — but Prisma cannot
+ * represent one in `schema.prisma`, so it would show up as schema drift on
+ * every subsequent `migrate dev` and eventually get "fixed" by someone
+ * dropping it. A centralised helper that is easy to call correctly is the
+ * honest trade here; the real failure before was that the rule lived inline in
+ * ONE action and the second code path simply forgot it.
+ */
+export async function assertSingleDepartment(
+  userId: string,
+  targetDepartmentId: string,
+): Promise<string | null> {
+  const existing = await prisma.departmentMember.findFirst({
+    where: {
+      userId,
+      role: DepartmentRole.MEMBER,
+      NOT: { departmentId: targetDepartmentId },
+    },
+    include: { department: { select: { name: true } } },
+  });
+  if (!existing) return null;
+
+  return `You're already in ${existing.department.name}. Leave it before joining another department — students belong to one department.`;
+}
+
 export async function isDeptAdmin(departmentId: string, userId: string) {
   const m = await prisma.departmentMember.findUnique({
     where: { departmentId_userId: { departmentId, userId } },
