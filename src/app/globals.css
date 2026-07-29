@@ -22,31 +22,51 @@
      Blue-tinted greys throughout (hue 210-222) rather than neutral grey, so
      the interface reads cool and technical and sits comfortably next to the
      engineering accent colours. */
+  /* EYE COMFORT — no pure white, no pure black. Read this before "brightening"
+     anything here.
+
+     A #FFFFFF surface at full screen brightness is the main cause of eye
+     strain in a light interface, and this one is read late at night before
+     deadlines. Nothing in light mode reaches 100% lightness: the page sits
+     around 95% and even the highest surface stops at 99.5%. The difference is
+     barely visible in a screenshot and very noticeable after an hour.
+
+     Text is a dark slate rather than #000. Pure black on near-white maximises
+     contrast, but that maximum is glare — the eye keeps refocusing on the
+     hard edges. ~15:1 is comfortable and still far above the 4.5:1 the
+     WCAG AA standard asks for.
+
+     Anyone with a real preference for a darker interface has it: the theme
+     defaults to `system`, so an OS set to dark gets dark automatically. */
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --elevated: 0 0% 100%;
+    --background: 213 26% 94.5%;
+    --foreground: 222 40% 16%;
+    --card: 210 30% 98%;
+    --card-foreground: 222 40% 16%;
+    --elevated: 210 35% 99.5%;
     /* Shadows carry the brand hue instead of neutral black. Pure black over a
        tinted surface reads as dirt; a tinted shadow reads as depth. */
     --shadow-color: 222 47% 30%;
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
+    --secondary: 213 27% 92%;
+    --secondary-foreground: 222 40% 16%;
+    --muted: 213 27% 92%;
+    /* Darkened from 47% — on a softer page background the old value dropped
+       under the 4.5:1 minimum for small text. Comfort must not cost legibility. */
+    --muted-foreground: 215 18% 42%;
+    --accent: 213 30% 90%;
+    --accent-foreground: 222 40% 16%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
     /* Softer than before (was 91%). With real elevation doing the work, a
        heavy border is redundant and makes every card look like a table cell.
        Inputs keep a slightly stronger edge because a form field must read as
        interactive even without focus. */
-    --border: 214 32% 93%;
-    --input: 214 30% 88%;
+    /* Borders must now register against a 94.5% page rather than pure white,
+       so they step down accordingly. */
+    --border: 214 24% 87%;
+    --input: 214 22% 82%;
     --ring: 221 83% 53%;
     --radius: 0.7rem;
   }
