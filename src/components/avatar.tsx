@@ -86,6 +86,61 @@ function Motif({ style, id }: { style: AvatarStyle; id: string }) {
           {v > 1 && <path d="M50 26v48" opacity="0.5" />}
         </g>
       );
+    /* PEOPLE — head and shoulders, drawn as line art rather than illustration.
+       No skin tone is implied: the figure takes the user's accent colour like
+       every other motif, so the system never guesses at someone's appearance.
+       The three variants differ by hair, which is what actually distinguishes
+       them. */
+    case "personShort":
+      return (
+        <g fill="none" stroke={stroke} strokeWidth="5" strokeLinecap="round">
+          <circle cx="50" cy="40" r="16" />
+          <path d="M34 36q16-14 32 0" />
+          <path d="M22 84q6-22 28-22t28 22" />
+        </g>
+      );
+    case "personLong":
+      return (
+        <g fill="none" stroke={stroke} strokeWidth="5" strokeLinecap="round">
+          <circle cx="50" cy="40" r="16" />
+          <path d="M32 40q0-20 18-20t18 20" />
+          <path d="M32 40v18M68 40v18" opacity="0.7" />
+          <path d="M24 84q6-20 26-20t26 20" />
+        </g>
+      );
+    case "personCurls":
+      return (
+        <g fill="none" stroke={stroke} strokeWidth="5" strokeLinecap="round">
+          <circle cx="50" cy="42" r="15" />
+          {[36, 44, 52, 60, 64].map((cx, i) => (
+            <circle key={cx} cx={cx} cy={i % 2 ? 24 : 27} r="6" opacity="0.85" />
+          ))}
+          <path d="M23 84q6-21 27-21t27 21" />
+        </g>
+      );
+
+    /* ANIMALS — for students who would rather not be a person or a circuit. */
+    case "cat":
+      return (
+        <g fill="none" stroke={stroke} strokeWidth="5" strokeLinejoin="round" strokeLinecap="round">
+          <path d="M28 44L24 22l18 10M72 44l4-22-18 10" />
+          <circle cx="50" cy="56" r="24" />
+          <path d="M41 52h.01M59 52h.01" strokeWidth="7" />
+          <path d="M50 62l-4 4M50 62l4 4" strokeWidth="4" />
+          <path d="M28 58H14M28 64H16M72 58h14M72 64h12" strokeWidth="3" opacity="0.6" />
+        </g>
+      );
+    case "owl":
+      return (
+        <g fill="none" stroke={stroke} strokeWidth="5" strokeLinejoin="round" strokeLinecap="round">
+          <path d="M26 34q-6-14 6-16t12 10M74 34q6-14-6-16T64 28" />
+          <path d="M50 20q26 0 26 30t-26 34q-26-4-26-34t26-30z" />
+          <circle cx="40" cy="46" r="8" />
+          <circle cx="60" cy="46" r="8" />
+          <path d="M50 54l-4 6h8z" fill={stroke} stroke="none" />
+        </g>
+      );
+
     case "orbit":
       return (
         <g fill="none" stroke={stroke} strokeWidth="5">

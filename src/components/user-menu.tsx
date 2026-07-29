@@ -8,7 +8,6 @@ import {
   Bell,
   ChevronDown,
   FolderKanban,
-  Palette,
   Settings,
   User,
 } from "lucide-react";
@@ -107,12 +106,14 @@ export function UserMenu({
   const displayName = name?.trim() || "Your account";
   const subtitle = headline?.trim() || department || null;
 
+  /* Four of these pointed at Settings before the profile page existed, which
+     made the menu look richer than it was. Only the two that genuinely live in
+     Settings go there now. */
   const links = [
-    { href: routes.settings, label: "Profile & appearance", icon: User },
+    { href: routes.profile, label: "My profile", icon: User },
     { href: routes.projects, label: "My projects", icon: FolderKanban },
     { href: routes.settings, label: "Notifications", icon: Bell },
-    { href: routes.settings, label: "Theme & accent", icon: Palette },
-    { href: routes.settings, label: "Settings", icon: Settings },
+    { href: routes.settings, label: "Appearance & settings", icon: Settings },
   ];
 
   return (

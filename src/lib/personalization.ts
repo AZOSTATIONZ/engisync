@@ -82,15 +82,54 @@ export function resolveAccent(v: string | null | undefined): AccentKey {
 
 /* ── Generated avatars ──────────────────────────────────────────────── */
 
-export type AvatarStyle = "node" | "gear" | "hex" | "wave" | "truss" | "orbit";
+export type AvatarStyle =
+  | "node"
+  | "gear"
+  | "hex"
+  | "wave"
+  | "truss"
+  | "orbit"
+  | "personShort"
+  | "personLong"
+  | "personCurls"
+  | "cat"
+  | "owl";
 
-export const AVATAR_STYLES: { key: AvatarStyle; label: string }[] = [
-  { key: "node", label: "Circuit node" },
-  { key: "gear", label: "Gear" },
-  { key: "hex", label: "Hex lattice" },
-  { key: "wave", label: "Waveform" },
-  { key: "truss", label: "Truss" },
-  { key: "orbit", label: "Orbit" },
+export type AvatarCategory = "Engineering" | "People" | "Animals";
+
+/**
+ * WHY THE PEOPLE STYLES ARE NOT LABELLED BY GENDER.
+ *
+ * The obvious naming is "male" and "female". These are labelled by HAIR
+ * instead, because an avatar picker that sorts drawings into two genders makes
+ * a student choose a category before choosing a picture — and gets it wrong for
+ * anyone who doesn't see themselves in either. Hair is what actually differs
+ * between the drawings, so it is also the more accurate label.
+ *
+ * The variety is the same either way; only the labelling is different.
+ */
+export const AVATAR_STYLES: {
+  key: AvatarStyle;
+  label: string;
+  category: AvatarCategory;
+}[] = [
+  { key: "node", label: "Circuit node", category: "Engineering" },
+  { key: "gear", label: "Gear", category: "Engineering" },
+  { key: "hex", label: "Hex lattice", category: "Engineering" },
+  { key: "wave", label: "Waveform", category: "Engineering" },
+  { key: "truss", label: "Truss", category: "Engineering" },
+  { key: "orbit", label: "Orbit", category: "Engineering" },
+  { key: "personShort", label: "Short hair", category: "People" },
+  { key: "personLong", label: "Long hair", category: "People" },
+  { key: "personCurls", label: "Curls", category: "People" },
+  { key: "cat", label: "Cat", category: "Animals" },
+  { key: "owl", label: "Owl", category: "Animals" },
+];
+
+export const AVATAR_CATEGORIES: AvatarCategory[] = [
+  "Engineering",
+  "People",
+  "Animals",
 ];
 
 const AVATAR_STYLE_KEYS = AVATAR_STYLES.map((s) => s.key);

@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import {
   ACCENTS,
   ACCENT_KEYS,
+  AVATAR_CATEGORIES,
   AVATAR_STYLES,
   LIMITS,
   resolveAccent,
@@ -164,32 +165,41 @@ export function ProfileForm({
       </fieldset>
 
       {!initial.image && (
-        <fieldset className="space-y-2">
+        <fieldset className="space-y-3">
           <legend className="text-sm font-medium">Avatar</legend>
           <input type="hidden" name="avatarStyle" value={style} />
-          <div className="flex flex-wrap gap-2">
-            {AVATAR_STYLES.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => setStyle(s.key)}
-                aria-pressed={style === s.key}
-                title={s.label}
-                className={`rounded-xl border p-1.5 transition-colors hover:bg-accent ${
-                  style === s.key ? "border-primary bg-accent" : ""
-                }`}
-              >
-                <Avatar
-                  userId={userId}
-                  name={name}
-                  accentColor={accent}
-                  avatarStyle={s.key}
-                  size="md"
-                />
-                <span className="sr-only">{s.label}</span>
-              </button>
-            ))}
-          </div>
+          {/* Grouped by category — eleven ungrouped swatches is a wall, and
+              someone who wants an animal shouldn't have to scan past gears. */}
+          {AVATAR_CATEGORIES.map((cat) => (
+            <div key={cat} className="space-y-1.5">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                {cat}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {AVATAR_STYLES.filter((s) => s.category === cat).map((s) => (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setStyle(s.key)}
+                    aria-pressed={style === s.key}
+                    title={s.label}
+                    className={`rounded-xl border p-1.5 transition-colors hover:bg-accent ${
+                      style === s.key ? "border-primary bg-accent" : ""
+                    }`}
+                  >
+                    <Avatar
+                      userId={userId}
+                      name={name}
+                      accentColor={accent}
+                      avatarStyle={s.key}
+                      size="md"
+                    />
+                    <span className="sr-only">{s.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </fieldset>
       )}
 

@@ -37,6 +37,7 @@ export const routes = {
   collaboration: "/dashboard/collaboration",
   repository: "/dashboard/repository",
   projectHub: "/dashboard/project-hub",
+  profile: "/dashboard/profile",
 } as const;
 
 export function hubProject(slug: string): string {
