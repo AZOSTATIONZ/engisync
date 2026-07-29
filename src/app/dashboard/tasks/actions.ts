@@ -8,6 +8,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { canAccessTask, nextDueDate, userWorkspaceIds } from "@/lib/task";
 import { taskSchema, logTimeSchema, taskStatusEnum } from "@/lib/validations";
+import { createNotification } from "@/lib/notifications";
+import { NotificationType } from "@prisma/client";
 
 export type ActionState = { error?: string; success?: string } | null;
 
@@ -48,7 +50,7 @@ export async function createTask(
     }
   }
 
-  await prisma.task.create({
+  const created = await prisma.task.create({
     data: {
       title: data.title,
       description: data.description ?? null,
@@ -66,6 +68,22 @@ export async function createTask(
         : undefined,
     },
   });
+
+  // Being given work is the single most important thing to be told about.
+  // This also delivers a real device push (see lib/notifications -> sendPush),
+  // so the assignee hears about it without opening the app.
+  if (data.assigneeId && data.assigneeId !== userId) {
+    const due = created.dueDate
+      ? ` Due ${created.dueDate.toLocaleDateString(undefined, { day: "numeric", month: "short" })}.`
+      : "";
+    await createNotification({
+      userId: data.assigneeId,
+      type: NotificationType.TASK_DUE,
+      title: "New task assigned to you",
+      body: `${data.title}.${due}`,
+      link: "/dashboard/my-work",
+    });
+  }
 
   await prisma.auditLog.create({
     data: { userId, action: "TASK_CREATED", target: data.title },
