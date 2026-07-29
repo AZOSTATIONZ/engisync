@@ -106,7 +106,7 @@ export function JoinRequestRow({
   }
 
   return (
-    <div className="flex items-center justify-between py-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 py-2">
       <span className="text-sm font-medium">{name}</span>
       <div className="flex items-center gap-1">
         <Button

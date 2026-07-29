@@ -161,7 +161,7 @@ export default async function GroupAnalyticsPage({
             ) : (
               <ul className="divide-y text-sm">
                 {a.upcoming.map((u) => (
-                  <li key={u.id} className="flex items-center justify-between py-2">
+                  <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                     <span className="truncate">{u.title}</span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(u.due).toLocaleDateString("en-GB", {

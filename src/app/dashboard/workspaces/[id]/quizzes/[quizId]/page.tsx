@@ -60,7 +60,7 @@ export default async function QuizPage({
           <CardContent>
             <ul className="divide-y text-sm">
               {quiz.leaderboard.slice(0, 10).map((a, i) => (
-                <li key={i} className="flex items-center justify-between py-2">
+                <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
                     {i + 1}. {a.userName}
                   </span>

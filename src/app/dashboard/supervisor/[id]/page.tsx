@@ -111,7 +111,7 @@ export default async function SuperviseProjectPage({
           <CardContent>
             <ul className="divide-y text-sm">
               {p.members.map((m, i) => (
-                <li key={i} className="flex items-center justify-between py-2">
+                <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>{m.name}</span>
                   <span className="text-xs text-muted-foreground">
                     {m.role === "LEADER" ? "Leader" : "Member"}

@@ -92,7 +92,7 @@ export function CollaborationRequestRow({
   }
 
   return (
-    <div className="flex items-center justify-between py-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium">{workspaceName}</p>
         {fromDepartment && (

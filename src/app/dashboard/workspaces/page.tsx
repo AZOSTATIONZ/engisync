@@ -86,7 +86,7 @@ export default async function WorkspacesPage({
               <Link key={m.id} href={`/dashboard/workspaces/${m.workspace.id}`}>
                 <Card className="h-full transition-colors hover:border-primary">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <CardTitle className="text-base">
                         {m.workspace.name}
                       </CardTitle>

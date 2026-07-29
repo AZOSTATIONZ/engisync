@@ -48,7 +48,7 @@ export default async function AnalyticsPage() {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                     <span className="text-muted-foreground">Completion</span>
                     <span className="font-semibold">{g.completionPct}%</span>
                   </div>

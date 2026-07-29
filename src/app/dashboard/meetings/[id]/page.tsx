@@ -158,7 +158,7 @@ export default async function MeetingDetailPage({
               const att = attendanceByUser.get(m.userId);
               const status = att?.status ?? "ABSENT";
               return (
-                <li key={m.userId} className="flex items-center justify-between py-3">
+                <li key={m.userId} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div className="min-w-0">
                     <p className="truncate font-medium">
                       {displayName(m.user)}

@@ -55,7 +55,7 @@ export default async function DiscussionsPage({
           {threads.map((t) => (
             <Link key={t.id} href={`/dashboard/workspaces/${id}/discussions/${t.id}`}>
               <Card className="card-hover">
-                <CardContent className="flex items-center justify-between py-4">
+                <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4">
                   <div className="min-w-0">
                     <p className="truncate font-medium">{t.title}</p>
                     <p className="text-xs text-muted-foreground">

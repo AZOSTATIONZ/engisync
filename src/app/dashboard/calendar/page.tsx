@@ -102,7 +102,7 @@ export default async function CalendarPage({
 
       {next && (
         <Card>
-          <CardContent className="flex items-center justify-between py-4">
+          <CardContent className="flex flex-wrap items-center justify-between gap-2 py-4">
             <div>
               <p className="text-xs uppercase text-muted-foreground">
                 Next deadline
@@ -274,7 +274,7 @@ export default async function CalendarPage({
           ) : (
             <ul className="divide-y">
               {monthEvents.map((e) => (
-                <li key={e.id} className="flex items-center justify-between py-3">
+                <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <div>
                     <p className="font-medium">{e.title}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">

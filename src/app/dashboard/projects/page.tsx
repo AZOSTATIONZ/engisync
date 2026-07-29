@@ -51,7 +51,7 @@ export default async function ProjectsPage() {
                   <p className="text-xs font-medium text-primary">
                     {STAGE_META[p.stage].label}
                   </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>{p.role === "LEADER" ? "You lead this" : "Member"}</span>
                     <span>{p.completionPct}% of tasks done</span>
                   </div>

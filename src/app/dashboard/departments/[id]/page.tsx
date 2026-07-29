@@ -176,7 +176,7 @@ export default async function DepartmentDetailPage({
                 <p className="mb-1 text-sm font-medium">Collaborating groups</p>
                 <ul className="divide-y text-sm">
                   {collaboratingGroups.map((g) => (
-                    <li key={g.id} className="flex items-center justify-between py-2">
+                    <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                       <span>
                         {g.name}
                         {g.homeDepartment && (

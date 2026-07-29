@@ -70,7 +70,7 @@ export default async function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-sm font-medium">Email me notifications</p>
               <p className="text-xs text-muted-foreground">

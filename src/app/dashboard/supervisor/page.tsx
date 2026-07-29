@@ -39,7 +39,7 @@ export default async function SupervisorPage() {
                   {p.department && (
                     <p className="text-xs text-muted-foreground">{p.department}</p>
                   )}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Users className="h-3.5 w-3.5" /> {p.memberCount}
                     </span>
