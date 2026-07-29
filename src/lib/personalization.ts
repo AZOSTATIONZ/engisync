@@ -35,6 +35,7 @@
 /* ── Accent colours ─────────────────────────────────────────────────── */
 
 export type AccentKey =
+  | "cyan"
   | "blue"
   | "violet"
   | "teal"
@@ -52,7 +53,12 @@ export const ACCENTS: Record<
   AccentKey,
   { label: string; light: string; dark: string; swatch: string }
 > = {
-  blue: { label: "Blue", light: "221 83% 53%", dark: "217 91% 60%", swatch: "#2563eb" },
+  /* Electric cyan is the product's own accent and therefore the default —
+     a user who never opens Settings should still see the intended identity.
+     Light values are darkened across the board: a colour bright enough to glow
+     on #070B14 fails contrast on a near-white page. */
+  cyan: { label: "Electric cyan", light: "188 86% 30%", dark: "188 86% 53%", swatch: "#22d3ee" },
+  blue: { label: "Blue", light: "221 83% 40%", dark: "217 91% 60%", swatch: "#2563eb" },
   violet: { label: "Violet", light: "262 83% 58%", dark: "263 90% 66%", swatch: "#7c3aed" },
   teal: { label: "Teal", light: "184 90% 34%", dark: "180 77% 47%", swatch: "#0d9488" },
   emerald: { label: "Emerald", light: "160 84% 32%", dark: "158 64% 47%", swatch: "#059669" },
@@ -62,7 +68,7 @@ export const ACCENTS: Record<
 };
 
 export const ACCENT_KEYS = Object.keys(ACCENTS) as AccentKey[];
-export const DEFAULT_ACCENT: AccentKey = "blue";
+export const DEFAULT_ACCENT: AccentKey = "cyan";
 
 export function isAccentKey(v: unknown): v is AccentKey {
   return typeof v === "string" && v in ACCENTS;

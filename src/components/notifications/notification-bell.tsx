@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, BellRing, Check } from "lucide-react";
+import { Bell, BellRing, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  dismissNotification,
+  dismissReadNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from "./actions";
@@ -157,19 +159,35 @@ export function NotificationBell({
             }}
             className="elev-4 fixed z-[100] rounded-xl border bg-popover"
           >
-          <div className="flex items-center justify-between border-b p-3">
+          <div className="flex items-center justify-between gap-2 border-b p-3">
             <span className="font-semibold">Notifications</span>
-            {count > 0 && (
-              <button
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                onClick={async () => {
-                  await markAllNotificationsRead();
-                  router.refresh();
-                }}
-              >
-                <Check className="h-3.5 w-3.5" /> Mark all read
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {count > 0 && (
+                <button
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={async () => {
+                    await markAllNotificationsRead();
+                    router.refresh();
+                  }}
+                >
+                  <Check className="h-3.5 w-3.5" /> Mark all read
+                </button>
+              )}
+              {/* Clearing is offered only when there is something already read
+                  to clear — otherwise it looks like a way to delete things you
+                  have not looked at yet. */}
+              {items.some((n) => n.read) && (
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={async () => {
+                    await dismissReadNotifications();
+                    router.refresh();
+                  }}
+                >
+                  Clear read
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="max-h-80 overflow-y-auto">
@@ -191,16 +209,19 @@ export function NotificationBell({
                   <div
                     key={n.id}
                     className={cn(
-                      "border-b px-3 py-2 last:border-0",
+                      "group flex items-start gap-2 border-b px-3 py-2 last:border-0",
                       !n.read && "bg-accent/50",
                     )}
-                    onClick={async () => {
-                      if (!n.read) {
-                        await markNotificationRead(n.id);
-                        router.refresh();
-                      }
-                    }}
                   >
+                    <div
+                      className="min-w-0 flex-1"
+                      onClick={async () => {
+                        if (!n.read) {
+                          await markNotificationRead(n.id);
+                          router.refresh();
+                        }
+                      }}
+                    >
                     {n.link ? (
                       <Link href={n.link} onClick={() => setOpen(false)}>
                         {inner}
@@ -208,6 +229,24 @@ export function NotificationBell({
                     ) : (
                       inner
                     )}
+                    </div>
+
+                    {/* Always rendered, not revealed on hover: a phone has no
+                        hover, and a control you cannot reach is not a feature.
+                        It fades up on pointer devices instead. */}
+                    <button
+                      type="button"
+                      aria-label={`Dismiss: ${n.title}`}
+                      title="Dismiss"
+                      className="mt-0.5 shrink-0 rounded-md p-1 text-muted-foreground opacity-60 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await dismissNotification(n.id);
+                        router.refresh();
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 );
               })

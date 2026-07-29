@@ -50,6 +50,13 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
         elevated: "hsl(var(--elevated))",
+        sidebar: "hsl(var(--sidebar))",
+        /* Semantic accents. Use these instead of literal Tailwind palette
+           classes (`text-green-600`, `bg-amber-500`) so a colour means the
+           same thing everywhere and both themes stay in step. */
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
       },
       borderRadius: {
         lg: "var(--radius)",

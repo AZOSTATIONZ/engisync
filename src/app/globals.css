@@ -57,17 +57,27 @@
     --muted-foreground: 215 18% 42%;
     --accent: 213 30% 90%;
     --accent-foreground: 222 40% 16%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 45%;
     --destructive-foreground: 210 40% 98%;
-    /* Softer than before (was 91%). With real elevation doing the work, a
-       heavy border is redundant and makes every card look like a table cell.
-       Inputs keep a slightly stronger edge because a form field must read as
-       interactive even without focus. */
-    /* Borders must now register against a 94.5% page rather than pure white,
-       so they step down accordingly. */
+
+    /* SEMANTIC ACCENTS — same hues as the dark theme, darkened so they hold
+       4.5:1 against a near-white surface. The cyan that reads as "electric" on
+       #070B14 is illegible on paper-white; identical hex in both themes would
+       be brand consistency at the cost of anyone actually reading it. */
+    --primary: 188 86% 30%;   /* electric cyan, darkened for light surfaces */
+    --success: 160 84% 28%;   /* emerald  #10B981 family */
+    /* Amber is the hardest hue to make legible on white — at the lightness
+       that still reads as "amber" it measured 3.99:1, under the 4.5 minimum.
+       Pushed darker and slightly toward orange to keep the warning feeling
+       warm rather than brown. */
+    --warning: 30 95% 29%;    /* amber    #F59E0B family */
+    --info: 258 70% 52%;      /* violet   #8B5CF6 family — reserved for AI */
+
+    /* Borders must register against a 94.5% page rather than pure white. */
     --border: 214 24% 87%;
     --input: 214 22% 82%;
-    --ring: 221 83% 53%;
+    --ring: 188 86% 30%;
+    --sidebar: 213 30% 92%;
     --radius: 0.7rem;
   }
 
@@ -76,26 +86,44 @@
      borders. Shadows barely register on dark backgrounds, so the lightness
      steps here are slightly larger than in light mode — they are doing the
      work shadows do above. */
+  /* MIDNIGHT ENGINEERING — the dark theme, specified by hex and converted to
+     HSL so the tokens stay compatible with Tailwind's `hsl(var(--x))` colours.
+     Source values kept alongside each token so they can be verified.
+
+     The point of this palette is HIERARCHY. The previous scheme was one hue at
+     three lightnesses, so nothing drew the eye and everything read as equally
+     important. Here the surfaces stay quiet and near-monochrome while the
+     accents are genuinely saturated — cyan for primary action, emerald for
+     success, amber for warning, red for danger, violet for AI. Colour now
+     MEANS something rather than decorating. */
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 45% 9.5%;
+    --background: 222 48% 5%;      /* #070B14 */
+    --foreground: 210 40% 98%;     /* #F8FAFC */
+    --card: 221 39% 11%;           /* #111827 */
     --card-foreground: 210 40% 98%;
-    --elevated: 222 44% 13%;
+    --elevated: 222 34% 15.5%;     /* #1A2235 — also the card-hover surface */
+    --sidebar: 222 45% 9%;         /* #0C1220 */
     --shadow-color: 222 60% 2%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
+    --primary: 188 86% 53%;        /* #22D3EE electric cyan */
+    /* Cyan is a LIGHT colour: text on top of it must be dark, or the label on
+       every primary button disappears. */
+    --primary-foreground: 222 48% 7%;
+    --secondary: 222 34% 15.5%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
+    --muted: 222 34% 15.5%;
+    --muted-foreground: 215 20% 65%;   /* #94A3B8 */
+    --accent: 222 34% 15.5%;           /* #1A2235 — hover surface */
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
+    --destructive: 0 84% 60%;          /* #EF4444 */
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 224 76% 65%;
+    --success: 160 84% 39%;            /* #10B981 */
+    --warning: 38 92% 50%;             /* #F59E0B */
+    --info: 258 90% 66%;               /* #8B5CF6 — reserved for AI surfaces */
+    /* ≈ rgba(255,255,255,.08) composited over the card surface. Expressed as a
+       solid HSL because Tailwind's `hsl(var(--border))` cannot carry alpha. */
+    --border: 221 22% 18%;
+    --input: 222 30% 22%;
+    --ring: 188 86% 53%;
   }
 }
 
