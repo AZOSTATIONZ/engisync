@@ -11,6 +11,7 @@ import {
   clampText,
   isAccentKey,
   isAvatarStyle,
+  normaliseHandle,
   parseSkills,
 } from "@/lib/personalization";
 
@@ -63,4 +64,53 @@ export async function saveProfile(
   // revalidating — not just this page.
   revalidatePath("/dashboard", "layout");
   return { success: "Profile saved." };
+}
+
+/**
+ * Publish or unpublish the public portfolio at /p/<handle>.
+ *
+ * Publishing is an explicit, reversible act with a clear description of what
+ * becomes visible. It is never turned on as a side effect of anything else,
+ * and never defaults to on — a student's work going onto the open internet is
+ * their decision alone.
+ *
+ * Unpublishing does NOT clear the handle: someone toggling off to think about
+ * it should not lose their name to whoever claims it next.
+ */
+export async function updatePublicProfile(
+  _prev: ProfileState,
+  formData: FormData,
+): Promise<ProfileState> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const userId = session.user.id;
+
+  const wantsPublic = formData.get("publicProfile") === "on";
+
+  if (!wantsPublic) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { publicProfile: false },
+    });
+    revalidatePath("/dashboard/settings");
+    return { success: "Your profile is private again." };
+  }
+
+  const parsed = normaliseHandle(String(formData.get("handle") ?? ""));
+  if (!parsed.ok) return { error: parsed.error };
+
+  const taken = await prisma.user.findFirst({
+    where: { handle: parsed.handle, NOT: { id: userId } },
+    select: { id: true },
+  });
+  if (taken) return { error: "That name is already taken. Try another." };
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { handle: parsed.handle, publicProfile: true },
+  });
+
+  revalidatePath("/dashboard/settings");
+  revalidatePath(`/p/${parsed.handle}`);
+  return { success: `Published at /p/${parsed.handle}` };
 }

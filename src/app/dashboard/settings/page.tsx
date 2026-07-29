@@ -16,6 +16,7 @@ import {
   PushToggle,
 } from "./settings-ui";
 import { ProfileForm } from "./profile-form";
+import { PublicProfileForm } from "./public-profile-form";
 import { TwoFactor } from "./twofactor-ui";
 import { DeleteAccountSection } from "./delete-account";
 
@@ -38,8 +39,17 @@ export default async function SettingsPage() {
       accentColor: true,
       avatarStyle: true,
       image: true,
+      handle: true,
+      publicProfile: true,
     },
   });
+
+  // A starting handle from their name, so nobody has to invent one.
+  const suggestedHandle = (user?.name ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30);
 
   const emailReady = isEmailConfigured();
   const pushReady = isPushConfigured();
@@ -76,6 +86,23 @@ export default async function SettingsPage() {
               avatarStyle: user?.avatarStyle ?? null,
               image: user?.image ?? null,
             }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Public portfolio</CardTitle>
+          <CardDescription>
+            A shareable page of your approved engineering work — the link you
+            send an employer. Private until you publish it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PublicProfileForm
+            initialHandle={user?.handle ?? ""}
+            initialPublic={user?.publicProfile ?? false}
+            suggestion={suggestedHandle}
           />
         </CardContent>
       </Card>

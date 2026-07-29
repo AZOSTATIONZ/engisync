@@ -206,6 +206,14 @@ model User {
   bio         String? @db.VarChar(280)
   skills      String[]
 
+  // ── Public portfolio ──
+  // OFF by default and it must stay that way: publishing a student's work to
+  // the open internet is a decision only they can make. `handle` is the URL at
+  // /p/<handle>; unique and lowercase so two people cannot claim the same one
+  // by differing in case.
+  handle        String?  @unique
+  publicProfile Boolean  @default(false)
+
   accounts     Account[]
   sessions     Session[]
   memberships  WorkspaceMember[]

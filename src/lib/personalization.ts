@@ -339,6 +339,67 @@ export function computeBadges(s: ContributionStats): Badge[] {
   return out;
 }
 
+/**
+ * Badges that must NEVER appear on a public profile.
+ *
+ * "Verified contributor" is earned by paying money into a group fund. Whether
+ * a student contributed to project costs — and by extension whether they could
+ * afford to — is nobody's business outside the group, least of all a
+ * prospective employer's. It stays visible to the student and their team, and
+ * is stripped from anything published to the open internet.
+ *
+ * Kept as a deny-list rather than an allow-list on purpose: a new badge is
+ * public unless someone deliberately marks it private, so adding a badge can
+ * never silently leak by omission... and any badge touching money, health or
+ * conduct must be added here at the moment it is created.
+ */
+const PRIVATE_BADGES = new Set<BadgeId>(["verified-contributor"]);
+
+export function publicBadges(badges: Badge[]): Badge[] {
+  return badges.filter((b) => !PRIVATE_BADGES.has(b.id));
+}
+
+/* ── Public handles ─────────────────────────────────────────────────── */
+
+/**
+ * Paths that must never become a profile handle, because `/p/<handle>` is not
+ * the only place a handle could be interpolated later, and because a user
+ * calling themselves "admin" or "support" can impersonate the institution.
+ */
+const RESERVED_HANDLES = new Set([
+  "admin", "administrator", "api", "app", "auth", "dashboard", "engisync",
+  "help", "login", "logout", "moderator", "new", "official", "p", "profile",
+  "register", "root", "settings", "signin", "signup", "staff", "support",
+  "supervisor", "system", "user", "users",
+]);
+
+export type HandleResult =
+  | { ok: true; handle: string }
+  | { ok: false; error: string };
+
+/**
+ * Validate and normalise a public handle.
+ *
+ * Lowercased so `/p/Tafadzwa` and `/p/tafadzwa` cannot be two different people
+ * — case-sensitive handles are a well-known impersonation vector.
+ */
+export function normaliseHandle(input: string): HandleResult {
+  const handle = input.trim().toLowerCase();
+
+  if (handle.length < 3) return { ok: false, error: "Use at least 3 characters." };
+  if (handle.length > 30) return { ok: false, error: "Use at most 30 characters." };
+  if (!/^[a-z0-9-]+$/.test(handle)) {
+    return { ok: false, error: "Letters, numbers and hyphens only." };
+  }
+  if (handle.startsWith("-") || handle.endsWith("-")) {
+    return { ok: false, error: "Can't start or end with a hyphen." };
+  }
+  if (RESERVED_HANDLES.has(handle)) {
+    return { ok: false, error: "That name is reserved. Try another." };
+  }
+  return { ok: true, handle };
+}
+
 /* ── Milestones worth acknowledging ─────────────────────────────────── */
 
 /**

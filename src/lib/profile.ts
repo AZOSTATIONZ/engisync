@@ -68,3 +68,74 @@ export async function getContributionStats(
     supervises,
   };
 }
+
+/**
+ * A profile as the OUTSIDE WORLD may see it.
+ *
+ * Returns null unless the student has explicitly published — there is no
+ * "unlisted" middle ground, because a URL that leaks is a URL that is public.
+ *
+ * WHAT IS DELIBERATELY EXCLUDED, and why:
+ *   - email: never rendered in shared UI at all (see identity.ts);
+ *   - financial badges and contribution counts: whether someone could afford
+ *     to pay into a group fund is not an employer's business;
+ *   - tasks, deadlines and internal activity: day-to-day performance data that
+ *     belongs to the student and their supervisor;
+ *   - unpublished projects: only supervisor-APPROVED work appears, so the page
+ *     shows verified achievement rather than self-reported claims.
+ *
+ * What remains is the part a graduate would actually want to show: who they
+ * are, what they can do, and the work an institution stood behind.
+ */
+export async function getPublicProfile(handle: string) {
+  const user = await prisma.user.findUnique({
+    where: { handle: handle.toLowerCase() },
+    select: {
+      id: true,
+      name: true,
+      image: true,
+      headline: true,
+      bio: true,
+      skills: true,
+      accentColor: true,
+      avatarStyle: true,
+      publicProfile: true,
+      deptMemberships: {
+        take: 1,
+        select: { department: { select: { name: true } } },
+      },
+    },
+  });
+
+  // The flag is checked AFTER the lookup but before anything is returned, so a
+  // private profile is indistinguishable from a handle that does not exist.
+  if (!user || !user.publicProfile) return null;
+
+  const workspaceIds = await userWorkspaceIds(user.id);
+  const published = await prisma.publishedProject.findMany({
+    where: { status: "PUBLISHED", workspaceId: { in: workspaceIds } },
+    select: {
+      slug: true,
+      title: true,
+      abstract: true,
+      year: true,
+      departmentName: true,
+      downloads: true,
+    },
+    orderBy: { year: "desc" },
+    take: 20,
+  });
+
+  return {
+    name: user.name,
+    image: user.image,
+    headline: user.headline,
+    bio: user.bio,
+    skills: user.skills,
+    accentColor: user.accentColor,
+    avatarStyle: user.avatarStyle,
+    department: user.deptMemberships[0]?.department.name ?? null,
+    userId: user.id,
+    published,
+  };
+}
