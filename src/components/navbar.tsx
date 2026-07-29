@@ -6,6 +6,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { MobileNav } from "@/components/mobile-nav";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { UserMenu } from "@/components/user-menu";
+import { prisma } from "@/lib/prisma";
 import {
   countUnread,
   listNotifications,
@@ -17,11 +19,38 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
 
   let unread = 0;
   let notifications: Awaited<ReturnType<typeof listNotifications>> = [];
+  let profile: {
+    name: string | null;
+    image: string | null;
+    accentColor: string | null;
+    avatarStyle: string | null;
+    headline: string | null;
+    deptMemberships: { department: { name: string } }[];
+  } | null = null;
+
   if (session?.user?.id) {
     await generateDueSoonNotifications(session.user.id);
-    [unread, notifications] = await Promise.all([
+    [unread, notifications, profile] = await Promise.all([
       countUnread(session.user.id),
       listNotifications(session.user.id),
+      // One extra query on a component that renders everywhere — kept
+      // deliberately narrow. Badge counts are NOT loaded here: computing them
+      // needs task, publication and contribution aggregates, which is far too
+      // much work to repeat on every page render for a number in a menu.
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          name: true,
+          image: true,
+          accentColor: true,
+          avatarStyle: true,
+          headline: true,
+          deptMemberships: {
+            take: 1,
+            select: { department: { select: { name: true } } },
+          },
+        },
+      }),
     ]);
   }
 
@@ -65,29 +94,33 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
                   createdAt: n.createdAt.toISOString(),
                 }))}
               />
-              <Button asChild variant="ghost" className="hidden sm:inline-flex">
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/" });
-                }}
+              {/* Sign-out moved INSIDE the account menu. It was previously the
+                  only thing offered in the top-right corner, which meant the
+                  sole action available on your own account was leaving it. */}
+              <UserMenu
+                userId={session.user.id}
+                name={profile?.name ?? session.user.name ?? null}
+                image={profile?.image}
+                accentColor={profile?.accentColor}
+                avatarStyle={profile?.avatarStyle}
+                headline={profile?.headline}
+                department={profile?.deptMemberships[0]?.department.name ?? null}
               >
-                {/* Icon-only on phones; full label from sm: up. */}
-                <Button
-                  type="submit"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Sign out"
-                  className="sm:hidden"
+                <form
+                  action={async () => {
+                    "use server";
+                    await signOut({ redirectTo: "/" });
+                  }}
                 >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-                <Button type="submit" variant="outline" className="hidden sm:inline-flex">
-                  Sign out
-                </Button>
-              </form>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-destructive transition-colors hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4 shrink-0" />
+                    Sign out
+                  </button>
+                </form>
+              </UserMenu>
             </>
           ) : (
             <>
