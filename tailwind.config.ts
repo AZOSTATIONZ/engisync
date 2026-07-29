@@ -40,6 +40,16 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* `bg-popover` was already in use by the command palette and the More
+           menu, but `popover` was never registered here — so the class did
+           nothing and those overlays rendered with NO background, showing the
+           page through them. Registering it is the fix; the token itself is
+           defined in globals.css. */
+        popover: {
+          DEFAULT: "hsl(var(--elevated))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        elevated: "hsl(var(--elevated))",
       },
       borderRadius: {
         lg: "var(--radius)",

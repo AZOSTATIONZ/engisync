@@ -8,7 +8,10 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      // `elev-1` replaces Tailwind's flat `shadow-sm`: a layered, brand-tinted
+      // shadow, plus `bg-card` now genuinely differing from `bg-background`.
+      // Together those are what stop a card reading as a bordered rectangle.
+      "rounded-xl border bg-card text-card-foreground elev-1",
       className,
     )}
     {...props}

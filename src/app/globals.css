@@ -3,11 +3,34 @@
 @tailwind utilities;
 
 @layer base {
+  /* SURFACE MODEL — why these values, and why they changed.
+     ------------------------------------------------------
+     `--background` and `--card` were BOTH pure white. A card was therefore
+     distinguishable from the page only by a 1px border, which is why the app
+     read as flat and empty regardless of how much content was on screen. No
+     amount of decoration fixes that; the surfaces themselves have to differ.
+
+     The scale below is deliberately shallow — two or three percent of
+     lightness between levels. Premium interfaces (Linear, Stripe, Vercel) use
+     very small steps plus a soft shadow, not heavy contrast. Big jumps look
+     like a template.
+
+       --background   the page itself, very slightly tinted
+       --card         raised above the page: pure white in light mode
+       --elevated     above a card — popovers, dropdowns, dialogs
+
+     Blue-tinted greys throughout (hue 210-222) rather than neutral grey, so
+     the interface reads cool and technical and sits comfortably next to the
+     engineering accent colours. */
   :root {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
+    --elevated: 0 0% 100%;
+    /* Shadows carry the brand hue instead of neutral black. Pure black over a
+       tinted surface reads as dirt; a tinted shadow reads as depth. */
+    --shadow-color: 222 47% 30%;
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
@@ -18,17 +41,28 @@
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
+    /* Softer than before (was 91%). With real elevation doing the work, a
+       heavy border is redundant and makes every card look like a table cell.
+       Inputs keep a slightly stronger edge because a form field must read as
+       interactive even without focus. */
+    --border: 214 32% 93%;
+    --input: 214 30% 88%;
     --ring: 221 83% 53%;
     --radius: 0.7rem;
   }
 
+  /* Dark mode inverts the logic: surfaces get LIGHTER as they rise, which is
+     how physical light behaves and what makes layering legible without
+     borders. Shadows barely register on dark backgrounds, so the lightness
+     steps here are slightly larger than in light mode — they are doing the
+     work shadows do above. */
   .dark {
-    --background: 222 47% 7%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
-    --card: 222 47% 10%;
+    --card: 222 45% 9.5%;
     --card-foreground: 210 40% 98%;
+    --elevated: 222 44% 13%;
+    --shadow-color: 222 60% 2%;
     --primary: 217 91% 60%;
     --primary-foreground: 222 47% 11%;
     --secondary: 217 33% 17%;
@@ -113,9 +147,75 @@
   code {
     max-width: 100%;
   }
+
+  /* TYPOGRAPHY
+     Headings get NEGATIVE tracking that tightens as size grows. Default
+     letter-spacing is tuned for body copy; at heading sizes the same spacing
+     looks loose and generic — tightening it is most of the difference between
+     "a website" and "a product". The effect should not be noticeable, only
+     the absence of it. */
+  h1 {
+    letter-spacing: -0.022em;
+  }
+  h2 {
+    letter-spacing: -0.018em;
+  }
+  h3,
+  h4 {
+    letter-spacing: -0.012em;
+  }
+
+  /* Figures line up in columns when numbers sit above one another — budgets,
+     task counts, analytics. Proportional digits make a column of numbers
+     look ragged. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 @layer components {
+  /* ELEVATION SCALE
+     ---------------
+     Four levels, each a LAYERED shadow rather than a single blur. Real objects
+     cast a tight contact shadow plus a wider ambient one; a single large blur
+     reads as fog. The tight layer is what makes an element look attached to
+     the page instead of floating above it.
+
+     Shadows use --shadow-color (brand-tinted) at low alpha, and are almost
+     invisible in dark mode by design — there, the lightness steps between
+     --background / --card / --elevated carry the depth instead. */
+  .elev-1 {
+    box-shadow:
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.08),
+      0 1px 3px hsl(var(--shadow-color) / 0.05);
+  }
+  .elev-2 {
+    box-shadow:
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.1),
+      0 4px 12px -2px hsl(var(--shadow-color) / 0.08);
+  }
+  .elev-3 {
+    box-shadow:
+      0 2px 4px -2px hsl(var(--shadow-color) / 0.12),
+      0 12px 28px -6px hsl(var(--shadow-color) / 0.14);
+  }
+  .elev-4 {
+    box-shadow:
+      0 4px 8px -4px hsl(var(--shadow-color) / 0.16),
+      0 24px 48px -12px hsl(var(--shadow-color) / 0.2);
+  }
+  .dark .elev-1,
+  .dark .elev-2,
+  .dark .elev-3,
+  .dark .elev-4 {
+    box-shadow: none;
+  }
+
+  /* Popovers, dropdowns and dialogs sit above cards. */
+  .surface-elevated {
+    background-color: hsl(var(--elevated));
+  }
+
   /* Glassmorphism surface */
   .glass {
     @apply border border-white/10 bg-white/70 backdrop-blur-xl dark:bg-white/5;
@@ -148,8 +248,13 @@
   .card-hover {
     @apply transition-[transform,background-color,border-color,box-shadow,color,opacity] duration-200;
   }
+  /* Hovering a card raises it one level. The lift is 1px — enough to read as
+     a response, small enough that a grid of cards doesn't jitter. */
   .card-hover:hover {
-    @apply -translate-y-0.5 shadow-soft;
+    @apply -translate-y-px;
+    box-shadow:
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.1),
+      0 4px 12px -2px hsl(var(--shadow-color) / 0.08);
   }
 
   /* Interactive rows/tiles: consistent hover grammar everywhere. */

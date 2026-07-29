@@ -155,7 +155,7 @@ export function NotificationBell({
               right: pos.right,
               width: pos.width ?? undefined,
             }}
-            className="fixed z-[100] rounded-lg border bg-card shadow-xl"
+            className="elev-4 fixed z-[100] rounded-xl border bg-popover"
           >
           <div className="flex items-center justify-between border-b p-3">
             <span className="font-semibold">Notifications</span>
