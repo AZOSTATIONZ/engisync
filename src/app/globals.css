@@ -259,6 +259,29 @@
     box-shadow: none;
   }
 
+  /* NAV ITEM — the active tab grows a rule beneath it.
+     The underline scales from the centre rather than fading in, so the eye
+     follows the change instead of noticing that something is now different.
+     `transform` only, so it never triggers layout. */
+  .nav-underline {
+    position: relative;
+  }
+  .nav-underline::after {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background-color: hsl(var(--primary));
+    transform: scaleX(0);
+    transition: transform 0.22s var(--ease-out);
+  }
+  .nav-underline[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
   /* Popovers, dropdowns and dialogs sit above cards. */
   .surface-elevated {
     background-color: hsl(var(--elevated));

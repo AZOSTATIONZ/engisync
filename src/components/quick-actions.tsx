@@ -68,7 +68,11 @@ const ACTIONS = [
 export function QuickActions() {
   return (
     <section aria-label="Quick actions">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      {/* `stagger` fades these in in sequence, which reads as the page
+          assembling rather than appearing. Cheap because it is pure CSS —
+          no JavaScript, and the global reduced-motion rule already
+          neutralises it for anyone who asked for less. */}
+      <div className="stagger grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {ACTIONS.map((a) => (
           <Link
             key={a.label}

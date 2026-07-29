@@ -79,9 +79,9 @@ export function ProjectNav({ projectId }: { projectId: string }) {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "nav-underline inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors active:scale-[0.98]",
               active
-                ? "bg-primary/10 text-primary"
+                ? "text-primary"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >

@@ -7,6 +7,7 @@ import { getContributionStats } from "@/lib/profile";
 import { computeBadges } from "@/lib/personalization";
 import { routes } from "@/lib/routes";
 import { Avatar } from "@/components/avatar";
+import { AnimatedCounter } from "@/components/animated-counter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
@@ -97,13 +98,19 @@ export default async function ProfilePage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         {figures.map((f) => (
           <Card key={f.label}>
             <CardContent className="py-3">
               <p className="text-xs uppercase text-muted-foreground">{f.label}</p>
-              {/* Tabular figures so a row of numbers lines up. */}
-              <p className="tabular text-2xl font-bold">{f.value}</p>
+              {/* Tabular figures so a row of numbers lines up. The count-up
+                  earns its place here: these are cumulative achievements, and
+                  the motion draws the eye to a number that took a year to
+                  reach. It is NOT used for live counters elsewhere, where a
+                  ticking figure would just look unstable. */}
+              <p className="tabular text-2xl font-bold">
+                <AnimatedCounter value={f.value} />
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -123,9 +130,9 @@ export default async function ProfilePage() {
               a project, or get documentation approved by your supervisor.
             </p>
           ) : (
-            <ul className="grid gap-2 sm:grid-cols-2">
+            <ul className="stagger grid gap-2 sm:grid-cols-2">
               {badges.map((b) => (
-                <li key={b.id} className="rounded-lg border p-3">
+                <li key={b.id} className="card-hover rounded-lg border p-3">
                   <p className="text-sm font-medium">{b.label}</p>
                   {/* Every badge states what earned it, so a supervisor can
                       check the claim rather than take it on trust. */}
