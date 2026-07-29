@@ -5,6 +5,7 @@ import { Award, Download, ExternalLink } from "lucide-react";
 import { getContributionStats, getPublicProfile } from "@/lib/profile";
 import { computeBadges, publicBadges } from "@/lib/personalization";
 import { Avatar } from "@/components/avatar";
+import { CircuitHeader } from "@/components/circuit-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /**
@@ -52,8 +53,12 @@ export default async function PublicProfilePage({
   const badges = publicBadges(computeBadges(stats));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-10">
-      <header className="flex flex-wrap items-start gap-4">
+    <div className="relative mx-auto max-w-3xl space-y-6 px-4 py-10">
+      {/* Discipline-specific traces behind the name — the first signal to a
+          visitor that this is engineering work, not a generic CV site. */}
+      <CircuitHeader department={profile.department} />
+
+      <header className="relative flex flex-wrap items-start gap-4">
         <Avatar
           userId={profile.userId}
           name={profile.name}
