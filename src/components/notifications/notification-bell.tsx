@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, BellRing, Check } from "lucide-react";
@@ -28,16 +29,69 @@ export function NotificationBell({
   items: NotificationDTO[];
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ top: number; right: number; width: number | null }>({
+    top: 0,
+    right: 0,
+    width: null,
+  });
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  // Close on outside click.
+  useEffect(() => setMounted(true), []);
+
+  /**
+   * Anchor the panel to the bell in VIEWPORT coordinates.
+   *
+   * The panel is portalled to <body>, so it cannot inherit the bell's position
+   * the way an absolutely-positioned child would. Measuring is the price of
+   * escaping the header — see the portal note below for why that is necessary.
+   */
+  const place = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const narrow = window.innerWidth < 640;
+    setPos({
+      top: r.bottom + 8,
+      // On a phone the panel spans the viewport with equal 8px insets; a fixed
+      // 320px panel anchored near the right edge would hang off the left.
+      right: narrow ? 8 : Math.max(8, window.innerWidth - r.right),
+      width: narrow ? window.innerWidth - 16 : 320,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener("resize", place);
+    // `true` captures scrolls in any container, not just the document, so the
+    // panel tracks the bell rather than detaching from it.
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [open, place]);
+
+  // Close on outside click. Both the trigger and the portalled panel count as
+  // "inside" — the panel is no longer a DOM descendant of the trigger.
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (ref.current?.contains(t) || panelRef.current?.contains(t)) return;
+      setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   // Fire browser notifications for unread items (if the user opted in).
@@ -82,14 +136,27 @@ export function NotificationBell({
         )}
       </Button>
 
-      {open && (
-        /* MOBILE OVERFLOW FIX
-           A fixed 320px panel anchored to a bell near the right edge hangs off
-           the left of a 360px phone, which widens the whole document and cuts
-           content off on every page. On small screens the panel is therefore
-           viewport-pinned with equal insets; from sm: up it goes back to
-           dropping neatly under the bell. */
-        <div className="fixed inset-x-2 top-[4.25rem] z-50 rounded-lg border bg-card shadow-lg sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80">
+      {open &&
+        mounted &&
+        /* PORTAL — do not move this back inside the header.
+           The header carries `backdrop-blur-xl`, and a filtered element becomes
+           the containing block for `position: fixed` descendants. It also has
+           `overflow-hidden` guarding the mobile width budget. Together those
+           clipped this panel to the 64px header, so opening the bell showed a
+           sliver of a card and nothing else. Rendering into <body> escapes both.
+           The command palette portals for the same reason. */
+        createPortal(
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-label="Notifications"
+            style={{
+              top: pos.top,
+              right: pos.right,
+              width: pos.width ?? undefined,
+            }}
+            className="fixed z-[100] rounded-lg border bg-card shadow-xl"
+          >
           <div className="flex items-center justify-between border-b p-3">
             <span className="font-semibold">Notifications</span>
             {count > 0 && (
@@ -155,8 +222,9 @@ export function NotificationBell({
               Enable desktop reminders
             </button>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
