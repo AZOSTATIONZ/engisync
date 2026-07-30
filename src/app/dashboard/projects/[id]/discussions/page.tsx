@@ -26,7 +26,7 @@ export default async function DiscussionsPage({
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Discussions</h1>
+            <h1 className="page-title">Discussions</h1>
           </div>
           <NewThreadForm workspaceId={id} />
         </div>

@@ -71,7 +71,7 @@ export default async function ProfilePage() {
             size="xl"
           />
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold">{user?.name ?? "Your profile"}</h1>
+            <h1 className="page-title">{user?.name ?? "Your profile"}</h1>
             {user?.headline && (
               <p className="text-muted-foreground">{user.headline}</p>
             )}

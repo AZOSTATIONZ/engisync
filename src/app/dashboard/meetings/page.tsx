@@ -101,7 +101,7 @@ export default async function MeetingsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Meetings</h1>
+          <h1 className="page-title">Meetings</h1>
           <p className="text-muted-foreground">
             Schedule sessions, share join links, and track attendance.
           </p>

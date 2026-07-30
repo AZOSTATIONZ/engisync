@@ -92,7 +92,7 @@ export default async function CalendarPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Calendar</h1>
+          <h1 className="page-title">Calendar</h1>
           <p className="text-muted-foreground">
             Deadlines, meetings, and countdowns in one place.
           </p>

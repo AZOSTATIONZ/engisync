@@ -35,7 +35,7 @@ export default async function ThreadPage({
           <ArrowLeft className="h-4 w-4" /> All discussions
         </Link>
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold">{thread.title}</h1>
+          <h1 className="page-title">{thread.title}</h1>
           {canDelete && <DeleteThreadButton threadId={thread.id} />}
         </div>
       </div>

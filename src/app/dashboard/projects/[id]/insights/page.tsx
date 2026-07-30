@@ -51,7 +51,7 @@ export default async function GroupAnalyticsPage({
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{a.workspace.name}</h1>
+            <h1 className="page-title">{a.workspace.name}</h1>
             {a.workspace.department && (
               <p className="text-muted-foreground">{a.workspace.department}</p>
             )}

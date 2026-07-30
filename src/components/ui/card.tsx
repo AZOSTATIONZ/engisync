@@ -8,10 +8,22 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      // `elev-1` replaces Tailwind's flat `shadow-sm`: a layered, brand-tinted
-      // shadow, plus `bg-card` now genuinely differing from `bg-background`.
-      // Together those are what stop a card reading as a bordered rectangle.
-      "rounded-xl border bg-card text-card-foreground elev-1",
+      // THE PREMIUM TREATMENT LIVES HERE, not on individual pages.
+      //
+      // `surface-premium` carries the light-catching top edge, the layered
+      // brand-tinted shadow and (in dark mode) a subtle vertical gradient —
+      // the difference between a bordered rectangle and something that looks
+      // like an object. It was applied by hand on four surfaces while 53 files
+      // used a plain Card, which is exactly how an interface ends up feeling
+      // like it was built by different people on different days.
+      //
+      // Putting it in the primitive means every one of those 53 inherits it,
+      // and a future page cannot accidentally opt out of the design system by
+      // doing the obvious thing.
+      //
+      // It supplies background, border and shadow itself, so the previous
+      // `border bg-card elev-1` would only fight it.
+      "surface-premium rounded-xl text-card-foreground",
       className,
     )}
     {...props}

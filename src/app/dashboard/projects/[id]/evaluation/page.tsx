@@ -96,7 +96,7 @@ export default async function EvaluationPage({
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <h1 className="flex items-center gap-2 page-title">
               <Sparkles className="h-6 w-6 text-primary" /> AI Project Evaluation
             </h1>
             <p className="text-muted-foreground">{facts.name}</p>

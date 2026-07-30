@@ -70,7 +70,7 @@ export default async function DepartmentDetailPage({
               {dept.code}
             </span>
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold">{dept.name}</h1>
+              <h1 className="page-title">{dept.name}</h1>
               {dept.description && (
                 <p className="text-muted-foreground">{dept.description}</p>
               )}

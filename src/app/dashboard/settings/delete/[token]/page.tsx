@@ -24,7 +24,7 @@ export default async function ConfirmDeletionPage({
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0 text-destructive" />
             <div>
-              <h1 className="text-xl font-bold">Permanently delete your account?</h1>
+              <h1 className="page-title">Permanently delete your account?</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 This is your last chance to stop. Once confirmed, your profile,
                 personal projects, tasks, files and sessions are removed and you

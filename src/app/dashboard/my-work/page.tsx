@@ -108,7 +108,7 @@ export default async function MyWorkPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Work</h1>
+        <h1 className="page-title">My Work</h1>
         <p className="text-muted-foreground">
           Everything assigned to you, pulled from every project.
         </p>

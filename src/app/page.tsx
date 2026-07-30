@@ -67,7 +67,7 @@ export default function HomePage() {
             </span>
             <h1 className="max-w-4xl text-4xl font-bold tracking-tight sm:text-6xl">
               The engineering platform for{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+              <span className="text-gradient">
                 projects, teams &amp; deadlines
               </span>
             </h1>

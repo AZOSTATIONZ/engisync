@@ -66,7 +66,7 @@ export default async function KnowledgePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">
+        <h1 className="page-title">
           <span className="text-gradient">Knowledge</span>
         </h1>
         <p className="mt-1 text-muted-foreground">
@@ -81,7 +81,7 @@ export default async function KnowledgePage() {
       <div className="stagger grid gap-4 lg:grid-cols-3">
         {surfaces.map((s) => (
           <Link key={s.href} href={s.href} className="group">
-            <Card className="glow-hover sheen surface-premium relative h-full overflow-hidden border-0">
+            <Card className="glow-hover sheen relative h-full overflow-hidden">
               <CardContent className="space-y-2 py-5">
                 <span className={`chip ${s.chip} mb-1`}>
                   <s.icon className="icon-nudge h-[1.15rem] w-[1.15rem]" />

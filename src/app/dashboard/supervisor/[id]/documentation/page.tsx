@@ -39,14 +39,14 @@ export default async function SuperviseDocumentationPage({
       </Link>
 
       {/* Slide-style header banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-indigo-800 to-violet-800 p-6 text-white shadow-soft sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl banner-brand p-6 shadow-soft sm:p-8">
         <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10" />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="flex items-center gap-2 text-sm/relaxed opacity-90">
               <FileText className="h-4 w-4" /> Supervisor Review
             </p>
-            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{doc.workspaceName}</h1>
+            <h1 className="mt-1 page-title">{doc.workspaceName}</h1>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
                 {doc.progress.approved}/{doc.progress.total} approved

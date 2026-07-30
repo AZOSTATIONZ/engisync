@@ -47,7 +47,7 @@ export default async function SuperviseProjectPage({
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{p.name}</h1>
+            <h1 className="page-title">{p.name}</h1>
             {p.department && <p className="text-muted-foreground">{p.department}</p>}
           </div>
           <div className="flex flex-wrap gap-2">

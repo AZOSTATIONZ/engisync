@@ -39,7 +39,7 @@ export default async function QuizPage({
         </Link>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{quiz.title}</h1>
+            <h1 className="page-title">{quiz.title}</h1>
             {quiz.description && (
               <p className="text-muted-foreground">{quiz.description}</p>
             )}

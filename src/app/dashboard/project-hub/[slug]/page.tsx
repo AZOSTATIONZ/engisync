@@ -73,7 +73,7 @@ export default async function HubProjectPage({
           {DISCIPLINE_LABEL[p.discipline]} · {TIER_META[p.tier].label} ·{" "}
           {TIER_META[p.tier].typicalYear}
         </p>
-        <h1 className="text-2xl font-bold">{p.title}</h1>
+        <h1 className="page-title">{p.title}</h1>
         <p className="max-w-2xl text-muted-foreground">{p.summary}</p>
       </div>
 

@@ -59,7 +59,7 @@ export default async function RepositoryPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Engineering Repository</h1>
+        <h1 className="page-title">Engineering Repository</h1>
         <p className="text-muted-foreground">
           Completed, supervisor-approved projects from your department. Search
           here before starting — someone may have solved half your problem

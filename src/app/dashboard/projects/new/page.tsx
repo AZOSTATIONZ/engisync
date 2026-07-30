@@ -87,7 +87,7 @@ export default async function NewProjectPage({
         >
           <ArrowLeft className="h-4 w-4" /> Projects
         </Link>
-        <h1 className="text-2xl font-bold">Start a project</h1>
+        <h1 className="page-title">Start a project</h1>
         <p className="text-muted-foreground">
           Create a new one and invite your team, or join an existing project
           with a code from your project leader.

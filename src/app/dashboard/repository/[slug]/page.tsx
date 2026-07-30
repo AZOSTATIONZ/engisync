@@ -56,7 +56,7 @@ export default async function PublishedProjectPage({
           <ArrowLeft className="h-4 w-4" /> Repository
         </Link>
         <p className="font-mono text-xs text-primary">{p.slug}</p>
-        <h1 className="text-2xl font-bold">{p.title}</h1>
+        <h1 className="page-title">{p.title}</h1>
         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <UserIcon className="h-3.5 w-3.5" />

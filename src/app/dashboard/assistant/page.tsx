@@ -33,7 +33,7 @@ export default async function AssistantPage() {
       <div className="flex items-center gap-2">
         <Sparkles className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">AI Assistant</h1>
+          <h1 className="page-title">AI Assistant</h1>
           <p className="text-muted-foreground">
             Summarize notes, generate tasks, spot risks, and get engineering
             guidance.

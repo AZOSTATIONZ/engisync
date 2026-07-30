@@ -74,9 +74,12 @@ export default async function ProjectLayout({
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold">{project.name}</h1>
+            <h1 className="truncate page-title">{project.name}</h1>
             <p className="text-sm text-muted-foreground">
-              {project.department ? `${project.department} · ` : ""}
+              {/* `department` is the RELATION, not a string — interpolating it
+                  rendered "[object Object] · Idea" under every project title.
+                  The select above only fetches `name`, so that is what shows. */}
+              {project.department ? `${project.department.name} · ` : ""}
               {STAGE_META[stage].label}
               {canSupervise && !membership ? " · Reviewing as supervisor" : ""}
             </p>

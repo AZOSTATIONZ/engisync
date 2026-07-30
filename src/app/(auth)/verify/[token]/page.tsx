@@ -23,7 +23,7 @@ export default async function VerifyPage({
       ) : (
         <XCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
       )}
-      <h1 className="text-2xl font-bold">
+      <h1 className="page-title">
         {ok ? "Email verified" : "Verification failed"}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">

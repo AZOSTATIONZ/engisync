@@ -132,7 +132,7 @@ export default async function ManageWorkspacePage({
         </Link>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Manage group</h1>
+            <h1 className="page-title">Manage group</h1>
             <p className="text-muted-foreground">
               {queueCount === 0
                 ? "Nothing is waiting on you right now."

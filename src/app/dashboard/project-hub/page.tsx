@@ -65,7 +65,7 @@ export default async function ProjectHubPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Project Hub</h1>
+        <h1 className="page-title">Project Hub</h1>
         <p className="max-w-2xl text-muted-foreground">
           Engineering projects you can actually build, with realistic parts
           lists and budgets in US dollars. Every project says what you need to

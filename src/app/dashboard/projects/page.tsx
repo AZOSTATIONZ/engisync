@@ -24,7 +24,7 @@ export default async function ProjectsPage() {
           anywhere in the product. */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Projects</h1>
+          <h1 className="page-title">Projects</h1>
           <p className="text-muted-foreground">
             Everything for each of your projects — plan, tasks, documents, money and team.
           </p>

@@ -80,7 +80,7 @@ export default async function ProjectFinancePage({
         >
           <ArrowLeft className="h-4 w-4" /> {fin.workspaceName}
         </Link>
-        <h1 className="text-2xl font-bold">Project finance</h1>
+        <h1 className="page-title">Project finance</h1>
         <p className="text-muted-foreground">
           Track contributions and spending. Payments happen in your own EcoCash,
           OneMoney or bank app — EngiSync only keeps the record.

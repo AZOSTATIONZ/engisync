@@ -30,7 +30,7 @@ export default async function QuizzesPage({
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Quizzes</h1>
+            <h1 className="page-title">Quizzes</h1>
           </div>
           {isLeader && <QuizBuilder workspaceId={id} />}
         </div>

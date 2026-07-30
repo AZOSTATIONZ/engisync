@@ -59,7 +59,7 @@ export default async function SettingsPage() {
   return (
     <div className="max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="page-title">Settings</h1>
         <p className="text-muted-foreground">
           Manage your account and notification preferences.
         </p>
@@ -91,7 +91,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="surface-premium border-0">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Theme</CardTitle>
           <CardDescription>

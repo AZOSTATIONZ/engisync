@@ -321,6 +321,32 @@
     border-radius: inherit;
   }
 
+  /* ── BRAND BANNER ─────────────────────────────────────────────────
+     The full-bleed coloured header used at the top of a few feature pages.
+
+     These were hardcoded `from-blue-600 via-indigo-600 to-violet-600` and
+     friends — three pages, three different hand-picked gradients, none of them
+     aware of the theme. A student on Copper got a violet documentation header,
+     which is the clearest possible signal that a page was built on its own.
+
+     The brand gradient is composited over a dark base rather than used neat.
+     These banners always carry white text, and `--primary` in light mode is
+     deliberately darkened for legibility on white — laid down alone it would
+     be far too light behind white text in some themes. The dark underlay makes
+     white safe in all nine personalities without needing a per-theme override. */
+  .banner-brand {
+    position: relative;
+    overflow: hidden;
+    color: #fff;
+    background-image:
+      linear-gradient(
+        135deg,
+        hsl(var(--primary) / 0.92),
+        hsl(var(--primary-2, var(--primary)) / 0.72)
+      ),
+      linear-gradient(0deg, hsl(222 47% 11%), hsl(222 47% 11%));
+  }
+
   /* ── GRADIENT ICON CHIP ───────────────────────────────────────────
      The small rounded square behind an action's icon. Carries the gradient
      so the icon itself can stay a plain, legible white glyph. */
@@ -691,6 +717,33 @@
   }
   .sheen:hover::after {
     transform: translateX(100%);
+  }
+
+  /* ── TYPE SCALE ───────────────────────────────────────────────────
+     One page title treatment, not six.
+
+     An audit of `<h1>` across the dashboard found `text-2xl font-bold` (26
+     pages), `text-xl font-bold`, `text-3xl font-bold`, and three variants with
+     extra layout classes bolted on. Nobody chose that; it accumulated. The
+     result is that moving between two pages feels like moving between two
+     products, which is precisely the "built separately" problem.
+
+     Sizes step with the viewport for the same reason the root font size does —
+     a 24px title is confident on a phone and timid on a 27" monitor. */
+  .page-title {
+    @apply text-2xl font-bold sm:text-3xl;
+    letter-spacing: -0.022em;
+  }
+  .page-sub {
+    @apply mt-1 text-muted-foreground;
+    max-width: 60ch; /* Prose stops being readable past ~75 characters. */
+  }
+  /* Section headings INSIDE a page. Deliberately much closer to body size than
+     the page title — the gap between a page and its sections is hierarchy;
+     three near-identical large sizes is just noise. */
+  .section-title {
+    @apply text-base font-semibold;
+    letter-spacing: -0.012em;
   }
 
   /* Numbers that matter, set in the brand gradient. */

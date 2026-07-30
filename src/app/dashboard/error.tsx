@@ -35,7 +35,7 @@ export default function DashboardError({
     <div className="flex flex-col items-center gap-4 py-16 text-center">
       <AlertTriangle className="h-10 w-10 text-destructive" />
       <div>
-        <h1 className="text-xl font-bold">Something went wrong on this page</h1>
+        <h1 className="page-title">Something went wrong on this page</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           The rest of EngiSync is still working — you can go back and continue.
         </p>

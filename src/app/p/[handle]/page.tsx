@@ -68,7 +68,7 @@ export default async function PublicProfilePage({
           size="xl"
         />
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold">{profile.name ?? "Engineer"}</h1>
+          <h1 className="page-title">{profile.name ?? "Engineer"}</h1>
           {profile.headline && (
             <p className="text-muted-foreground">{profile.headline}</p>
           )}

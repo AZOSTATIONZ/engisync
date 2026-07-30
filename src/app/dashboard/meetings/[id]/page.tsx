@@ -70,7 +70,7 @@ export default async function MeetingDetailPage({
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{meeting.title}</h1>
+            <h1 className="page-title">{meeting.title}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
               <span className="rounded bg-secondary px-2 py-0.5">
                 {PROVIDER_LABELS[meeting.provider]}

@@ -38,7 +38,7 @@ export default function CollaborationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Collaboration</h1>
+        <h1 className="page-title">Collaboration</h1>
         <p className="text-muted-foreground">
           Where your team communicates. Here&apos;s where each kind of
           collaboration happens today.

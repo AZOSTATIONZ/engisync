@@ -28,7 +28,7 @@ export default async function AdminPage() {
       <div className="flex items-center gap-2">
         <ShieldCheck className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">Admin panel</h1>
+          <h1 className="page-title">Admin panel</h1>
           <p className="text-muted-foreground">University-wide AI and plans.</p>
         </div>
       </div>

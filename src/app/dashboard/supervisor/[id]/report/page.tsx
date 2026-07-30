@@ -64,7 +64,7 @@ export default async function ProjectReportPage({
             <p className="flex items-center gap-2 text-sm/relaxed opacity-90">
               <BarChart3 className="h-4 w-4" /> Analytics Report · {report.rangeLabel}
             </p>
-            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{report.workspaceName}</h1>
+            <h1 className="mt-1 page-title">{report.workspaceName}</h1>
             {report.department && <p className="opacity-90">{report.department}</p>}
           </div>
           <Button asChild variant="secondary" size="sm">
