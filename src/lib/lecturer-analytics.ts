@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { canSuperviseWorkspace } from "@/lib/supervisor";
 
 export type ReportRange = "daily" | "weekly" | "monthly" | "semester" | "final";
@@ -129,7 +130,7 @@ export async function generateProjectReport(
 
   const memberIds = ws.members.map((m) => m.userId);
   const nameOf = new Map(
-    ws.members.map((m) => [m.userId, m.user.name ?? m.user.email]),
+    ws.members.map((m) => [m.userId, displayName(m.user)]),
   );
 
   // Parallel supporting queries.

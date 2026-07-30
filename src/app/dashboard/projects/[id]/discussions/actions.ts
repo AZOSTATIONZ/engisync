@@ -6,6 +6,7 @@ import { NotificationType } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { authorize } from "@/lib/policy";
 import { getMembership } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications";
@@ -33,7 +34,7 @@ export async function createThread(
   if (title.length < 3) return { error: "Give your topic a title." };
   if (body.length < 1) return { error: "Write the first message." };
 
-  const authorName = user.name ?? user.email ?? "Member";
+  const authorName = displayName(user);
   const thread = await prisma.discussionThread.create({
     data: {
       workspaceId,
@@ -66,7 +67,7 @@ export async function postMessage(
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return { error: "Write a message." };
 
-  const authorName = user.name ?? user.email ?? "Member";
+  const authorName = displayName(user);
   await prisma.$transaction([
     prisma.discussionMessage.create({
       data: { threadId, authorId: user.id, authorName, body },

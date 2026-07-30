@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { userWorkspaceIds } from "@/lib/task";
 
 /** Local YYYY-MM-DD key. */
@@ -81,7 +82,7 @@ export async function getWorkspaceAnalytics(workspaceId: string, userId: string)
     const minutes = assigned.reduce((s, t) => s + t.loggedMinutes, 0);
     return {
       id: m.userId,
-      name: m.user.name ?? m.user.email,
+      name: displayName(m.user),
       openTasks,
       completed,
       hours: Math.round((minutes / 60) * 10) / 10,

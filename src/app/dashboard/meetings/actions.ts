@@ -6,6 +6,7 @@ import { AttendanceStatus } from "@prisma/client";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { userWorkspaceIds } from "@/lib/task";
 import { getMeetingForUser, isMeetingLeader } from "@/lib/meeting";
 import { meetingSchema, attendanceStatusEnum } from "@/lib/validations";
@@ -39,7 +40,7 @@ export async function generateMinutes(meetingId: string): Promise<ActionState> {
   if (!meeting) return { error: "Meeting not found." };
 
   const attendance = meeting.attendances
-    .map((a) => `${a.user.name ?? a.user.email}: ${a.status}`)
+    .map((a) => `${displayName(a.user)}: ${a.status}`)
     .join(", ");
 
   try {

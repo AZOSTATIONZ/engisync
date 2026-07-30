@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 
 /** Departments where the user is a SUPERVISOR. */
 export async function supervisedDepartmentIds(userId: string): Promise<string[]> {
@@ -107,7 +108,7 @@ export async function getSupervisedProject(workspaceId: string, userId: string) 
     done,
     overdue,
     members: ws.members.map((m) => ({
-      name: m.user.name ?? m.user.email,
+      name: displayName(m.user),
       role: m.role as string,
     })),
     milestones: ws.milestones.map((m) => ({

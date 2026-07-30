@@ -1,5 +1,6 @@
 import { DepartmentRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 
 /** Department IDs the user belongs to. */
 export async function userDepartmentIds(userId: string): Promise<string[]> {
@@ -99,10 +100,15 @@ export async function getDepartment(departmentId: string, userId: string) {
     description: department.description,
     isMember: !!myMembership,
     isAdmin,
+    // No `email` field, and no `?? email` fallback. Both leaked every
+    // classmate's and lecturer's address to every department member — the
+    // CRITICAL finding in the security audit. `displayName()` is the only
+    // sanctioned way to render a person, and it degrades to a masked handle
+    // rather than an address. The field was never even displayed; it simply
+    // rode along in the payload.
     members: department.members.map((m) => ({
       id: m.userId,
-      name: m.user.name ?? m.user.email,
-      email: m.user.email,
+      name: displayName(m.user),
       role: m.role,
     })),
     groups: groups.map((g) => ({
@@ -115,7 +121,7 @@ export async function getDepartment(departmentId: string, userId: string) {
       id: a.id,
       title: a.title,
       body: a.body,
-      authorName: a.author.name ?? a.author.email,
+      authorName: displayName(a.author),
       createdAt: a.createdAt.toISOString(),
     })),
   };

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { authorize } from "@/lib/policy";
 import { getMembership } from "@/lib/workspace";
 
@@ -103,7 +104,7 @@ export async function submitQuiz(
     data: {
       quizId,
       userId: user.id,
-      userName: user.name ?? user.email ?? "Member",
+      userName: displayName(user),
       score,
       total,
     },

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { userWorkspaceIds } from "@/lib/task";
 
 export const METHOD_LABELS: Record<string, string> = {
@@ -113,7 +114,7 @@ export async function getWorkspaceBudget(workspaceId: string, userId: string) {
   const perMember = new Map<string, { name: string; total: number }>();
   for (const m of workspace.members) {
     perMember.set(m.userId, {
-      name: m.user.name ?? m.user.email,
+      name: displayName(m.user),
       total: 0,
     });
   }
@@ -134,7 +135,7 @@ export async function getWorkspaceBudget(workspaceId: string, userId: string) {
     isLeader,
     members: workspace.members.map((m) => ({
       id: m.userId,
-      name: m.user.name ?? m.user.email,
+      name: displayName(m.user),
     })),
     contributions: workspace.contributions.map((c) => ({
       id: c.id,
@@ -142,7 +143,7 @@ export async function getWorkspaceBudget(workspaceId: string, userId: string) {
       method: c.method,
       reference: c.reference,
       note: c.note,
-      contributorName: c.user.name ?? c.user.email,
+      contributorName: displayName(c.user),
       createdAt: c.createdAt.toISOString(),
     })),
     expenses: workspace.expenses.map((e) => ({
@@ -151,7 +152,7 @@ export async function getWorkspaceBudget(workspaceId: string, userId: string) {
       category: e.category,
       description: e.description,
       reference: e.reference,
-      spentByName: e.spentBy?.name ?? e.spentBy?.email ?? null,
+      spentByName: e.spentBy ? displayName(e.spentBy) : null,
       createdAt: e.createdAt.toISOString(),
     })),
     totals: {
