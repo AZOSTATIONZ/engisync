@@ -15,7 +15,7 @@ export default function DashboardLoading() {
       </div>
 
       <p className="text-sm text-muted-foreground" role="status">
-        Preparing your workspace&hellip;
+        Preparing your projects&hellip;
       </p>
 
       {/* Today */}

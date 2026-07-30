@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
-import { approveMilestone } from "@/app/dashboard/workspaces/[id]/documentation/actions";
+import { approveMilestone } from "@/app/dashboard/projects/[id]/document/actions";
 
 export function MilestoneApproveButton({
   milestoneId,

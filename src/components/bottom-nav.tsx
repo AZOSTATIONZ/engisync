@@ -2,33 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  ListChecks,
-  FolderKanban,
-  Building2,
-  type LucideIcon,
-} from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isNavActive } from "@/components/nav-items";
-import { routes } from "@/lib/routes";
+import { getPrimaryNav, isNavActive } from "@/components/nav-items";
 
 /**
- * Mobile bottom navigation — thumb-reachable access to the four highest-traffic
- * destinations. Everything else lives in the drawer (hamburger). Hidden from
- * md: upward, where the sidebar takes over.
+ * Mobile bottom navigation — thumb-reachable access to the primary
+ * destinations. Hidden from md: upward, where the sidebar takes over.
  *
- * These mirror the desktop primary nav minus Files, which is the least-used of
- * the five and stays one tap away in the drawer.
+ * It renders the primary nav directly rather than keeping its own list, so the
+ * phone and desktop can never drift apart. Three items also means each one gets
+ * a genuinely large tap target instead of four cramped ones.
  *
  * Uses env(safe-area-inset-bottom) so it clears the iOS home indicator.
  */
-const ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: routes.home, label: "Home", icon: LayoutDashboard },
-  { href: routes.myWork, label: "My Work", icon: ListChecks },
-  { href: routes.projects, label: "Projects", icon: FolderKanban },
-  { href: routes.library, label: "Library", icon: Building2 },
-];
+const ITEMS: { href: string; label: string; icon: LucideIcon }[] =
+  getPrimaryNav().map((i) => ({ href: i.href, label: i.label, icon: i.icon }));
 
 export function BottomNav() {
   const pathname = usePathname();

@@ -3,112 +3,143 @@
  *
  * WHY THIS FILE EXISTS
  * --------------------
- * `Workspace`, `Group` and `Project` are currently the SAME database record
- * surfaced through two route trees (`/dashboard/workspaces/[id]` for people and
- * access, `/dashboard/projects/[id]` for objectives and milestones). That split
- * is the main reason the product is hard to learn, and it is scheduled to be
- * unified into a single `/dashboard/projects/[id]` space.
+ * A project is ONE record with ONE home: `/dashboard/projects/[id]`. Everything
+ * that belongs to a project — its plan, tasks, document, money, insights and
+ * team — is a tab underneath that home.
  *
- * Until that migration happens, every link in the app must be built through
- * this module rather than hardcoded. When the entities merge, the unification
- * becomes an edit to this one file instead of a hunt through ~40 page files.
+ * This replaces an earlier split where the same record was surfaced through two
+ * unrelated route trees — a "workspaces" tree for people and access, and a
+ * "projects" tree for objectives and milestones. Students opened a project,
+ * found a plan, and had no way to reach the actual work; files uploaded in one
+ * tree were invisible from the other. That split, not the styling, was why the
+ * product was hard to learn.
  *
- * RULE: no new code should contain the literal strings "/dashboard/workspaces"
- * or "/dashboard/projects". Use these helpers.
+ * RULE: no code should contain a hardcoded "/dashboard/projects/…" path. Use
+ * these helpers, so the next structural change is an edit to this file rather
+ * than a hunt through ~40 page files. The previous version of this module
+ * carried the same rule and it was violated in 20+ files, which is what made
+ * this migration expensive — worth enforcing in review.
  */
 
-/** Top-level destinations. */
+/** Top-level destinations. Three, plus role-gated surfaces. */
 export const routes = {
   home: "/dashboard",
-  myWork: "/dashboard/my-work",
   projects: "/dashboard/projects",
-  library: "/dashboard/departments",
-  files: "/dashboard/resources",
-  departments: "/dashboard/departments",
-  settings: "/dashboard/settings",
-  supervisor: "/dashboard/supervisor",
-  admin: "/dashboard/admin",
-  assistant: "/dashboard/assistant",
-  analytics: "/dashboard/analytics",
-  budget: "/dashboard/budget",
-  calendar: "/dashboard/calendar",
-  meetings: "/dashboard/meetings",
-  tasks: "/dashboard/tasks",
-  collaboration: "/dashboard/collaboration",
+  newProject: "/dashboard/projects/new",
+
+  /**
+   * Knowledge: what past cohorts built, what you could build, how to learn it.
+   *
+   * The three surfaces below keep their original paths for now. Grouping them
+   * under one destination is a navigation change; physically merging the route
+   * trees is a separate migration and does not need to happen first.
+   */
+  knowledge: "/dashboard/knowledge",
   repository: "/dashboard/repository",
   projectHub: "/dashboard/project-hub",
+  library: "/dashboard/departments",
+
+  /** Role-gated. */
+  supervisor: "/dashboard/supervisor",
+  admin: "/dashboard/admin",
+
+  /** Account-menu destinations, not primary navigation. */
+  settings: "/dashboard/settings",
   profile: "/dashboard/profile",
+
+  /**
+   * Personal cross-project lenses. These are surfaced FROM Home, not as
+   * top-level destinations — "my tasks across every project" is a view of the
+   * person, while a project's task list belongs to the project.
+   */
+  myWork: "/dashboard/my-work",
+  tasks: "/dashboard/my-work",
+  calendar: "/dashboard/calendar",
+  meetings: "/dashboard/meetings",
+
+  /** Departments keep their own path until the Knowledge trees are merged. */
+  departments: "/dashboard/departments",
 } as const;
 
-export function hubProject(slug: string): string {
-  return `/dashboard/project-hub/${slug}`;
-}
+/* ── A project's seven tabs ────────────────────────────────────────── */
 
-export function repositoryEntry(slug: string): string {
-  return `/dashboard/repository/${slug}`;
-}
-
-/**
- * A project's main page.
- *
- * Today this resolves to the workspace route, because that view owns the
- * members/access half of the record and is the more useful landing page.
- * After unification this becomes `/dashboard/projects/${id}`.
- */
+/** Overview — what is this, where is it, what needs doing next. */
 export function projectHome(id: string): string {
-  return `/dashboard/workspaces/${id}`;
-}
-
-/** Objectives, scope, milestones, risks, deliverables. */
-export function projectPlan(id: string): string {
   return `/dashboard/projects/${id}`;
 }
 
-/** Members, invites, join codes, access settings. */
-export function projectTeam(id: string): string {
-  return `/dashboard/workspaces/${id}`;
+/** Lifecycle stage, milestones, risks, deliverables, schedule. */
+export function projectPlan(id: string): string {
+  return `/dashboard/projects/${id}/plan`;
 }
 
-export function projectDocs(id: string): string {
-  return `/dashboard/workspaces/${id}/documentation`;
+/** This project's tasks. */
+export function projectTasks(id: string): string {
+  return `/dashboard/projects/${id}/tasks`;
 }
+
+/** The engineering document and its evidence. */
+export function projectDocs(id: string): string {
+  return `/dashboard/projects/${id}/document`;
+}
+
+/** Contributions, expenses and the bill of materials. */
+export function projectBudget(id: string): string {
+  return `/dashboard/projects/${id}/money`;
+}
+
+/** Health, participation and readiness for review. */
+export function projectAnalytics(id: string): string {
+  return `/dashboard/projects/${id}/insights`;
+}
+
+/** Members, roles, invites and invited supervisors. */
+export function projectTeam(id: string): string {
+  return `/dashboard/projects/${id}/team`;
+}
+
+/* ── Secondary project surfaces (reached from the project More menu) ── */
 
 export function projectDocsHistory(id: string): string {
-  return `/dashboard/workspaces/${id}/documentation/history`;
+  return `/dashboard/projects/${id}/document/history`;
 }
 
 export function projectDiscussions(id: string): string {
-  return `/dashboard/workspaces/${id}/discussions`;
+  return `/dashboard/projects/${id}/discussions`;
 }
 
 export function projectQuizzes(id: string): string {
-  return `/dashboard/workspaces/${id}/quizzes`;
+  return `/dashboard/projects/${id}/quizzes`;
 }
 
 export function projectEvaluation(id: string): string {
-  return `/dashboard/workspaces/${id}/evaluation`;
+  return `/dashboard/projects/${id}/evaluation`;
 }
 
-export function projectAnalytics(id: string): string {
-  return `/dashboard/analytics/${id}`;
+/** Join a project by code (invite/QR landing). */
+export function projectJoin(joinCode: string): string {
+  return `${routes.projects}?join=${encodeURIComponent(joinCode)}`;
 }
 
-export function projectBudget(id: string): string {
-  return `/dashboard/budget/${id}`;
+/* ── Knowledge ─────────────────────────────────────────────────────── */
+
+export function hubProject(slug: string): string {
+  return `${routes.projectHub}/${slug}`;
 }
 
-/** Tasks filtered to a single project. */
-export function projectTasks(id: string): string {
-  return `/dashboard/tasks?workspace=${id}`;
+export function repositoryEntry(slug: string): string {
+  return `${routes.repository}/${slug}`;
 }
 
 export function departmentHome(id: string): string {
-  return `/dashboard/departments/${id}`;
+  return `${routes.library}/${id}`;
 }
 
 export function departmentLibrary(id: string): string {
-  return `/dashboard/departments/${id}/resources`;
+  return `${routes.library}/${id}/resources`;
 }
+
+/* ── Other ─────────────────────────────────────────────────────────── */
 
 export function meetingHome(id: string): string {
   return `/dashboard/meetings/${id}`;

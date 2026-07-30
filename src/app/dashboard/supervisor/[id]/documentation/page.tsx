@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DocumentSectionCard } from "@/components/documentation-sections";
 import { DocumentLockToggle } from "./lock-toggle";
-import { ApprovalButtons } from "@/app/dashboard/workspaces/[id]/documentation/report-controls";
+import { ApprovalButtons } from "@/app/dashboard/projects/[id]/document/report-controls";
 
 export const metadata: Metadata = { title: "Review documentation" };
 
@@ -75,7 +75,7 @@ export default async function SuperviseDocumentationPage({
           completionApproved={doc.completionApproved}
         />
         <Button asChild variant="outline" size="sm">
-          <a href={`/dashboard/workspaces/${id}/documentation/download`}>
+          <a href={`/dashboard/projects/${id}/document/download`}>
             <Download className="h-4 w-4" /> Download
           </a>
         </Button>

@@ -7,7 +7,7 @@ import { Check, X } from "lucide-react";
 import {
   supervisorConfirmWithdrawal,
   type WithdrawalState,
-} from "../../workspaces/[id]/withdrawal-actions";
+} from "@/app/dashboard/projects/[id]/team/withdrawal-actions";
 import { Button } from "@/components/ui/button";
 
 type Item = {

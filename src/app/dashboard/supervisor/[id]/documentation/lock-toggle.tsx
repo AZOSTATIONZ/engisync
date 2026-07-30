@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { setDocumentLock } from "@/app/dashboard/workspaces/[id]/documentation/actions";
+import { setDocumentLock } from "@/app/dashboard/projects/[id]/document/actions";
 
 export function DocumentLockToggle({
   workspaceId,

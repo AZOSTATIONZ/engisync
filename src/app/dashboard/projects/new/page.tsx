@@ -16,7 +16,7 @@ import {
 import {
   CreateWorkspaceForm,
   JoinWorkspaceForm,
-} from "@/app/dashboard/workspaces/workspace-forms";
+} from "@/app/dashboard/projects/project-forms";
 
 export const metadata: Metadata = { title: "New project" };
 
@@ -25,9 +25,9 @@ export const metadata: Metadata = { title: "New project" };
  *
  * WHY THIS PAGE EXISTS
  * Creating a project is the primary purpose of EngiSync, and until now it had
- * no address of its own. The form lived on /dashboard/workspaces — a route
- * that appears in NONE of the navigation items, reachable only through an
- * empty-state link that vanishes as soon as you have one project. The product's
+ * no address of its own — it was buried on the old workspaces list, a route
+ * that appeared in none of the navigation items and was reachable only via an
+ * empty-state link that vanished as soon as you had one project. The product's
  * main action was, in practice, unreachable.
  *
  * It now lives at a predictable, linkable URL under Projects, where someone
@@ -38,10 +38,10 @@ export const metadata: Metadata = { title: "New project" };
 export default async function NewProjectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string }>;
+  searchParams: Promise<{ from?: string; join?: string }>;
 }) {
   const session = await auth();
-  const { from } = await searchParams;
+  const { from, join } = await searchParams;
 
   const deptIds = await userDepartmentIds(session!.user.id);
   const myDepartments = await prisma.department.findMany({
@@ -70,7 +70,7 @@ export default async function NewProjectPage({
         <h1 className="text-2xl font-bold">Start a project</h1>
         <p className="text-muted-foreground">
           Create a new one and invite your team, or join an existing project
-          with a code from your group leader.
+          with a code from your project leader.
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export default async function NewProjectPage({
         <CardHeader>
           <CardTitle className="text-base">Create a project</CardTitle>
           <CardDescription>
-            You become the group leader — you can invite members, assign tasks
+            You become the project leader — you can invite members, assign tasks
             and manage the budget.
           </CardDescription>
         </CardHeader>
@@ -103,12 +103,13 @@ export default async function NewProjectPage({
         <CardHeader>
           <CardTitle className="text-base">Join a project</CardTitle>
           <CardDescription>
-            Enter the join code your group leader shared. Some projects also ask
+            Enter the join code your project leader shared. Some projects also ask
             for a PIN.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <JoinWorkspaceForm />
+          {/* Pre-filled when arriving from a QR code or shared join link. */}
+          <JoinWorkspaceForm defaultCode={join ?? ""} />
         </CardContent>
       </Card>
 

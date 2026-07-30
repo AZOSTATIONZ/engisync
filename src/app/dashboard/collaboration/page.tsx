@@ -22,8 +22,8 @@ const channels = [
     icon: Users,
     title: "Your project groups",
     desc: "Each group is a private space with tasks, files, meetings, and members.",
-    href: "/dashboard/workspaces",
-    cta: "Go to Groups",
+    href: "/dashboard/projects",
+    cta: "Go to Projects",
   },
   {
     icon: Megaphone,
@@ -69,7 +69,7 @@ export default function CollaborationPage() {
         <CardContent className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
           <MessagesSquare className="h-5 w-5 text-primary" />
           A threaded <strong>discussion board</strong> and{" "}
-          <strong>group quizzes</strong> are coming next — so your group can talk
+          <strong>project quizzes</strong> are coming next — so your project team can talk
           through ideas and test each other in one place.
         </CardContent>
       </Card>

@@ -46,7 +46,7 @@ export function CreateMeetingForm({ workspaces }: { workspaces: Option[] }) {
   if (workspaces.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Join or create a workspace first to schedule meetings.
+        Join or create a project first to schedule meetings.
       </p>
     );
   }

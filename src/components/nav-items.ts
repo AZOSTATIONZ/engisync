@@ -1,21 +1,11 @@
 import {
-  Archive,
   LayoutDashboard,
-  Building2,
-  CheckSquare,
   FolderKanban,
-  Calendar,
-  Video,
-  MessagesSquare,
-  FolderArchive,
-  Wallet,
-  BarChart3,
-  Sparkles,
+  BookOpen,
   Settings,
   GraduationCap,
-  Lightbulb,
-  ListChecks,
   Shield,
+  User,
   type LucideIcon,
 } from "lucide-react";
 import { routes } from "@/lib/routes";
@@ -33,32 +23,32 @@ export type NavSection = {
 };
 
 /**
- * PRIMARY navigation — the five destinations that are always visible.
+ * PRIMARY navigation — three destinations.
  *
- * The app previously exposed 16 top-level items, eight of which were
- * cross-project aggregate views of features that ALSO live inside a project.
- * That "axis collision" (organised by feature at the top level, by container
- * underneath) is why users could not form a mental model of where anything
- * lived.
+ * WHY SO FEW
+ * ----------
+ * The app previously exposed 15 top-level destinations, and eight of them
+ * (All tasks, Calendar, Meetings, Analytics, Budget, Collaboration, Files, AI
+ * Assistant) were cross-project rollups of features that ALSO live inside a
+ * project. That is two competing organising axes — by feature at the top, by
+ * container underneath — so every object had two plausible homes and no
+ * canonical one. It is why a member could upload a document and then be unable
+ * to find it: the product never committed to where things belong.
  *
- * We now commit to one axis — project-first, the GitHub model — with a single
- * explicitly-labelled personal lens on top:
+ * We now commit to a single axis. The PROJECT is the container; everything
+ * about a project lives inside it. Exactly one personal lens sits on top:
  *
- *   Home        what needs me right now
- *   My Work     MY tasks/meetings/deadlines pulled from every project
- *   Projects    the projects themselves; everything else lives inside one
- *   Library     department learning material
- *   Files       shared engineering files
+ *   Home        what needs me right now, across every project
+ *   Projects    the projects themselves — plan, tasks, document, money, team
+ *   Knowledge   what past cohorts built, what you could build, how to learn it
  *
- * "My Work" is a lens, "Projects" is a place. Keeping exactly one lens is what
- * stops it feeling like a duplicate of a project's own task list.
+ * Home is a lens; Projects is a place. Keeping exactly one lens is what stops
+ * it reading as a duplicate of a project's own task list.
  *
- * A SIXTH item — Project Hub — was added deliberately, not by drift. It answers
- * "what should I build?", which is a different question from every other
- * destination here and the one students arrive with at the start of a
- * semester. It sits beside Repository on purpose: Repository is what previous
- * cohorts finished, Project Hub is what you could start. Anything further
- * belongs under "More"; six is the ceiling.
+ * Cross-project views were not deleted — Calendar, Meetings and personal tasks
+ * are reachable from Home, and every project tool is reachable inside its
+ * project. Nothing is more than two clicks away, and nothing appears twice at
+ * the top level.
  */
 export function getPrimaryNav(): NavItem[] {
   return [
@@ -66,109 +56,40 @@ export function getPrimaryNav(): NavItem[] {
       href: routes.home,
       label: "Home",
       icon: LayoutDashboard,
-      description: "What needs your attention right now.",
-    },
-    {
-      href: routes.myWork,
-      label: "My Work",
-      icon: ListChecks,
-      description: "Your tasks, meetings and deadlines across every project.",
+      description: "What needs your attention right now, across every project.",
     },
     {
       href: routes.projects,
       label: "Projects",
       icon: FolderKanban,
-      description: "Your project teams, plans, tasks, documents and budget.",
+      description: "Your projects — plan, tasks, documents, money and team.",
     },
     {
-      href: routes.projectHub,
-      label: "Project Hub",
-      icon: Lightbulb,
+      href: routes.knowledge,
+      label: "Knowledge",
+      icon: BookOpen,
       description:
-        "Projects you can build, with parts lists, budgets and prerequisites.",
-    },
-    {
-      href: routes.repository,
-      label: "Repository",
-      icon: Archive,
-      description: "Published projects from past cohorts — search before you build.",
-    },
-    {
-      href: routes.library,
-      label: "Library",
-      icon: Building2,
-      description: "Department resources, announcements and curated material.",
+        "Past projects, buildable ideas and department learning material.",
     },
   ];
 }
 
 /**
- * SECONDARY navigation — reachable from the sidebar's "More" group, the mobile
- * More sheet, and the ⌘K palette, but never competing for primary attention.
- *
- * Nothing here is removed; these are either cross-project rollups that most
- * users reach from inside a project, or role-specific tools.
+ * ROLE-GATED destinations. These are places a person goes because of who they
+ * are, not because of what they are working on, so they never compete with the
+ * three primary items.
  */
-export function getSecondaryNav(
+export function getRoleNav(
   opts: { isSupervisor?: boolean; isAdmin?: boolean } = {},
 ): NavItem[] {
-  const items: NavItem[] = [
-    {
-      href: routes.files,
-      label: "Files",
-      icon: FolderArchive,
-      description: "Engineering files shared with secure, expiring links.",
-    },
-    {
-      href: routes.tasks,
-      label: "All tasks",
-      icon: CheckSquare,
-      description: "Every task across your projects, with filters.",
-    },
-    {
-      href: routes.calendar,
-      label: "Calendar",
-      icon: Calendar,
-      description: "Deadlines, meetings and countdowns in one view.",
-    },
-    {
-      href: routes.meetings,
-      label: "Meetings",
-      icon: Video,
-      description: "Schedule sessions, share links, track attendance.",
-    },
-    {
-      href: routes.analytics,
-      label: "Analytics",
-      icon: BarChart3,
-      description: "Project health, workload and burndown across projects.",
-    },
-    {
-      href: routes.budget,
-      label: "Budget",
-      icon: Wallet,
-      description: "Contributions (EcoCash and more) and expenses.",
-    },
-    {
-      href: routes.collaboration,
-      label: "Collaboration",
-      icon: MessagesSquare,
-      description: "Discussions and cross-department work.",
-    },
-    {
-      href: routes.assistant,
-      label: "AI Assistant",
-      icon: Sparkles,
-      description: "Summaries, task generation and engineering guidance.",
-    },
-  ];
+  const items: NavItem[] = [];
 
   if (opts.isSupervisor) {
     items.push({
       href: routes.supervisor,
-      label: "Supervisor",
+      label: "Supervise",
       icon: GraduationCap,
-      description: "Every project in the departments you supervise.",
+      description: "Projects you have been invited to review.",
     });
   }
 
@@ -181,36 +102,59 @@ export function getSecondaryNav(
     });
   }
 
-  items.push({
-    href: routes.settings,
-    label: "Settings",
-    icon: Settings,
-    description: "Account, notifications and two-factor security.",
-  });
-
   return items;
 }
 
 /**
- * Sidebar structure: five primary destinations, then everything else grouped
- * under "More" so it is present but visually subordinate.
+ * ACCOUNT destinations. Reachable from the account menu and the command
+ * palette. Deliberately not part of the sidebar's main list — they are about
+ * the person, not the work.
+ */
+export function getAccountNav(): NavItem[] {
+  return [
+    {
+      href: routes.profile,
+      label: "Profile",
+      icon: User,
+      description: "Your engineering profile, skills and badges.",
+    },
+    {
+      href: routes.settings,
+      label: "Settings",
+      icon: Settings,
+      description: "Account, notifications and two-factor security.",
+    },
+  ];
+}
+
+/**
+ * Sidebar structure: three primary destinations, then any role-gated surfaces
+ * under a quiet heading.
  */
 export function getNavSections(isSupervisor = false, isAdmin = false): NavSection[] {
-  return [
-    { title: "", items: getPrimaryNav() },
-    { title: "More", items: getSecondaryNav({ isSupervisor, isAdmin }) },
-  ];
+  const sections: NavSection[] = [{ title: "", items: getPrimaryNav() }];
+
+  const roleItems = getRoleNav({ isSupervisor, isAdmin });
+  if (roleItems.length > 0) {
+    sections.push({ title: "Your roles", items: roleItems });
+  }
+
+  return sections;
 }
 
 /** Flat list of every destination — used by the command palette. */
 export function getAllNavItems(isSupervisor = false, isAdmin = false): NavItem[] {
-  return [...getPrimaryNav(), ...getSecondaryNav({ isSupervisor, isAdmin })];
+  return [
+    ...getPrimaryNav(),
+    ...getRoleNav({ isSupervisor, isAdmin }),
+    ...getAccountNav(),
+  ];
 }
 
 /** Active-state check shared by desktop + mobile nav. */
 export function isNavActive(pathname: string, href: string): boolean {
   if (href === routes.home) return pathname === href;
-  // Strip query strings before comparing (e.g. tasks?workspace=…).
+  // Strip query strings before comparing.
   const base = href.split("?")[0];
   return pathname.startsWith(base);
 }

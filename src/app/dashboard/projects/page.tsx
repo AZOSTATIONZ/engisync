@@ -26,8 +26,7 @@ export default async function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold">Projects</h1>
           <p className="text-muted-foreground">
-            Objectives, scope, milestones, risks, and deliverables for each of
-            your groups.
+            Everything for each of your projects — plan, tasks, documents, money and team.
           </p>
         </div>
         <Button asChild>

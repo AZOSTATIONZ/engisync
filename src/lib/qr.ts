@@ -1,5 +1,6 @@
 import QRCode from "qrcode";
 import { headers } from "next/headers";
+import { routes } from "@/lib/routes";
 
 /** Resolve the app's base URL from env or the incoming request. */
 export async function getBaseUrl(): Promise<string> {
@@ -12,10 +13,15 @@ export async function getBaseUrl(): Promise<string> {
   return `${proto}://${host}`;
 }
 
-/** Build the shareable join link for a workspace. */
+/**
+ * Build the shareable join link for a project.
+ *
+ * Points at the join form itself rather than the project list — someone
+ * scanning this QR code has a code in hand and wants to use it, not browse.
+ */
 export async function buildJoinUrl(joinCode: string): Promise<string> {
   const base = await getBaseUrl();
-  return `${base}/dashboard/workspaces?join=${encodeURIComponent(joinCode)}`;
+  return `${base}${routes.newProject}?join=${encodeURIComponent(joinCode)}#join`;
 }
 
 /** Generate a PNG data URL QR code for the given text. */

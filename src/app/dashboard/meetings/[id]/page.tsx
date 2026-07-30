@@ -149,7 +149,7 @@ export default async function MeetingDetailPage({
           <CardDescription>
             Tap <strong>Check in</strong> at the top when you join the meeting —
             it marks you present (or late if it&apos;s already started). The
-            group leader can adjust anyone&apos;s status here.
+            project leader can adjust anyone&apos;s status here.
           </CardDescription>
         </CardHeader>
         <CardContent>

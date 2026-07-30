@@ -105,7 +105,7 @@ export default async function DashboardPage() {
             ? "Here's what needs you today."
             : hasProjects
               ? "Nothing is due today — you're clear."
-              : "Let's get your workspace set up."}
+              : "Let's get your first project set up."}
         </p>
       </div>
 

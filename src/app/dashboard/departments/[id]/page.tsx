@@ -215,12 +215,12 @@ export default async function DepartmentDetailPage({
               <p className="text-sm text-muted-foreground">
                 {dept.isAdmin
                   ? "No groups have been created in this department yet."
-                  : "You're not in any group here yet. Create one from the Groups page, or join with an invite."}
+                  : "You're not in any project here yet. Create one from Projects, or join with an invite."}
               </p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {dept.groups.map((g) => (
-                  <Link key={g.id} href={`/dashboard/workspaces/${g.id}`}>
+                  <Link key={g.id} href={`/dashboard/projects/${g.id}`}>
                     <Card className="h-full transition-colors hover:border-primary">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm">{g.name}</CardTitle>

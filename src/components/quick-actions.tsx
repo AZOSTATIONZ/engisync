@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
+  Archive,
   CalendarPlus,
   FolderPlus,
   Lightbulb,
-  Sparkles,
-  Upload,
+  ListChecks,
   UserPlus,
 } from "lucide-react";
 import { routes } from "@/lib/routes";
@@ -15,14 +15,20 @@ import { routes } from "@/lib/routes";
  * WHY THIS EXISTS
  * An audit of the navigation found that creating a project — the primary
  * purpose of the product — was not reachable from any nav item. The create
- * form lives on /dashboard/workspaces, and that route appears in none of the
- * seventeen sidebar entries. The only path to it was an empty-state link that
- * disappears once you have a single project.
+ * form had no address of its own, and the only path to it was an empty-state
+ * link that disappears once you have a single project.
  *
  * Navigation answers "where is X". It does not answer "I want to start
  * something", which is a different question and the more common one at the
  * start of a session. These are verbs, deliberately, and "Create project"
  * leads because everything else in EngiSync depends on having one.
+ *
+ * Every action here must have somewhere to land. A context-free "Upload file"
+ * used to sit in this list, and it is the single clearest cause of the "I
+ * uploaded my document and could not find it again" problem: an upload with no
+ * project and no section has nowhere to belong, so it landed in a flat global
+ * bucket. Uploading is now an action you take INSIDE the document section the
+ * file is evidence for, and so it is not a global quick action at all.
  */
 
 const ACTIONS = [
@@ -52,16 +58,16 @@ const ACTIONS = [
     icon: CalendarPlus,
   },
   {
-    href: routes.files,
-    label: "Upload file",
-    hint: "Share with your team",
-    icon: Upload,
+    href: routes.repository,
+    label: "Past projects",
+    hint: "Search before you build",
+    icon: Archive,
   },
   {
-    href: routes.assistant,
-    label: "Ask AI",
-    hint: "Get unstuck",
-    icon: Sparkles,
+    href: routes.myWork,
+    label: "My work",
+    hint: "Everything assigned to me",
+    icon: ListChecks,
   },
 ];
 

@@ -7,6 +7,49 @@ const nextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  /**
+   * The old `/dashboard/workspaces/*` tree is gone — a project now has exactly
+   * one home under `/dashboard/projects/[id]`. These redirects keep existing
+   * bookmarks, QR join links and notification links working.
+   *
+   * They are `permanent: false` on purpose: a 308 is cached hard by browsers,
+   * so if any mapping here turns out to be wrong it would be stuck in users'
+   * caches. Once the mapping is confirmed in production these can be flipped
+   * to permanent and, a release later, deleted.
+   */
+  async redirects() {
+    return [
+      { source: "/dashboard/workspaces", destination: "/dashboard/projects", permanent: false },
+      {
+        source: "/dashboard/workspaces/invite/:token",
+        destination: "/dashboard/projects/invite/:token",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/workspaces/:id/documentation/:path*",
+        destination: "/dashboard/projects/:id/document/:path*",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/workspaces/:id/manage",
+        destination: "/dashboard/projects/:id/team/manage",
+        permanent: false,
+      },
+      // The old workspace detail page was the members/access view.
+      { source: "/dashboard/workspaces/:id", destination: "/dashboard/projects/:id/team", permanent: false },
+      {
+        source: "/dashboard/workspaces/:id/:path*",
+        destination: "/dashboard/projects/:id/:path*",
+        permanent: false,
+      },
+      // Cross-project rollups folded into the project shell.
+      { source: "/dashboard/budget/:id", destination: "/dashboard/projects/:id/money", permanent: false },
+      { source: "/dashboard/budget", destination: "/dashboard/projects", permanent: false },
+      { source: "/dashboard/analytics/:id", destination: "/dashboard/projects/:id/insights", permanent: false },
+      { source: "/dashboard/analytics", destination: "/dashboard/projects", permanent: false },
+    ];
+  },
+
   async headers() {
     // Content-Security-Policy. 'unsafe-inline'/'unsafe-eval' are required by
     // Next.js's runtime and Tailwind's injected styles; everything else is

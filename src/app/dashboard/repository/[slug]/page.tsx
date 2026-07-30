@@ -12,7 +12,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCitation, relatedProjects } from "@/lib/repository";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CopyButton } from "@/app/dashboard/workspaces/[id]/workspace-controls";
+import { CopyButton } from "@/app/dashboard/projects/[id]/team/workspace-controls";
 
 export const metadata: Metadata = { title: "Published project" };
 

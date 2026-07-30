@@ -86,7 +86,7 @@ export async function setProjectStage(
   });
 
   rev(workspaceId);
-  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  revalidatePath(`/dashboard/projects/${workspaceId}`);
   revalidatePath("/dashboard");
   return { success: `Moved to ${STAGE_META[stage as ProjectStage].label}.` };
 }

@@ -92,7 +92,7 @@ export async function runMentorCheck(
         type: NotificationType.WORKSPACE,
         title: "Project mentor alert",
         body: a.message,
-        link: `/dashboard/workspaces/${workspaceId}/evaluation`,
+        link: `/dashboard/projects/${workspaceId}/evaluation`,
         dedupeKey: `mentor:${workspaceId}:${a.message.slice(0, 40)}`,
       });
     }

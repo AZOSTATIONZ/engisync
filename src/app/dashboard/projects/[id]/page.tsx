@@ -1,281 +1,339 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Target, Flag, AlertTriangle, Package, MessageSquare, Route, Archive } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckSquare,
+  FileText,
+  MessageSquare,
+  Users,
+  Wallet,
+} from "lucide-react";
+
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getProject } from "@/lib/project";
-import { PublishForm } from "./publish-form";
-import { STAGE_META } from "@/lib/lifecycle";
-import { ProjectStepper } from "@/components/project-stepper";
-import { PaceBadge } from "@/components/pace-badge";
-import { ProjectNav } from "@/components/project-nav";
-import { TargetDateForm } from "../projects-ui";
+import { getMembership } from "@/lib/workspace";
+import { canSuperviseWorkspace } from "@/lib/supervisor";
+import { getActivity, timeAgo } from "@/lib/activity";
+import { STAGE_META, type ProjectStage } from "@/lib/lifecycle";
+import { Markdown } from "@/components/markdown";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ProjectInfoForm,
-  MilestoneManager,
-  RiskManager,
-  DeliverableManager,
-} from "../projects-ui";
+  projectBudget,
+  projectDocs,
+  projectPlan,
+  projectTasks,
+  projectTeam,
+} from "@/lib/routes";
 
-export const metadata: Metadata = { title: "Project" };
+export const metadata: Metadata = { title: "Project overview" };
 
-export default async function ProjectDetailPage({
+/**
+ * Project overview — the project's front page.
+ *
+ * WHY THIS PAGE EXISTS
+ * Opening a project previously landed on either its plan (objectives and
+ * milestones) or its member list, depending on which of two route trees you
+ * happened to arrive through. Neither answered the question a student actually
+ * arrives with: what is going on here, and what should I do next?
+ *
+ * This page answers that and nothing else. It deliberately does not duplicate
+ * the tabs' content — each block is a summary that hands off to the tab that
+ * owns it.
+ */
+export default async function ProjectOverviewPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const session = await auth();
-  const project = await getProject(id, session!.user.id);
+  const userId = session!.user.id;
+
+  const [membership, canSupervise] = await Promise.all([
+    getMembership(id, userId),
+    canSuperviseWorkspace(id, userId),
+  ]);
+  if (!membership && !canSupervise) notFound();
+
+  const now = new Date();
+  const [project, tasks, activity] = await Promise.all([
+    prisma.workspace.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        stage: true,
+        _count: { select: { members: true, files: true } },
+        milestones: {
+          where: { done: false },
+          orderBy: { dueDate: "asc" },
+          take: 3,
+          select: { id: true, title: true, dueDate: true },
+        },
+        risks: {
+          where: { severity: "HIGH" },
+          take: 3,
+          select: { id: true, title: true },
+        },
+        feedback: {
+          orderBy: { createdAt: "desc" },
+          take: 2,
+          select: { id: true, authorName: true, body: true, createdAt: true },
+        },
+      },
+    }),
+    prisma.task.findMany({
+      where: { workspaceId: id },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        dueDate: true,
+        assigneeId: true,
+      },
+    }),
+    getActivity([id], 8),
+  ]);
   if (!project) notFound();
 
-  // Publication state + files available for archiving.
-  const [publication, workspaceFiles] = await Promise.all([
-    prisma.publishedProject.findFirst({
-      where: { workspaceId: id, status: { not: "REJECTED" } },
-      orderBy: { createdAt: "desc" },
-      select: { status: true, slug: true },
-    }),
-    prisma.fileResource.findMany({
-      where: { workspaceId: id },
-      select: { id: true, name: true },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-  const lastRejection = publication
-    ? null
-    : await prisma.publishedProject.findFirst({
-        where: { workspaceId: id, status: "REJECTED" },
-        orderBy: { createdAt: "desc" },
-        select: { rejectionReason: true },
-      });
+  const open = tasks.filter((t) => t.status !== "DONE");
+  const overdue = open.filter((t) => t.dueDate && t.dueDate < now);
+  const mine = open.filter((t) => t.assigneeId === userId);
+  const donePct = tasks.length
+    ? Math.round(((tasks.length - open.length) / tasks.length) * 100)
+    : 0;
+
+  const stage = project.stage as ProjectStage;
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/dashboard/projects"
-          className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> All projects
-        </Link>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold">{project.name}</h1>
-            {project.department && (
-              <p className="text-muted-foreground">{project.department}</p>
-            )}
-          </div>
+      {project.description && (
+        <div className="text-sm text-muted-foreground">
+          <Markdown content={project.description} />
         </div>
+      )}
+
+      {/* What this stage expects — advisory, never a gate. */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">
+            {STAGE_META[stage].label}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {STAGE_META[stage].hint}
+          </p>
+          <Link
+            href={projectPlan(id)}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Open the plan →
+          </Link>
+        </CardContent>
+      </Card>
+
+      {/* Every number links to where you act on it. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatLink
+          href={projectTasks(id)}
+          icon={<CheckSquare className="h-4 w-4" />}
+          label="Open tasks"
+          value={String(open.length)}
+          note={mine.length > 0 ? `${mine.length} assigned to you` : "None assigned to you"}
+        />
+        <StatLink
+          href={projectTasks(id)}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          label="Overdue"
+          value={String(overdue.length)}
+          note={overdue.length > 0 ? "Needs attention" : "Nothing overdue"}
+          alert={overdue.length > 0}
+        />
+        <StatLink
+          href={projectDocs(id)}
+          icon={<FileText className="h-4 w-4" />}
+          label="Progress"
+          value={`${donePct}%`}
+          note={`${project._count.files} file${project._count.files === 1 ? "" : "s"} attached`}
+        />
+        <StatLink
+          href={projectTeam(id)}
+          icon={<Users className="h-4 w-4" />}
+          label="Team"
+          value={String(project._count.members)}
+          note="Members and invites"
+        />
       </div>
 
-      {/* Replaces a lone "Open group" button, which was the only exit from
-          this page and gave no hint that tasks, documents, budget and
-          discussions existed at all. */}
-      <ProjectNav projectId={project.id} />
-
-      {/* Lifecycle — the first thing anyone should see: where are we, and
-          are we behind? */}
-      <Card>
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Route className="h-5 w-5 text-primary" /> Project lifecycle
-          </CardTitle>
-          <PaceBadge status={project.pace.status} />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ProjectStepper
-            workspaceId={project.id}
-            stage={project.stage}
-            canEdit={project.isLeader}
-          />
-
-          <div className="rounded-lg border bg-muted/40 p-3">
-            <p className="text-sm">{project.pace.message}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {project.pace.daysInStage === 0
-                ? `Moved to ${STAGE_META[project.stage].label} today.`
-                : `${project.pace.daysInStage} day${
-                    project.pace.daysInStage === 1 ? "" : "s"
-                  } in ${STAGE_META[project.stage].label}.`}
-              {project.pace.expectedProgress !== null &&
-                ` Schedule expects ~${project.pace.expectedProgress}%, project is at ${project.pace.actualProgress}%.`}
-            </p>
-          </div>
-
-          {project.isLeader && (
-            <TargetDateForm
-              workspaceId={project.id}
-              targetEndDate={project.targetEndDate}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Objectives & scope */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Target className="h-5 w-5 text-primary" /> Objectives &amp; scope
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {project.isLeader ? (
-            <ProjectInfoForm
-              workspaceId={project.id}
-              objectives={project.objectives}
-              scope={project.scope}
-            />
-          ) : (
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="font-medium">Objectives</p>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {project.objectives || "Not set yet."}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium">Scope</p>
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  {project.scope || "Not set yet."}
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Next milestones */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Flag className="h-5 w-5 text-primary" /> Milestones
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Coming up</CardTitle>
           </CardHeader>
           <CardContent>
-            <MilestoneManager
-              workspaceId={project.id}
-              isLeader={project.isLeader}
-              items={project.milestones}
-            />
+            {project.milestones.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No open milestones.{" "}
+                <Link href={projectPlan(id)} className="text-primary hover:underline">
+                  Add some in the plan
+                </Link>
+                .
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {project.milestones.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate">{m.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {m.dueDate
+                        ? m.dueDate.toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                          })
+                        : "No date"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
+        {/* Recent activity */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Package className="h-5 w-5 text-primary" /> Deliverables
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Recent activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <DeliverableManager
-              workspaceId={project.id}
-              isLeader={project.isLeader}
-              items={project.deliverables}
-            />
+            {activity.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nothing yet. Activity appears as the team completes tasks,
+                uploads files and meets.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {activity.map((a) => (
+                  <li key={a.id} className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="font-medium">{a.actor}</span>{" "}
+                      <span className="text-muted-foreground">
+                        {a.action} {a.subject}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {timeAgo(a.at)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="h-5 w-5 text-amber-500" /> Risk register
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RiskManager
-            workspaceId={project.id}
-            isLeader={project.isLeader}
-            items={project.risks}
-          />
-        </CardContent>
-      </Card>
-
-      {project.feedback.length > 0 && (
-        <Card>
-          <CardHeader>
+      {/* High risks — surfaced here because a risk nobody sees is not managed. */}
+      {project.risks.length > 0 && (
+        <Card className="border-destructive/40">
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <MessageSquare className="h-5 w-5 text-primary" /> Supervisor feedback
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              High risks
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {project.feedback.map((f) => (
-                <li key={f.id} className="rounded-md border p-3 text-sm">
-                  <p className="whitespace-pre-wrap">{f.body}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {f.authorName} ·{" "}
-                    {new Date(f.createdAt).toLocaleDateString("en-GB")}
-                  </p>
-                </li>
+            <ul className="space-y-1 text-sm">
+              {project.risks.map((r) => (
+                <li key={r.id}>{r.title}</li>
               ))}
             </ul>
+            <Link
+              href={projectPlan(id)}
+              className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+            >
+              Review mitigations →
+            </Link>
           </CardContent>
         </Card>
       )}
 
-      {/* ── Publication — the final lifecycle step ─────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Archive className="h-5 w-5 text-primary" /> Repository publication
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {publication?.status === "PUBLISHED" ? (
-            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
-              <p className="font-medium text-emerald-600 dark:text-emerald-400">
-                Published as {publication.slug}
-              </p>
-              <Link
-                href={`/dashboard/repository/${publication.slug}`}
-                className="text-xs text-primary hover:underline"
-              >
-                View in the repository →
-              </Link>
-            </div>
-          ) : publication?.status === "PENDING_APPROVAL" ? (
-            <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-muted-foreground">
-              Submitted — awaiting your supervisor&apos;s approval.
-            </p>
-          ) : (
-            <>
-              <p className="text-sm text-muted-foreground">
-                When the project is complete, publish it to the department
-                repository so future students can build on your work instead of
-                starting from zero.
-              </p>
-              {lastRejection?.rejectionReason && (
-                <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
-                  <span className="font-medium text-destructive">
-                    Previous submission was sent back:
-                  </span>{" "}
-                  {lastRejection.rejectionReason}
+      {/* Supervisor feedback — previously buried; it is the most consequential
+          text a team receives, so it belongs on the front page. */}
+      {project.feedback.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <MessageSquare className="h-4 w-4 text-primary" />
+              Supervisor feedback
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {project.feedback.map((f) => (
+              <div key={f.id} className="rounded-lg border bg-muted/40 p-3 text-sm">
+                <p className="mb-1 text-xs text-muted-foreground">
+                  {f.authorName} · {timeAgo(f.createdAt)}
                 </p>
-              )}
-              {project.isLeader ? (
-                <PublishForm
-                  workspaceId={project.id}
-                  projectName={project.name}
-                  files={workspaceFiles}
-                />
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Your group leader submits the publication.
-                </p>
-              )}
-            </>
-          )}
+                <Markdown content={f.body} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex flex-wrap gap-4 text-sm">
+        <Link
+          href={projectBudget(id)}
+          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <Wallet className="h-4 w-4" /> Money
+        </Link>
+        <Link
+          href={projectDocs(id)}
+          className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <FileText className="h-4 w-4" /> Document
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function StatLink({
+  href,
+  icon,
+  label,
+  value,
+  note,
+  alert,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  note: string;
+  alert?: boolean;
+}) {
+  return (
+    <Link href={href}>
+      <Card className="card-hover h-full">
+        <CardContent className="space-y-1 py-4">
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {icon}
+            {label}
+          </p>
+          <p
+            className={
+              alert ? "text-2xl font-bold text-destructive" : "text-2xl font-bold"
+            }
+          >
+            {value}
+          </p>
+          <p className="text-xs text-muted-foreground">{note}</p>
         </CardContent>
       </Card>
-    </div>
+    </Link>
   );
 }

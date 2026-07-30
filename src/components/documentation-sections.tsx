@@ -20,7 +20,7 @@ import {
   submitSection,
   addSectionComment,
   reviewSection,
-} from "@/app/dashboard/workspaces/[id]/documentation/actions";
+} from "@/app/dashboard/projects/[id]/document/actions";
 
 type SectionStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "CHANGES_REQUESTED";
 

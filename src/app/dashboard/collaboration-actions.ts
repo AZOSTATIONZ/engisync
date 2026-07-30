@@ -66,7 +66,7 @@ export async function requestCollaboration(
     ),
   );
 
-  revalidatePath(`/dashboard/workspaces/${workspaceId}`);
+  revalidatePath(`/dashboard/projects/${workspaceId}`);
   return { success: "Collaboration request sent." };
 }
 
@@ -93,7 +93,7 @@ async function resolve(
     type: NotificationType.WORKSPACE,
     title: status === "APPROVED" ? "Collaboration approved" : "Collaboration declined",
     body: `Your request for "${collab.workspace.name}" was ${status.toLowerCase()}.`,
-    link: `/dashboard/workspaces/${collab.workspace.id}`,
+    link: `/dashboard/projects/${collab.workspace.id}`,
   });
   await prisma.auditLog.create({
     data: { userId, action: `COLLAB_${status}`, target: collab.workspaceId },
@@ -127,7 +127,7 @@ export async function removeCollaboration(collabId: string): Promise<CollabState
   if (!allowed) return { error: "You can't remove this collaboration." };
 
   await prisma.workspaceCollaboration.delete({ where: { id: collabId } });
-  revalidatePath(`/dashboard/workspaces/${collab.workspaceId}`);
+  revalidatePath(`/dashboard/projects/${collab.workspaceId}`);
   revalidatePath(`/dashboard/departments/${collab.departmentId}`);
   return { success: "Collaboration removed." };
 }
