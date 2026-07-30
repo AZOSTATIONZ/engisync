@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isEmailConfigured } from "@/lib/email";
-import { isSupervisor } from "@/lib/supervisor";
 import { ACCENTS, resolveAccent } from "@/lib/personalization";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
@@ -17,15 +16,25 @@ export default async function DashboardLayout({
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  // One query for both the verify banner and the chosen accent, rather than
-  // two round trips to a serverless database that suspends when idle.
+  // ONE query for everything this shell needs.
+  //
+  // This layout renders on every single page, so each round trip here is a tax
+  // on every navigation in the product — and the database is ~271ms away
+  // (Neon, us-east-2). The verify banner and the accent were already merged for
+  // this reason; the supervisor check was then added underneath as a second
+  // sequential await, quietly putting the second round trip back. Folding it in
+  // as a filtered relation count removes a quarter-second from every page.
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { emailVerified: true, accentColor: true },
+    select: {
+      emailVerified: true,
+      accentColor: true,
+      _count: { select: { projectGrants: { where: { revokedAt: null } } } },
+    },
   });
 
   const showVerify = isEmailConfigured() && !user?.emailVerified;
-  const supervises = await isSupervisor(session.user.id);
+  const supervises = (user?._count.projectGrants ?? 0) > 0;
 
   const accent = ACCENTS[resolveAccent(user?.accentColor)];
 

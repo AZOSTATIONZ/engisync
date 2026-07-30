@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { WorkspaceRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -6,12 +7,32 @@ import { prisma } from "@/lib/prisma";
  * Keeps membership/permission queries in one place (SOLID: single responsibility).
  */
 
-/** Return the user's membership for a workspace, or null. */
-export async function getMembership(workspaceId: string, userId: string) {
+/**
+ * Return the user's membership for a workspace, or null.
+ *
+ * WRAPPED IN `cache()` BECAUSE DISTANCE IS EXPENSIVE.
+ *
+ * A project page renders the project layout and the page itself in one
+ * request, and both must establish that the caller is a member before showing
+ * anything — so this ran twice per navigation. Against a database in another
+ * hemisphere that duplicate is not free: measured round-trip latency to the
+ * Neon instance is ~271ms, so every avoidable query is a quarter-second of a
+ * student staring at a blank tab.
+ *
+ * `cache()` memoises for the lifetime of a single request, which is exactly
+ * the window in which the answer cannot change. It is not a TTL cache and it
+ * does not persist across requests, so authorization stays as fresh as it was
+ * before — a revoked membership still takes effect on the very next
+ * navigation.
+ */
+export const getMembership = cache(async function getMembership(
+  workspaceId: string,
+  userId: string,
+) {
   return prisma.workspaceMember.findUnique({
     where: { workspaceId_userId: { workspaceId, userId } },
   });
-}
+});
 
 /** True if the user is the leader of the workspace. */
 export async function isWorkspaceLeader(workspaceId: string, userId: string) {

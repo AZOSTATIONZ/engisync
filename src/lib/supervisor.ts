@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { displayName } from "@/lib/identity";
 
@@ -101,7 +102,7 @@ export async function listProjectGrants(workspaceId: string) {
  * which happened to be called. Both now resolve the same way — through a
  * grant — so the word means one thing.
  */
-export async function canSuperviseWorkspace(
+export const canSuperviseWorkspace = cache(async function canSuperviseWorkspace(
   workspaceId: string,
   userId: string,
 ): Promise<boolean> {
@@ -110,7 +111,7 @@ export async function canSuperviseWorkspace(
     select: { revokedAt: true },
   });
   return Boolean(grant && grant.revokedAt === null);
-}
+});
 
 /**
  * Projects this user has been invited to supervise.

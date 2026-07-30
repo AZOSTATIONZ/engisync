@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -213,7 +214,7 @@ export function denialReason(ctx: PolicyContext, action: Action): string {
  * Existing access was preserved by the backfill in migration
  * 20260730160000_project_grants — no supervisor lost a project to this change.
  */
-export async function getContext(
+export const getContext = cache(async function getContext(
   workspaceId: string,
   userId: string,
 ): Promise<PolicyContext> {
@@ -254,7 +255,7 @@ export async function getContext(
     isSystemAdmin: user?.systemRole === "ADMIN",
     isSupervisor,
   };
-}
+});
 
 export type AuthzResult =
   | { ok: true; ctx: PolicyContext }
