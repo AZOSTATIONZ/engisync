@@ -39,6 +39,16 @@ export async function GET(
     );
   }
 
+  // Link evidence has no bytes. Checked BEFORE the download counter is
+  // incremented, so a share of link-only evidence cannot burn down its
+  // download allowance without ever serving anything.
+  if (!link.file.data) {
+    return NextResponse.json(
+      { error: "This evidence is a link, not a stored file." },
+      { status: 409 },
+    );
+  }
+
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 

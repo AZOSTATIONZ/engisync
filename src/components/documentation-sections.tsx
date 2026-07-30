@@ -21,6 +21,7 @@ import {
   addSectionComment,
   reviewSection,
 } from "@/app/dashboard/projects/[id]/document/actions";
+import { SectionEvidence, type EvidenceItem } from "@/components/section-evidence";
 
 type SectionStatus = "DRAFT" | "SUBMITTED" | "APPROVED" | "CHANGES_REQUESTED";
 
@@ -32,6 +33,7 @@ export type SectionData = {
   content: string;
   status: SectionStatus;
   locked: boolean;
+  attachments: EvidenceItem[];
   comments: {
     id: string;
     authorName: string;
@@ -129,6 +131,16 @@ export function DocumentSectionCard({
             )}
           </div>
         )}
+
+        {/* Evidence sits with the section it supports, not in a separate
+            files area — the whole point of section-scoped evidence. */}
+        <SectionEvidence
+          workspaceId={workspaceId}
+          sectionId={section.id}
+          sectionKey={section.key}
+          items={section.attachments}
+          canEdit={editable}
+        />
 
         {editable && (
           <div className="flex flex-wrap gap-2">

@@ -1,36 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { DOC_SECTIONS } from "@/lib/document-template";
+import { displayName } from "@/lib/identity";
 import { getMembership } from "@/lib/workspace";
 import { canSuperviseWorkspace } from "@/lib/supervisor";
 
-/**
- * Fixed engineering project-documentation template. Order matters — this is the
- * canonical structure every project document is seeded with. Sections stay
- * editable by the team and reviewable by the supervisor.
- */
-export const DOC_SECTIONS: { key: string; title: string; hint: string }[] = [
-  { key: "title", title: "Project Title", hint: "The full, formal title of the project." },
-  { key: "abstract", title: "Abstract", hint: "A concise 150–300 word summary of the whole project." },
-  { key: "problem", title: "Problem Statement", hint: "The engineering problem being solved and why it matters." },
-  { key: "objectives", title: "Objectives", hint: "Specific, measurable aims of the project." },
-  { key: "scope", title: "Scope", hint: "What is and isn't covered by the project." },
-  { key: "literature", title: "Literature Review", hint: "Existing work, prior art, and references reviewed." },
-  { key: "methodology", title: "Methodology", hint: "The approach, methods, and tools used." },
-  { key: "system-design", title: "System Design", hint: "High-level architecture and system overview." },
-  { key: "hardware-design", title: "Hardware Design", hint: "Components, wiring, and hardware architecture." },
-  { key: "software-design", title: "Software Design", hint: "Software architecture, modules, and data flow." },
-  { key: "circuit", title: "Circuit Diagrams", hint: "Schematics and circuit descriptions (link/attach images)." },
-  { key: "flowcharts", title: "Flowcharts", hint: "Process and logic flowcharts." },
-  { key: "gantt", title: "Gantt Chart", hint: "Project timeline and scheduling." },
-  { key: "budget", title: "Budget", hint: "Costed bill of materials and expenses." },
-  { key: "risk", title: "Risk Assessment", hint: "Identified risks, likelihood, impact, and mitigation." },
-  { key: "testing", title: "Testing", hint: "Test plan, cases, and validation approach." },
-  { key: "results", title: "Results", hint: "Findings and measured outcomes." },
-  { key: "discussion", title: "Discussion", hint: "Interpretation of results and analysis." },
-  { key: "conclusion", title: "Conclusion", hint: "Summary of what was achieved." },
-  { key: "recommendations", title: "Recommendations", hint: "Suggestions for future work or improvement." },
-  { key: "references", title: "References", hint: "Full citation list." },
-  { key: "appendices", title: "Appendices", hint: "Supporting material, datasheets, code listings." },
-];
+// The template lives in its own prisma-free module so pure code (and its unit
+// tests) can import it. Re-exported here because callers already expect it.
+export { DOC_SECTIONS, DOC_SECTION_KEYS } from "@/lib/document-template";
 
 export type SectionStatus =
   | "DRAFT"
@@ -96,7 +72,25 @@ export async function getOrCreateDocument(workspaceId: string) {
     include: {
       sections: {
         orderBy: { order: "asc" },
-        include: { comments: { orderBy: { createdAt: "asc" } } },
+        include: {
+          comments: { orderBy: { createdAt: "asc" } },
+          attachments: {
+            // Only the current revision of each artefact. Superseded versions
+            // stay in the database as history but would be noise in the list.
+            where: { supersededBy: { is: null } },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              name: true,
+              kind: true,
+              size: true,
+              version: true,
+              externalUrl: true,
+              createdAt: true,
+              uploader: { select: { id: true, name: true, email: true } },
+            },
+          },
+        },
       },
       versions: { orderBy: { versionNumber: "desc" }, select: { versionNumber: true } },
     },
@@ -124,6 +118,17 @@ export type DocumentView = {
     content: string;
     status: SectionStatus;
     locked: boolean;
+    attachments: {
+      id: string;
+      name: string;
+      kind: string;
+      size: number;
+      version: number;
+      externalUrl: string | null;
+      uploaderName: string;
+      createdAt: string;
+      supersedesCount: number;
+    }[];
     comments: {
       id: string;
       authorName: string;
@@ -164,6 +169,18 @@ function shape(
       content: s.content,
       status: s.status as SectionStatus,
       locked: s.locked,
+      attachments: s.attachments.map((a) => ({
+        id: a.id,
+        name: a.name,
+        kind: a.kind as string,
+        size: a.size,
+        version: a.version,
+        externalUrl: a.externalUrl,
+        uploaderName: displayName(a.uploader),
+        createdAt: a.createdAt.toISOString(),
+        // version 1 has no predecessors; v3 has two behind it.
+        supersedesCount: Math.max(0, a.version - 1),
+      })),
       comments: s.comments.map((c) => ({
         id: c.id,
         authorName: c.authorName,

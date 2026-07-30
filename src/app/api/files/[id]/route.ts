@@ -22,6 +22,16 @@ export async function GET(
   const file = await prisma.fileResource.findUnique({ where: { id } });
   if (!file) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Link evidence (e.g. a GitHub repository) has no bytes to serve. Redirecting
+  // would turn this authenticated endpoint into an open redirector, so the
+  // caller is told to use the link directly instead.
+  if (!file.data) {
+    return NextResponse.json(
+      { error: "This evidence is a link, not a stored file.", url: file.externalUrl },
+      { status: 409 },
+    );
+  }
+
   await prisma.auditLog.create({
     data: { userId: session.user.id, action: "FILE_DOWNLOADED", target: id },
   });

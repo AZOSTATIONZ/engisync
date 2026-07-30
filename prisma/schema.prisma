@@ -637,6 +637,9 @@ model DocumentSection {
 
   document ProjectDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
   comments SectionComment[]
+  /// Engineering evidence filed against this section — the schematic for
+  /// "Circuit Diagrams", the STEP model for "System Design", and so on.
+  attachments FileResource[]
 
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
@@ -1225,13 +1228,74 @@ model Notification {
 
 // ── Resource library & secure sharing ─────────
 
+/// What a file IS, in engineering terms — not what its bytes happen to be.
+///
+/// The distinction matters because "a PNG" tells you nothing useful: a PNG can
+/// be a flowchart, an oscilloscope trace or a photo of a breadboard, and those
+/// belong in three different chapters of the report. Kind is what lets a file
+/// be filed, searched and checked for completeness.
+enum EvidenceKind {
+  FLOWCHART
+  CIRCUIT
+  SCHEMATIC
+  PCB
+  CAD
+  SIMULATION
+  SOURCE_CODE
+  DATASET
+  REPORT
+  IMAGE
+  VIDEO
+  BOM
+  DATASHEET
+  OTHER
+}
+
 model FileResource {
   id          String  @id @default(cuid())
   name        String
   description String?
   mimeType    String
   size        Int
-  data        Bytes // stored in Postgres; swappable for S3/Supabase later
+
+  /// NULLABLE since evidence may live elsewhere. A GitHub repository is the
+  /// canonical form of source-code evidence for most student projects, and
+  /// copying a snapshot of it into Postgres would be both wasteful and
+  /// immediately stale. Exactly one of `data` or `externalUrl` is set.
+  data Bytes?
+  /// Set for link-based evidence (e.g. a GitHub repo). Never fetched by the
+  /// server — stored as data and rendered as a link, which keeps this free of
+  /// SSRF risk.
+  externalUrl String?
+
+  /// ── What makes a file EVIDENCE rather than storage ──
+  ///
+  /// Before this existed, an upload had a workspace and nothing else, so files
+  /// landed in one flat per-user list ordered by upload time. A member could
+  /// upload their report and then genuinely be unable to find it again,
+  /// because the system had no representation of where it belonged.
+  ///
+  /// A file now points at the document section it is evidence FOR.
+  /// Null = not yet filed; those surface in an "Unfiled" tray rather than
+  /// disappearing, which is what makes the backfill of existing rows safe.
+  documentSectionId String?
+  documentSection   DocumentSection? @relation(fields: [documentSectionId], references: [id], onDelete: SetNull)
+
+  kind EvidenceKind @default(OTHER)
+
+  /// Versioning by supersession, not by overwrite. A new upload of the same
+  /// evidence creates a NEW row pointing at the one it replaces, so a
+  /// supervisor reviewing v1 can still see exactly what they reviewed.
+  /// One-to-one both ways: a file supersedes at most one predecessor and is
+  /// superseded by at most one successor.
+  version      Int           @default(1)
+  supersedesId String?       @unique
+  supersedes   FileResource? @relation("EvidenceVersion", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy FileResource? @relation("EvidenceVersion")
+
+  /// SHA-256 of the bytes. Catches the same file being uploaded twice —
+  /// deterministic and explainable, unlike similarity heuristics.
+  sha256 String?
 
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -1245,6 +1309,8 @@ model FileResource {
 
   @@index([workspaceId])
   @@index([uploaderId])
+  @@index([documentSectionId])
+  @@index([workspaceId, sha256])
 }
 
 model ShareLink {

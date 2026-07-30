@@ -42,6 +42,10 @@ const nextConfig = {
         destination: "/dashboard/projects/:id/:path*",
         permanent: false,
       },
+      // The global file bucket is gone: evidence lives on the document section
+      // it supports. Nothing sensible to deep-link to, so send people to their
+      // projects.
+      { source: "/dashboard/resources", destination: "/dashboard/projects", permanent: false },
       // Cross-project rollups folded into the project shell.
       { source: "/dashboard/budget/:id", destination: "/dashboard/projects/:id/money", permanent: false },
       { source: "/dashboard/budget", destination: "/dashboard/projects", permanent: false },

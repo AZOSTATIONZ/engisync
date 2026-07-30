@@ -259,12 +259,21 @@ export async function approvePublication(publishedId: string): Promise<RepoState
     const sourceId = Buffer.from(f.data).toString("utf8");
     const src = await prisma.fileResource.findUnique({
       where: { id: sourceId },
-      select: { data: true, size: true },
+      select: { data: true, size: true, name: true },
     });
     if (!src) {
       return {
         error:
           "A selected file was deleted from the project after submission. Ask the group to resubmit.",
+      };
+    }
+    // Link evidence has no bytes to archive. The archive must be
+    // self-contained — a published project whose "source code" is a URL to a
+    // repository that may be deleted or made private is not an archive — so
+    // this is refused rather than stored as an empty file.
+    if (!src.data) {
+      return {
+        error: `"${src.name}" is a link, not a stored file, so it can't go into the permanent archive. Upload the actual files (for example a source archive) and resubmit.`,
       };
     }
     await prisma.publishedFile.update({

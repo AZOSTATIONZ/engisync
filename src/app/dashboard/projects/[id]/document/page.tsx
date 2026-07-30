@@ -10,10 +10,13 @@ import {
   Award,
 } from "lucide-react";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { getDocumentForMember } from "@/lib/documentation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DocumentSectionCard } from "@/components/documentation-sections";
+import { UnfiledEvidence } from "@/components/unfiled-evidence";
 import { SubmitReportButton } from "./report-controls";
 
 export const metadata: Metadata = { title: "Project documentation" };
@@ -28,6 +31,20 @@ export default async function DocumentationPage({
   const doc = await getDocumentForMember(id, session!.user.id);
   if (!doc) notFound();
 
+  // Files uploaded before evidence was section-scoped, plus anything a member
+  // has deliberately detached. Surfaced rather than hidden — an unfindable
+  // file is the exact problem this module exists to solve.
+  const unfiled = await prisma.fileResource.findMany({
+    where: { workspaceId: id, documentSectionId: null, supersededBy: { is: null } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      size: true,
+      createdAt: true,
+      uploader: { select: { id: true, name: true, email: true } },
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -106,6 +123,19 @@ export default async function DocumentationPage({
           </div>
         </CardContent>
       </Card>
+
+      <UnfiledEvidence
+        workspaceId={id}
+        canEdit={doc.canEdit}
+        files={unfiled.map((f) => ({
+          id: f.id,
+          name: f.name,
+          size: f.size,
+          uploaderName: displayName(f.uploader),
+          createdAt: f.createdAt.toISOString(),
+        }))}
+        sections={doc.sections.map((s) => ({ id: s.id, title: s.title }))}
+      />
 
       <div className="space-y-4">
         {doc.sections.map((s, i) => (
