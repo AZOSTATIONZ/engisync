@@ -311,3 +311,69 @@ describe("privilege escalation guards", () => {
     }
   });
 });
+
+/**
+ * Supervision is granted, never inherited.
+ *
+ * `can()` is pure, so what it can prove is that `isSupervisor` behaves as a
+ * read-only ceiling. What changed in Phase 3 is where that flag COMES FROM —
+ * an explicit, revocable ProjectGrant rather than a department role. These
+ * cases pin the consequences that the pure layer is responsible for; the
+ * derivation itself lives in getContext and is exercised in the browser.
+ */
+describe("granted supervisors (Phase 3)", () => {
+  const granted = ctx(null, {}, { isSupervisor: true });
+  const notGranted = ctx(null, {}, { isSupervisor: false });
+
+  it("a granted supervisor reads the project", () => {
+    expect(can(granted, "project.view")).toBe(true);
+    expect(can(granted, "analytics.view")).toBe(true);
+    expect(can(granted, "budget.view")).toBe(true);
+  });
+
+  it("an ungranted outsider — including a department admin — sees nothing", () => {
+    // A department ADMIN used to arrive here with isSupervisor: true purely by
+    // holding the role. They now arrive as a plain outsider unless granted.
+    expect(can(notGranted, "project.view")).toBe(false);
+    expect(can(notGranted, "analytics.view")).toBe(false);
+    expect(can(notGranted, "budget.view")).toBe(false);
+    expect(can(notGranted, "publication.approve")).toBe(false);
+  });
+
+  it("revocation is total — a withdrawn grant leaves no residual read", () => {
+    // getContext maps a revoked grant to isSupervisor: false, so revocation is
+    // exactly the ungranted case. Nothing may survive it.
+    for (const action of [
+      "project.view",
+      "project.activity.view",
+      "analytics.view",
+      "budget.view",
+      "publication.approve",
+    ] as const) {
+      expect(can(notGranted, action)).toBe(false);
+    }
+  });
+
+  it("a grant never becomes write access", () => {
+    for (const action of [
+      "document.edit",
+      "document.approve",
+      "task.create",
+      "task.update",
+      "file.upload",
+      "member.invite",
+      "member.remove",
+      "budget.manage",
+      "project.edit",
+      "project.delete",
+      "project.stage.set",
+    ] as const) {
+      expect(can(granted, action)).toBe(false);
+    }
+  });
+
+  it("still cannot approve a publication it is not granted on", () => {
+    expect(can(granted, "publication.approve")).toBe(true);
+    expect(can(notGranted, "publication.approve")).toBe(false);
+  });
+});

@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { generateJoinCode } from "@/lib/utils";
 import { getMembership, getExistingGroupsInfo } from "@/lib/workspace";
 import { createNotification } from "@/lib/notifications";
+import { displayName } from "@/lib/identity";
 import { verifiedAccountGate } from "@/lib/verification";
 import { authorize } from "@/lib/policy";
 import { recordActivity } from "@/lib/activity-log";
@@ -150,6 +151,46 @@ export async function createWorkspace(
         : {}),
     },
   });
+
+  // Supervisor chosen at creation.
+  //
+  // Optional by design. Requiring one would block a student from starting work
+  // because a staff member had not been assigned yet, which is a scheduling
+  // problem the product should not turn into a wall. Skipping it simply means
+  // the project stays private until someone is invited from the Team tab.
+  const supervisorId = String(formData.get("supervisorId") ?? "");
+  if (supervisorId) {
+    const eligible = await prisma.departmentMember.findFirst({
+      where: {
+        departmentId,
+        userId: supervisorId,
+        role: { in: ["SUPERVISOR", "ADMIN"] },
+      },
+      select: { id: true },
+    });
+    if (eligible) {
+      const creator = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true },
+      });
+      await prisma.projectGrant.create({
+        data: {
+          workspaceId: workspace.id,
+          userId: supervisorId,
+          role: "SUPERVISOR",
+          grantedById: userId,
+          grantedByName: displayName(creator),
+        },
+      });
+      await createNotification({
+        userId: supervisorId,
+        type: NotificationType.WORKSPACE,
+        title: "You've been invited to supervise a project",
+        body: workspace.name,
+        link: `/dashboard/supervisor/${workspace.id}`,
+      });
+    }
+  }
 
   await prisma.auditLog.create({
     data: { userId, action: "WORKSPACE_CREATED", target: workspace.id },

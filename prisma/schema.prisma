@@ -237,6 +237,7 @@ model User {
   joinRequests      JoinRequest[]
   pushSubscriptions PushSubscription[]
   passwordResetTokens PasswordResetToken[]
+  projectGrants       ProjectGrant[] @relation("ProjectGrantee")
   emailVerificationTokens EmailVerificationToken[]
 
   createdAt DateTime @default(now())
@@ -402,6 +403,7 @@ model Workspace {
   document      ProjectDocument?
   activity      Activity[]
   contributionRequests ContributionRequest[]
+  grants               ProjectGrant[]
   paymentInstruction   PaymentInstruction?
   withdrawalRequests   WithdrawalRequest[]
 
@@ -912,6 +914,66 @@ model DepartmentMember {
   // (lib/department.ts), which every write path must call. It applies the rule
   // to MEMBER rows only.
   @@index([userId])
+}
+
+/// Why an outsider can see a project.
+///
+/// Both roles carry the SAME read-only ceiling. They are distinguished only so
+/// the team can tell at a glance who is marking their work and who is merely
+/// observing — a distinction that matters socially even though it does not
+/// change a single permission.
+enum ProjectGrantRole {
+  /// The academic responsible for reviewing and signing off this project.
+  SUPERVISOR
+  /// An additional lecturer invited to observe. No approval powers.
+  LECTURER
+}
+
+/// Explicit, revocable permission for a non-member to see a project.
+///
+/// WHY THIS EXISTS
+/// ---------------
+/// Supervisor access used to be IMPLICIT and department-wide: holding the
+/// SUPERVISOR role in a department granted sight of every project in it,
+/// forever, with no record of it and no way for a team to know who was
+/// looking. `listSupervisedProjects` simply returned every workspace in the
+/// department. There was no such thing as "inviting" a supervisor, so the
+/// product could not honour its own promise that a project is private to its
+/// members and the people they invite.
+///
+/// A grant is now a row: someone created it, it names who it is for, and it
+/// can be revoked. That makes supervision consented, visible and auditable
+/// rather than ambient.
+///
+/// REVOCATION IS SOFT. `revokedAt` is set rather than the row deleted, so the
+/// history of who could see the work — and when — survives. This is the same
+/// reasoning as LedgerEvent and the publication archive: records that exist to
+/// establish accountability must not be quietly erasable by the party they
+/// hold accountable.
+model ProjectGrant {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation("ProjectGrantee", fields: [userId], references: [id], onDelete: Cascade)
+
+  role ProjectGrantRole @default(SUPERVISOR)
+
+  grantedById String?
+  /// Denormalised so the record stays readable after an account is deleted.
+  grantedByName String
+  /// Set when the grant is withdrawn. Null = active.
+  revokedAt   DateTime?
+  revokedById String?
+
+  createdAt DateTime @default(now())
+
+  /// One grant per person per project. Re-inviting someone previously revoked
+  /// reactivates this row rather than creating a second, which keeps "who has
+  /// access?" a question with exactly one answer per person.
+  @@unique([workspaceId, userId])
+  @@index([userId, revokedAt])
+  @@index([workspaceId, revokedAt])
 }
 
 model WorkspaceMember {

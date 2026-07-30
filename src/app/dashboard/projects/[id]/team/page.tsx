@@ -11,6 +11,8 @@ import { prisma } from "@/lib/prisma";
 import { getWorkspaceForUser } from "@/lib/workspace";
 import { getWorkspaceParticipation } from "@/lib/participation";
 import { getInvolvedDepartments } from "@/lib/collaboration";
+import { listEligibleSupervisors, listProjectGrants } from "@/lib/supervisor";
+import { ProjectAccess } from "@/components/project-access";
 import { buildJoinUrl, generateQrDataUrl, getBaseUrl } from "@/lib/qr";
 import { isEmailConfigured } from "@/lib/email";
 import {
@@ -58,6 +60,14 @@ export default async function WorkspaceDetailPage({
   );
 
   const participation = await getWorkspaceParticipation(workspace.id);
+
+  // Who outside the team can see this project, and who could still be invited.
+  const [grants, eligible] = await Promise.all([
+    listProjectGrants(workspace.id),
+    listEligibleSupervisors(workspace.departmentId, workspace.id),
+  ]);
+  const myMembership = workspace.members.find((m) => m.userId === userId);
+  const canInviteObservers = isLeader || Boolean(myMembership?.canInvite);
   const myParticipation = participation[userId];
   const inactiveCount = Object.values(participation).filter((p) => p.inactive).length;
 
@@ -416,6 +426,25 @@ export default async function WorkspaceDetailPage({
           </Card>
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Who can see this project</CardTitle>
+          <CardDescription>
+            This project is private to its members. Supervisors and lecturers
+            see it only if you invite them, and you can withdraw that at any
+            time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ProjectAccess
+            workspaceId={workspace.id}
+            grants={grants}
+            eligible={eligible}
+            canInvite={canInviteObservers}
+          />
+        </CardContent>
+      </Card>
 
       {isLeader && (
         <Card className="border-destructive/40">

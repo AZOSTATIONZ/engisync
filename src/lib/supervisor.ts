@@ -10,36 +10,124 @@ export async function supervisedDepartmentIds(userId: string): Promise<string[]>
   return rows.map((r) => r.departmentId);
 }
 
+/**
+ * Does this person supervise anything? Drives whether the Supervisor area is
+ * offered in navigation.
+ *
+ * Keyed to active GRANTS, not the department role. Keying it to the role would
+ * be wrong in both directions now: a newly appointed departmental supervisor
+ * with no invitations would be shown a Supervisor area containing nothing,
+ * while someone invited to supervise a project without holding the department
+ * role would not be shown the area that holds it.
+ */
 export async function isSupervisor(userId: string): Promise<boolean> {
-  const n = await prisma.departmentMember.count({
-    where: { userId, role: "SUPERVISOR" },
+  const n = await prisma.projectGrant.count({
+    where: { userId, revokedAt: null },
   });
   return n > 0;
 }
 
-/** True if the user supervises the department this workspace belongs to. */
+/**
+ * People a leader may invite to supervise a project.
+ *
+ * The department SUPERVISOR role still matters — but as the pool of who is
+ * *invitable*, never as access in itself. This is the seam where the role and
+ * the grant meet, and keeping them separate is the whole point: being a
+ * supervisor in a department is a job title; seeing a specific project is a
+ * decision the team makes.
+ */
+export async function listEligibleSupervisors(
+  departmentId: string | null,
+  workspaceId: string,
+) {
+  if (!departmentId) return [];
+
+  const [staff, grants] = await Promise.all([
+    prisma.departmentMember.findMany({
+      where: { departmentId, role: { in: ["SUPERVISOR", "ADMIN"] } },
+      select: {
+        role: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
+    }),
+    prisma.projectGrant.findMany({
+      where: { workspaceId, revokedAt: null },
+      select: { userId: true },
+    }),
+  ]);
+
+  const alreadyGranted = new Set(grants.map((g) => g.userId));
+  return staff
+    .filter((s) => !alreadyGranted.has(s.user.id))
+    .map((s) => ({
+      id: s.user.id,
+      name: displayName(s.user),
+      isDepartmentAdmin: s.role === "ADMIN",
+    }));
+}
+
+/** Active and revoked grants on a project, for the team to see who can look. */
+export async function listProjectGrants(workspaceId: string) {
+  const grants = await prisma.projectGrant.findMany({
+    where: { workspaceId },
+    orderBy: [{ revokedAt: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      role: true,
+      revokedAt: true,
+      grantedByName: true,
+      createdAt: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+  return grants.map((g) => ({
+    id: g.id,
+    userId: g.user.id,
+    name: displayName(g.user),
+    role: g.role as string,
+    active: g.revokedAt === null,
+    grantedByName: g.grantedByName,
+    createdAt: g.createdAt.toISOString(),
+    revokedAt: g.revokedAt ? g.revokedAt.toISOString() : null,
+  }));
+}
+
+/**
+ * True if the user holds an active grant on this project.
+ *
+ * There were previously TWO definitions of "supervisor" that disagreed:
+ * `policy.ts` counted department ADMINs, this file did not. The same person
+ * could be authorised by one code path and refused by the other depending on
+ * which happened to be called. Both now resolve the same way — through a
+ * grant — so the word means one thing.
+ */
 export async function canSuperviseWorkspace(
   workspaceId: string,
   userId: string,
 ): Promise<boolean> {
-  const ws = await prisma.workspace.findUnique({
-    where: { id: workspaceId },
-    select: { departmentId: true },
+  const grant = await prisma.projectGrant.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId } },
+    select: { revokedAt: true },
   });
-  if (!ws?.departmentId) return false;
-  const m = await prisma.departmentMember.findUnique({
-    where: { departmentId_userId: { departmentId: ws.departmentId, userId } },
-  });
-  return m?.role === "SUPERVISOR";
+  return Boolean(grant && grant.revokedAt === null);
 }
 
-/** All projects in the supervisor's departments, with progress. */
+/**
+ * Projects this user has been invited to supervise.
+ *
+ * Was: every project in every department where the user held SUPERVISOR —
+ * which is how a supervisor came to see the work of teams that had never
+ * heard of them. Now: exactly the projects that invited them.
+ */
 export async function listSupervisedProjects(userId: string) {
-  const deptIds = await supervisedDepartmentIds(userId);
-  if (deptIds.length === 0) return [];
+  const grants = await prisma.projectGrant.findMany({
+    where: { userId, revokedAt: null },
+    select: { workspaceId: true },
+  });
+  if (grants.length === 0) return [];
 
   const groups = await prisma.workspace.findMany({
-    where: { departmentId: { in: deptIds } },
+    where: { id: { in: grants.map((g) => g.workspaceId) } },
     select: {
       id: true,
       name: true,

@@ -78,7 +78,13 @@ export async function getDepartment(departmentId: string, userId: string) {
     };
   }
 
-  // Isolation: admins see every group; members see only their own groups here.
+  // Isolation: a department admin sees that projects EXIST — names and member
+  // counts, which they need to administer the department. Opening one requires
+  // a ProjectGrant like anyone else.
+  //
+  // Administering a department is not the same as reading students' work, and
+  // conflating the two made an admin account a master key to every project in
+  // the department. Students see only the projects they belong to.
   const groups = await prisma.workspace.findMany({
     where: {
       departmentId,

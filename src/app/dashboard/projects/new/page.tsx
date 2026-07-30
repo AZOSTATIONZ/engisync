@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Lightbulb } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { displayName } from "@/lib/identity";
 import { userDepartmentIds } from "@/lib/department";
 import { routes } from "@/lib/routes";
 import { HUB_PROJECTS } from "@/lib/project-hub-catalog";
@@ -54,6 +55,25 @@ export default async function NewProjectPage({
     label: `${d.name} (${d.code})`,
   }));
 
+  // Staff the student could name as supervisor, grouped by department so the
+  // picker can follow the department they choose without another round trip.
+  // Only departments the user is already in, so this exposes nothing they
+  // could not already see.
+  const staff = await prisma.departmentMember.findMany({
+    where: { departmentId: { in: deptIds }, role: { in: ["SUPERVISOR", "ADMIN"] } },
+    select: {
+      departmentId: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+  const supervisorsByDepartment: Record<string, { id: string; name: string }[]> = {};
+  for (const s of staff) {
+    (supervisorsByDepartment[s.departmentId] ??= []).push({
+      id: s.user.id,
+      name: displayName(s.user),
+    });
+  }
+
   // Arriving from a Project Hub brief pre-fills the form. Resolved from the
   // catalogue rather than trusting text in the URL.
   const seed = from ? HUB_PROJECTS.find((p) => p.slug === from) : undefined;
@@ -92,6 +112,7 @@ export default async function NewProjectPage({
         <CardContent>
           <CreateWorkspaceForm
             departments={departmentOptions}
+            supervisorsByDepartment={supervisorsByDepartment}
             seedName={seed?.title}
             seedDescription={seed?.summary}
           />

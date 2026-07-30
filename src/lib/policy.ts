@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
  * WHY THIS EXISTS
  * ---------------
  * Authorization was previously expressed as ~40 ad-hoc `isWorkspaceLeader()`
- * calls spread across 11 files, with an unused `rbac.ts` sitting beside them.
+ * calls spread across 11 files, with an unused `rbac.ts` sitting beside them
+ * (since deleted — it was dead code whose tests gave false confidence).
  * Every new feature meant another hand-written check, and every missed check
  * is a privilege-escalation bug. There was no single place to answer "who can
  * do what?", and no way to test it.
@@ -192,15 +193,31 @@ export function denialReason(ctx: PolicyContext, action: Action): string {
 /**
  * Load a user's standing in one query.
  *
- * Supervisor status is resolved through the project's department rather than a
- * global flag, so supervising Civil Engineering does not grant sight of
- * Electrical Engineering projects.
+ * SUPERVISION IS GRANTED, NOT INHERITED.
+ *
+ * This used to resolve supervisor status from department membership: holding
+ * SUPERVISOR — or even ADMIN — in a project's department granted read access
+ * to every project in it, implicitly, permanently, and invisibly to the team.
+ * A project could not be private from someone who never asked to see it and
+ * whom the team could not remove.
+ *
+ * It now reads an explicit `ProjectGrant`. The consequences are deliberate:
+ *
+ *   - Department ADMIN no longer implies sight of any project's contents.
+ *     Administering a department is not the same as reading students' work.
+ *     Admins keep the project list; opening one needs a grant.
+ *   - A supervisor of the department sees nothing until invited, which is what
+ *     "invited supervisors" has to mean if it means anything.
+ *   - Revoking a grant takes effect immediately, because nothing is cached.
+ *
+ * Existing access was preserved by the backfill in migration
+ * 20260730160000_project_grants — no supervisor lost a project to this change.
  */
 export async function getContext(
   workspaceId: string,
   userId: string,
 ): Promise<PolicyContext> {
-  const [membership, user, workspace] = await Promise.all([
+  const [membership, user, grant] = await Promise.all([
     prisma.workspaceMember.findUnique({
       where: { workspaceId_userId: { workspaceId, userId } },
       select: {
@@ -214,24 +231,15 @@ export async function getContext(
       where: { id: userId },
       select: { systemRole: true },
     }),
-    prisma.workspace.findUnique({
-      where: { id: workspaceId },
-      select: { departmentId: true },
+    prisma.projectGrant.findUnique({
+      where: { workspaceId_userId: { workspaceId, userId } },
+      select: { revokedAt: true },
     }),
   ]);
 
-  let isSupervisor = false;
-  if (workspace?.departmentId) {
-    const deptMembership = await prisma.departmentMember.findFirst({
-      where: {
-        departmentId: workspace.departmentId,
-        userId,
-        role: { in: ["SUPERVISOR", "ADMIN"] },
-      },
-      select: { id: true },
-    });
-    isSupervisor = Boolean(deptMembership);
-  }
+  // A revoked grant is a row that still exists, so absence of the row is not
+  // the test — `revokedAt === null` is.
+  const isSupervisor = Boolean(grant && grant.revokedAt === null);
 
   return {
     userId,

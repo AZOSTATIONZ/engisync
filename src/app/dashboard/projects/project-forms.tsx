@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   createWorkspace,
@@ -29,10 +29,13 @@ function SubmitButton({ label }: { label: string }) {
 
 export function CreateWorkspaceForm({
   departments = [],
+  supervisorsByDepartment = {},
   seedName,
   seedDescription,
 }: {
   departments?: { id: string; label: string }[];
+  /** Staff invitable per department, so the picker follows the chosen one. */
+  supervisorsByDepartment?: Record<string, { id: string; name: string }[]>;
   /** Pre-filled when arriving from a Project Hub brief. Still editable. */
   seedName?: string;
   seedDescription?: string;
@@ -42,6 +45,13 @@ export function CreateWorkspaceForm({
     null,
   );
   const hasDuplicates = !!state?.duplicates?.length;
+
+  // The supervisor list depends on which department is chosen, so it is tracked
+  // in state rather than read off the form at submit time.
+  const [departmentId, setDepartmentId] = useState(
+    departments.length === 1 ? departments[0].id : "",
+  );
+  const supervisors = supervisorsByDepartment[departmentId] ?? [];
 
   if (departments.length === 0) {
     return (
@@ -73,7 +83,8 @@ export function CreateWorkspaceForm({
           id="departmentId"
           name="departmentId"
           required
-          defaultValue={departments.length === 1 ? departments[0].id : ""}
+          value={departmentId}
+          onChange={(e) => setDepartmentId(e.target.value)}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="" disabled>
@@ -86,6 +97,31 @@ export function CreateWorkspaceForm({
           ))}
         </select>
       </div>
+      <div className="space-y-2">
+        <Label htmlFor="supervisorId">Supervisor (optional)</Label>
+        <select
+          id="supervisorId"
+          name="supervisorId"
+          defaultValue=""
+          disabled={!departmentId || supervisors.length === 0}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+        >
+          <option value="">No supervisor yet</option>
+          {supervisors.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          {!departmentId
+            ? "Choose a department first."
+            : supervisors.length === 0
+              ? "No supervisors listed in this department yet — you can invite one later from the Team tab."
+              : "Your project is private to its members. The supervisor you pick gets read-only access, and you can change this at any time."}
+        </p>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="template">Starter template (optional)</Label>
         <select
