@@ -59,14 +59,33 @@ function defaultModel(provider: AIProvider): string {
     case "openai":
       return "gpt-4o-mini";
     case "gemini":
-      // Use the floating "latest" alias rather than a pinned version.
-      // Google retires specific versions for new API keys (gemini-1.5-flash,
-      // then gemini-2.5-flash), which breaks the app for anyone who signs up
-      // after the retirement date while continuing to work for existing keys.
-      // The alias always resolves to the current free-tier flash model, so
-      // this cannot rot again. Pin a version via AI_MODEL if you ever need
-      // reproducible output.
-      return "gemini-flash-latest";
+      // Floating "latest" alias rather than a pinned version. Google retires
+      // specific versions for new API keys (gemini-1.5-flash, then
+      // gemini-2.5-flash), which breaks the app for anyone who signs up after
+      // the retirement date while continuing to work for existing keys. The
+      // alias cannot rot that way. Pin via AI_MODEL for reproducible output.
+      //
+      // LITE, and that is a measured choice, not a downgrade.
+      // `gemini-flash-latest` is a THINKING model, and on this workload the
+      // thinking is nearly all of the cost. Measured on the same prompt:
+      //
+      //   gemini-flash-latest       374 thinking tokens → 353 chars of answer
+      //   gemini-flash-lite-latest    0 thinking tokens → 397 chars of answer
+      //
+      // Lite produced a longer answer using half the budget. Worse, thinking
+      // tokens are spent BEFORE any answer is emitted, so a modest
+      // `maxTokens` gets consumed entirely by reasoning and the caller
+      // receives an empty string or a sentence cut in half — with a 256-token
+      // budget the thinking model returned "Protracted cloudy or rainy" and
+      // stopped.
+      //
+      // On the free tier those invisible tokens also count against the daily
+      // quota, so this is roughly 4-5x more usable requests per day for
+      // output that is, on this kind of task, no worse.
+      //
+      // (`thinkingConfig: { thinkingBudget: 0 }` would be the surgical fix,
+      // but the v1beta endpoint rejects it for these aliases with a 400.)
+      return "gemini-flash-lite-latest";
     case "local":
       return "llama3";
   }
@@ -161,12 +180,35 @@ export async function chatComplete({
       );
     }
     const data = await res.json();
-    return (
-      data?.candidates?.[0]?.content?.parts
+    const candidate = data?.candidates?.[0];
+    const text: string =
+      candidate?.content?.parts
         ?.map((p: { text?: string }) => p.text ?? "")
         .join("")
-        .trim() ?? ""
-    );
+        .trim() ?? "";
+
+    // AN EMPTY 200 IS A FAILURE, and it used to be returned as success.
+    //
+    // Gemini answers HTTP 200 with no text in two situations that look
+    // identical to the caller: the token budget ran out before any answer was
+    // produced (`MAX_TOKENS`), or a safety filter blocked it. Returning "" let
+    // both render as a blank panel with no explanation — the user sees a
+    // feature that silently does nothing, which is the worst possible failure
+    // for something they are meant to trust.
+    if (!text) {
+      const reason = candidate?.finishReason ?? "unknown";
+      log(`empty response finishReason=${reason}`);
+      if (reason === "MAX_TOKENS") {
+        throw new Error(
+          "The AI ran out of room before it finished answering. Try a shorter request.",
+        );
+      }
+      if (reason === "SAFETY" || reason === "PROHIBITED_CONTENT") {
+        throw new Error("The AI declined to answer that request.");
+      }
+      throw new Error(`The AI returned an empty response (${reason}).`);
+    }
+    return text;
   }
 
   // OpenAI, or a local OpenAI-compatible endpoint (Ollama, LM Studio, etc.).

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AlertTriangle, CalendarClock, FolderKanban, Target } from "lucide-react";
 
@@ -45,15 +46,42 @@ export function HeroWelcome({
   department,
   subtitle,
   stats,
+  image,
 }: {
   greeting: string;
   firstName: string;
   department?: string | null;
   subtitle: string;
   stats: HeroStat[];
+  /** A photograph of the student's own discipline, used as a backdrop. */
+  image?: string;
 }) {
   return (
     <section className="surface-premium edge-brand relative overflow-hidden rounded-2xl">
+      {/* THE DISCIPLINE, BEHIND THE WORK — not instead of it.
+          The imagery used to be the largest element on this page and was moved
+          to the bottom for a good reason: someone opening EngiSync between
+          lectures needs to know what to do next, not look at a photograph.
+          That reasoning still holds, so this does not take the space back.
+
+          As a backdrop it costs no vertical space at all, while telling a
+          civil student this is a civil place. Two scrims sit over it — one
+          flat, one directional — because a photograph behind white text is
+          only legible if you can guarantee what is underneath, and a
+          photograph guarantees nothing. */}
+      {image && (
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <Image
+            src={image}
+            alt=""
+            fill
+            priority={false}
+            sizes="(max-width: 1024px) 100vw, 900px"
+            className="object-cover opacity-[0.16] dark:opacity-[0.13]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-card via-card/85 to-card/40" />
+        </div>
+      )}
       {/* Drafting grid — engineering identity, faint enough to sit under text. */}
       <div className="bg-grid bg-grid-fade pointer-events-none absolute inset-0 opacity-60" />
       {/* A single soft brand bloom in the corner, giving the panel a light source. */}
@@ -78,7 +106,12 @@ export function HeroWelcome({
               key={s.label}
               href={s.href}
               className={cn(
-                "group glow-hover sheen rounded-xl border bg-background/50 p-3 backdrop-blur-sm",
+                // `/75` and a stronger blur, not `/50`. These tiles now sit
+                // over a photograph on the right-hand side, and a photograph
+                // can be any luminance at all — legibility has to be
+                // guaranteed by what is under the text, not hoped for from
+                // whatever image the discipline happens to ship.
+                "group glow-hover sheen rounded-xl border bg-background/75 p-3 backdrop-blur-md",
                 s.alert && "border-destructive/40",
               )}
             >

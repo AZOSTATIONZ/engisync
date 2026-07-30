@@ -108,6 +108,7 @@ export default async function DashboardPage() {
               : "Let's get your first project set up."
         }
         stats={buildHeroStats(focus)}
+        image={media.images[0]}
       />
 
       {/* WHY THE HERO IMAGE MOVED
