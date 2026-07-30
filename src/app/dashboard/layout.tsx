@@ -40,6 +40,10 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Ambient depth behind everything. Fixed and -z-10 so it never repaints
+          on scroll and never sits above content; aria-hidden because it
+          carries no information. Defined fully in globals.css. */}
+      <div className="aurora" aria-hidden />
       {/* The chosen accent overrides one custom property rather than shipping a
           stylesheet per colour. Both light and dark values are set because the
           theme can change client-side without a re-render, and an accent that
@@ -48,7 +52,12 @@ export default async function DashboardLayout({
           Values come from a fixed palette keyed by `accentColor`, never from
           user input — see lib/personalization.ts. That is what stops this
           being a CSS injection point. */}
-      <style>{`:root{--primary:${accent.light}}.dark{--primary:${accent.dark}}`}</style>
+      {/* `--primary-2` is the second stop of the brand gradient. It ships
+          alongside `--primary` so the gradients follow the accent the user
+          chose — a hero in indigo-cyan above an amber sidebar looked like two
+          products bolted together, which is the fastest way to make a careful
+          interface feel cheap. */}
+      <style>{`:root{--primary:${accent.light};--primary-2:${accent.light2}}.dark{--primary:${accent.dark};--primary-2:${accent.dark2}}`}</style>
       <Navbar isSupervisor={supervises} />
       {showVerify && <VerifyBanner />}
       {/* `min-w-0` lets the main column actually shrink — without it, flex

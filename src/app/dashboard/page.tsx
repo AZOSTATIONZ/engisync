@@ -30,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingCard } from "@/components/onboarding-card";
 import { QuickActions } from "@/components/quick-actions";
+import { HeroWelcome, buildHeroStats } from "@/components/hero-welcome";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -95,19 +96,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="stagger space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">
-          {greeting(now)}, {firstName}
-        </h1>
-        <p className="text-muted-foreground">
-          {myDept?.department.name ? `${myDept.department.name} · ` : ""}
-          {hasFocus
+      <HeroWelcome
+        greeting={greeting(now)}
+        firstName={firstName}
+        department={myDept?.department.name}
+        subtitle={
+          hasFocus
             ? "Here's what needs you today."
             : hasProjects
               ? "Nothing is due today — you're clear."
-              : "Let's get your first project set up."}
-        </p>
-      </div>
+              : "Let's get your first project set up."
+        }
+        stats={buildHeroStats(focus)}
+      />
 
       {/* WHY THE HERO IMAGE MOVED
           A student opening EngiSync between lectures needs to know what to do

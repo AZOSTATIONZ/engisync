@@ -51,20 +51,33 @@ export type AccentKey =
  */
 export const ACCENTS: Record<
   AccentKey,
-  { label: string; light: string; dark: string; swatch: string }
+  {
+    label: string;
+    light: string;
+    dark: string;
+    swatch: string;
+    /* SECOND STOP OF THE BRAND GRADIENT.
+       Hand-picked rather than computed. An automatic hue rotation produces
+       muddy pairs for half the palette (amber→olive, rose→brown), and the
+       whole point of a gradient is that it looks deliberate. Each partner sits
+       20-40° along the hue wheel from its base — far enough to read as a
+       gradient, close enough to still read as ONE colour. */
+    light2: string;
+    dark2: string;
+  }
 > = {
   /* Electric cyan is the product's own accent and therefore the default —
      a user who never opens Settings should still see the intended identity.
      Light values are darkened across the board: a colour bright enough to glow
      on #070B14 fails contrast on a near-white page. */
-  cyan: { label: "Electric cyan", light: "188 86% 30%", dark: "188 86% 53%", swatch: "#22d3ee" },
-  blue: { label: "Blue", light: "221 83% 40%", dark: "217 91% 60%", swatch: "#2563eb" },
-  violet: { label: "Violet", light: "262 83% 58%", dark: "263 90% 66%", swatch: "#7c3aed" },
-  teal: { label: "Teal", light: "184 90% 34%", dark: "180 77% 47%", swatch: "#0d9488" },
-  emerald: { label: "Emerald", light: "160 84% 32%", dark: "158 64% 47%", swatch: "#059669" },
-  amber: { label: "Amber", light: "32 95% 44%", dark: "38 92% 55%", swatch: "#d97706" },
-  rose: { label: "Rose", light: "347 77% 50%", dark: "350 89% 65%", swatch: "#e11d48" },
-  slate: { label: "Graphite", light: "215 25% 35%", dark: "215 20% 65%", swatch: "#475569" },
+  cyan: { label: "Electric cyan", light: "188 86% 30%", dark: "188 86% 53%", swatch: "#22d3ee", light2: "199 89% 38%", dark2: "199 89% 62%" },
+  blue: { label: "Blue", light: "221 83% 40%", dark: "217 91% 60%", swatch: "#2563eb", light2: "258 80% 52%", dark2: "258 90% 70%" },
+  violet: { label: "Violet", light: "262 83% 58%", dark: "263 90% 66%", swatch: "#7c3aed", light2: "300 72% 50%", dark2: "300 85% 68%" },
+  teal: { label: "Teal", light: "184 90% 34%", dark: "180 77% 47%", swatch: "#0d9488", light2: "165 82% 32%", dark2: "165 78% 48%" },
+  emerald: { label: "Emerald", light: "160 84% 32%", dark: "158 64% 47%", swatch: "#059669", light2: "174 78% 30%", dark2: "174 80% 50%" },
+  amber: { label: "Amber", light: "32 95% 44%", dark: "38 92% 55%", swatch: "#d97706", light2: "14 90% 48%", dark2: "20 95% 60%" },
+  rose: { label: "Rose", light: "347 77% 50%", dark: "350 89% 65%", swatch: "#e11d48", light2: "325 78% 50%", dark2: "325 88% 66%" },
+  slate: { label: "Graphite", light: "215 25% 35%", dark: "215 20% 65%", swatch: "#475569", light2: "222 30% 40%", dark2: "222 25% 70%" },
 };
 
 export const ACCENT_KEYS = Object.keys(ACCENTS) as AccentKey[];

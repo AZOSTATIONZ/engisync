@@ -222,6 +222,120 @@
 }
 
 @layer components {
+  /* ── BRAND GRADIENTS ──────────────────────────────────────────────
+     The palette above gives colour MEANING (cyan=action, violet=AI,
+     emerald=success). These gradients give it PRESENCE.
+
+     A flat accent is honest but inexpensive-looking: it reads as a default.
+     Two-stop gradients along a short hue arc — indigo→cyan, violet→magenta —
+     catch light the way anodised metal does, which is what separates a
+     product that looks made from one that looks generated.
+
+     The arcs are deliberately SHORT (60-70° of hue). Long rainbow sweeps
+     read as a crypto landing page; short ones read as material. And every
+     gradient here resolves to a colour already in the semantic palette, so
+     nothing new has to be kept legible — the gradient is the surface
+     treatment of a colour that was already approved.
+
+     Angle is fixed at 135° everywhere. Consistent light direction is most of
+     what makes a set of surfaces look like one object rather than a
+     collection of stickers. */
+  :root {
+    /* THE BRAND GRADIENT FOLLOWS THE USER'S ACCENT.
+       Built from `--primary` and `--primary-2`, both set per-user by the
+       dashboard layout from a fixed palette. Hardcoding a hue here would mean
+       a student who picked amber got an amber sidebar and an indigo hero —
+       personalization that only half-applies looks like a bug, not a choice.
+       The semantic gradients below stay fixed, because success must be green
+       and danger must be red no matter what colour anyone prefers. */
+    --grad-brand: linear-gradient(
+      135deg,
+      hsl(var(--primary)),
+      hsl(var(--primary-2, var(--primary)))
+    );
+    --grad-ai: linear-gradient(135deg, hsl(258 80% 60%), hsl(316 72% 55%));
+    --grad-success: linear-gradient(135deg, hsl(160 84% 32%), hsl(174 78% 38%));
+    --grad-warning: linear-gradient(135deg, hsl(30 95% 42%), hsl(45 93% 47%));
+    --grad-danger: linear-gradient(135deg, hsl(346 80% 52%), hsl(0 78% 55%));
+  }
+  .dark {
+    /* Lifted in dark mode: the same stops that read as rich on white go muddy
+       on #070B14, where there is no light behind them. --grad-brand needs no
+       dark variant — its inputs are already theme-aware. */
+    --grad-ai: linear-gradient(135deg, hsl(258 90% 70%), hsl(316 85% 66%));
+    --grad-success: linear-gradient(135deg, hsl(160 84% 45%), hsl(174 80% 50%));
+    --grad-warning: linear-gradient(135deg, hsl(38 92% 55%), hsl(45 95% 60%));
+    --grad-danger: linear-gradient(135deg, hsl(346 88% 62%), hsl(0 84% 65%));
+  }
+
+  /* Gradient TEXT. Reserved for the single largest heading on a screen —
+     used more than once per page it stops being emphasis and becomes noise. */
+  .text-gradient {
+    background: var(--grad-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* A gradient that ends in a light stop can drop below contrast at the
+       tail. The shadow keeps small text readable if this is ever reused
+       below heading size. */
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ── PREMIUM SURFACE ──────────────────────────────────────────────
+     A card with a light-catching top edge.
+
+     Real materials are brightest where they meet the light. The 1px inset
+     highlight along the top border is doing exactly that, and it is the
+     cheapest trick in interface design for making a flat rectangle look like
+     an object. Paired with the existing elevation shadows it gives depth
+     from two directions — light above, shadow below. */
+  .surface-premium {
+    position: relative;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.06),
+      0 1px 2px -1px hsl(var(--shadow-color) / 0.1),
+      0 8px 24px -12px hsl(var(--shadow-color) / 0.14);
+  }
+  .dark .surface-premium {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card)) 0%,
+      hsl(222 40% 9%) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.05),
+      0 8px 32px -16px hsl(222 60% 2% / 0.8);
+  }
+
+  /* A hairline of brand colour along the top of a card. Used to mark the one
+     card on a screen that matters most. */
+  .edge-brand::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: var(--grad-brand);
+    opacity: 0.7;
+    border-radius: inherit;
+  }
+
+  /* ── GRADIENT ICON CHIP ───────────────────────────────────────────
+     The small rounded square behind an action's icon. Carries the gradient
+     so the icon itself can stay a plain, legible white glyph. */
+  .chip {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white;
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.25),
+      0 4px 12px -4px hsl(var(--shadow-color) / 0.4);
+  }
+  .chip-brand { background: var(--grad-brand); }
+  .chip-ai { background: var(--grad-ai); }
+  .chip-success { background: var(--grad-success); }
+  .chip-warning { background: var(--grad-warning); }
+  .chip-danger { background: var(--grad-danger); }
+
   /* ELEVATION SCALE
      ---------------
      Four levels, each a LAYERED shadow rather than a single blur. Real objects
@@ -442,6 +556,113 @@
     mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
   }
 
+  /* ── AURORA: ambient depth behind the page ───────────────────────
+     Two large, heavily-blurred colour fields drifting slowly behind the
+     content. This is what stops a dark interface reading as a black
+     rectangle — it gives the background somewhere to recede TO.
+
+     Constraints that keep it premium rather than gaudy:
+       · opacity stays under 0.1 — you should never catch yourself looking
+         at it, only notice the screen has depth
+       · `filter: blur()` on a huge radius, so there are no visible edges
+       · pointer-events: none and aria-hidden — it is decoration and must
+         never intercept a click or reach a screen reader
+       · fixed position, so it does not repaint while the page scrolls
+       · 40-second cycle. Anything faster registers as movement, and movement
+         behind text is where "premium" turns into "distracting". */
+  .aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .aurora::before,
+  .aurora::after {
+    content: "";
+    position: absolute;
+    width: 45rem;
+    height: 45rem;
+    border-radius: 9999px;
+    filter: blur(120px);
+    opacity: 0.07;
+  }
+  /* Both fields take the user's accent, for the same reason the gradient does. */
+  .aurora::before {
+    top: -14rem;
+    right: -10rem;
+    background: radial-gradient(circle, hsl(var(--primary)), transparent 70%);
+    animation: drift-a 40s ease-in-out infinite;
+  }
+  .aurora::after {
+    bottom: -16rem;
+    left: -12rem;
+    background: radial-gradient(
+      circle,
+      hsl(var(--primary-2, var(--primary))),
+      transparent 70%
+    );
+    animation: drift-b 46s ease-in-out infinite;
+  }
+  .dark .aurora::before,
+  .dark .aurora::after {
+    opacity: 0.1;
+  }
+  @keyframes drift-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-5rem, 4rem) scale(1.12); }
+  }
+  @keyframes drift-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(4rem, -3rem) scale(1.08); }
+  }
+
+  /* ── GLOW: a coloured halo on hover ──────────────────────────────
+     Applied to primary tiles only. A glow on everything is a casino; a glow
+     on the one thing you probably want next is guidance. */
+  .glow-hover {
+    transition:
+      transform 0.22s var(--ease-out),
+      box-shadow 0.22s var(--ease-out);
+  }
+  .glow-hover:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.25),
+      0 8px 30px -8px hsl(var(--primary) / 0.35);
+  }
+
+  /* ── SHEEN: light sweeping across a surface on hover ──────────────
+     One pass, 0.7s, then it stops. A looping sheen is an advert; a single
+     pass is the surface catching the light as your cursor crosses it. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 25%,
+      hsl(0 0% 100% / 0.1) 48%,
+      transparent 62%
+    );
+    transform: translateX(-100%);
+    transition: transform 0.7s var(--ease-out);
+    pointer-events: none;
+  }
+  .sheen:hover::after {
+    transform: translateX(100%);
+  }
+
+  /* Numbers that matter, set in the brand gradient. */
+  .stat-value {
+    @apply text-2xl font-bold tabular;
+    letter-spacing: -0.02em;
+  }
+
   /* Visible keyboard focus everywhere — accessibility is part of the
      design language, not an exception to it. */
   :focus-visible {
@@ -461,6 +682,20 @@
     }
     .stagger > * {
       opacity: 1;
+    }
+    /* The aurora is the one thing here that moves on its own, unprompted and
+       indefinitely. For anyone who gets motion sick that is the worst kind of
+       animation, so it stops completely rather than merely slowing down —
+       the colour fields stay, only the drift goes. */
+    .aurora::before,
+    .aurora::after {
+      animation: none !important;
+    }
+    .glow-hover:hover {
+      transform: none;
+    }
+    .sheen::after {
+      display: none;
     }
   }
 }

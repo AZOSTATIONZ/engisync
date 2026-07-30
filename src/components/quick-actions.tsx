@@ -37,6 +37,7 @@ const ACTIONS = [
     label: "Create project",
     hint: "Start a new group",
     icon: FolderPlus,
+    chip: "chip-brand",
     primary: true,
   },
   {
@@ -44,30 +45,35 @@ const ACTIONS = [
     label: "Join project",
     hint: "With a code",
     icon: UserPlus,
+    chip: "chip-ai",
   },
   {
     href: routes.projectHub,
     label: "Find a project",
     hint: "Ideas you can build",
     icon: Lightbulb,
+    chip: "chip-warning",
   },
   {
     href: routes.meetings,
     label: "Schedule meeting",
     hint: "Set a time",
     icon: CalendarPlus,
+    chip: "chip-success",
   },
   {
     href: routes.repository,
     label: "Past projects",
     hint: "Search before you build",
     icon: Archive,
+    chip: "chip-brand",
   },
   {
     href: routes.myWork,
     label: "My work",
     hint: "Everything assigned to me",
     icon: ListChecks,
+    chip: "chip-ai",
   },
 ];
 
@@ -78,21 +84,24 @@ export function QuickActions() {
           assembling rather than appearing. Cheap because it is pure CSS —
           no JavaScript, and the global reduced-motion rule already
           neutralises it for anyone who asked for less. */}
-      <div className="stagger grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="stagger grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         {ACTIONS.map((a) => (
           <Link
             key={a.label}
             href={a.href}
             className={
               a.primary
-                ? "card-hover flex flex-col gap-1 rounded-xl border border-primary/40 bg-primary/10 p-3"
-                : "card-hover flex flex-col gap-1 rounded-xl border bg-card p-3"
+                ? "group glow-hover sheen surface-premium edge-brand relative flex flex-col gap-2 overflow-hidden rounded-xl p-3"
+                : "group glow-hover sheen surface-premium relative flex flex-col gap-2 overflow-hidden rounded-xl p-3"
             }
           >
-            <a.icon
-              className={`h-5 w-5 ${a.primary ? "text-primary" : "text-muted-foreground"}`}
-            />
-            <span className="text-sm font-medium leading-tight">{a.label}</span>
+            {/* The gradient rides the CHIP, never the icon — a white glyph on
+                a saturated square stays legible in both themes, whereas a
+                gradient-filled glyph turns to mud at 20px. */}
+            <span className={`chip ${a.chip}`}>
+              <a.icon className="icon-nudge h-[1.15rem] w-[1.15rem]" />
+            </span>
+            <span className="text-sm font-semibold leading-tight">{a.label}</span>
             <span className="text-xs leading-tight text-muted-foreground">
               {a.hint}
             </span>
