@@ -51,12 +51,22 @@ function Motif({ style, id }: { style: AvatarStyle; id: string }) {
           <circle cx="50" cy="50" r="16" />
           {Array.from({ length: 6 + v }).map((_, i, arr) => {
             const a = (i / arr.length) * Math.PI * 2;
+            // ROUNDED, and it matters. Serialising a raw double put
+            // "20.55513627132909" in the server HTML and "20.555136271329097"
+            // in the client's, so React reported a hydration mismatch on every
+            // page containing a gear avatar — and a mismatched attribute is
+            // explicitly NOT patched up, so the two could stay divergent.
+            //
+            // Two decimals is far below what a 100-unit viewBox can express, so
+            // this costs nothing visually and makes the string identical on
+            // both sides.
+            const p = (n: number) => n.toFixed(2);
             return (
               <path
                 key={i}
-                d={`M${50 + Math.cos(a) * 22} ${50 + Math.sin(a) * 22}L${
-                  50 + Math.cos(a) * 34
-                } ${50 + Math.sin(a) * 34}`}
+                d={`M${p(50 + Math.cos(a) * 22)} ${p(50 + Math.sin(a) * 22)}L${p(
+                  50 + Math.cos(a) * 34,
+                )} ${p(50 + Math.sin(a) * 34)}`}
               />
             );
           })}
