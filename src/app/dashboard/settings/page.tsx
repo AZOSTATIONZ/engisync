@@ -16,6 +16,7 @@ import {
   PushToggle,
 } from "./settings-ui";
 import { ProfileForm } from "./profile-form";
+import { ThemePicker } from "@/components/theme-personality";
 import { PublicProfileForm } from "./public-profile-form";
 import { TwoFactor } from "./twofactor-ui";
 import { DeleteAccountSection } from "./delete-account";
@@ -87,6 +88,19 @@ export default async function SettingsPage() {
               image: user?.image ?? null,
             }}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="surface-premium border-0">
+        <CardHeader>
+          <CardTitle className="text-base">Theme</CardTitle>
+          <CardDescription>
+            Pick the world you want to work in. Applies instantly and is
+            remembered on this device.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemePicker />
         </CardContent>
       </Card>
 

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isEmailConfigured } from "@/lib/email";
-import { ACCENTS, resolveAccent } from "@/lib/personalization";
+import { ACCENTS, isAccentKey, resolveAccent } from "@/lib/personalization";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -36,6 +36,9 @@ export default async function DashboardLayout({
   const showVerify = isEmailConfigured() && !user?.emailVerified;
   const supervises = (user?._count.projectGrants ?? 0) > 0;
 
+  // `resolveAccent` falls back to the default for null, so it cannot answer
+  // "did they actually choose?" — which is the question precedence turns on.
+  const explicitAccent = isAccentKey(user?.accentColor);
   const accent = ACCENTS[resolveAccent(user?.accentColor)];
 
   return (
@@ -44,20 +47,30 @@ export default async function DashboardLayout({
           on scroll and never sits above content; aria-hidden because it
           carries no information. Defined fully in globals.css. */}
       <div className="aurora" aria-hidden />
-      {/* The chosen accent overrides one custom property rather than shipping a
-          stylesheet per colour. Both light and dark values are set because the
-          theme can change client-side without a re-render, and an accent that
-          only worked in one theme would look broken in the other.
+      {/* Values come from a fixed palette keyed by `accentColor`, never from
+          user input — see lib/personalization.ts. That is what stops this being
+          a CSS injection point. Both light and dark are set because the mode
+          can change client-side without a re-render.
 
-          Values come from a fixed palette keyed by `accentColor`, never from
-          user input — see lib/personalization.ts. That is what stops this
-          being a CSS injection point. */}
-      {/* `--primary-2` is the second stop of the brand gradient. It ships
-          alongside `--primary` so the gradients follow the accent the user
-          chose — a hero in indigo-cyan above an amber sidebar looked like two
-          products bolted together, which is the fastest way to make a careful
-          interface feel cheap. */}
-      <style>{`:root{--primary:${accent.light};--primary-2:${accent.light2}}.dark{--primary:${accent.dark};--primary-2:${accent.dark2}}`}</style>
+          ACCENT vs THEME PERSONALITY — who wins, and why.
+          Both can define the brand colour, so precedence has to be decided
+          rather than left to whichever stylesheet happens to load last.
+
+          An EXPLICIT choice beats a bundled default: if the student picked an
+          accent, it overrides the personality's brand colour, and they keep
+          amber buttons inside the Ocean world. If they never picked one, this
+          block is not emitted at all and the personality supplies the colour —
+          which is what makes Neon Circuit green and Blueprint cyan out of the
+          box.
+
+          The doubled `:root:root` is deliberate. Personality tokens live on
+          `.dark[data-theme="x"]`, a two-part selector, so a plain `:root` would
+          lose to them on specificity. Doubling the selector wins without
+          reaching for `!important`, which would then have to be fought by
+          everything downstream. */}
+      {explicitAccent && (
+        <style>{`:root:root{--primary:${accent.light};--primary-2:${accent.light2}}.dark:root:root{--primary:${accent.dark};--primary-2:${accent.dark2}}`}</style>
+      )}
       <Navbar isSupervisor={supervises} />
       {showVerify && <VerifyBanner />}
       {/* `min-w-0` lets the main column actually shrink — without it, flex
