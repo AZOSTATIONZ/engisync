@@ -176,7 +176,7 @@ export function MilestoneManager({
         </form>
       )}
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No milestones yet.</p>
+        <p className="text-sm text-muted-foreground">No milestones yet — these are the dates your supervisor checks progress against.</p>
       ) : (
         <ul className="divide-y">
           {items.map((m) =>
@@ -223,7 +223,7 @@ export function DeliverableManager({
         </form>
       )}
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No deliverables yet.</p>
+        <p className="text-sm text-muted-foreground">No deliverables yet — the things you must hand in, listed so nothing is missed at submission.</p>
       ) : (
         <ul className="divide-y">
           {items.map((d) =>

@@ -100,7 +100,7 @@ export default async function ResourceHubPage({
         </CardHeader>
         <CardContent>
           {rec.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recommendations yet.</p>
+            <p className="text-sm text-muted-foreground">Recommendations appear once there are approved resources to draw on.</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               {rec.items.map((r) => (
@@ -150,7 +150,13 @@ export default async function ResourceHubPage({
       {/* Approved resources */}
       <div className="grid gap-3 md:grid-cols-2">
         {(approved ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No resources yet — be the first to submit one.</p>
+          <div className="md:col-span-2">
+            <p className="text-sm font-medium">Nothing shared here yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tools, tutorials and datasheets your classmates and lecturers have
+              vouched for. Submit the first one and it appears here once approved.
+            </p>
+          </div>
         ) : (
           (approved ?? []).map((r) => (
             <Card key={r.id}>

@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { getMembership } from "@/lib/workspace";
 import { listThreads } from "@/lib/discussion";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 import { NewThreadForm } from "./discussions-ui";
 
 export const metadata: Metadata = { title: "Discussions" };
@@ -33,12 +34,10 @@ export default async function DiscussionsPage({
       </div>
 
       {threads.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
-            <MessageSquare className="h-8 w-8 text-primary" />
-            No discussions yet. Start the first topic for your team.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No discussions yet"
+          description="Decisions made in a chat app are lost by the time the report is written. Threads here stay attached to the project, so the reasoning is still there in week ten."
+        />
       ) : (
         <div className="grid gap-3">
           {threads.map((t) => (

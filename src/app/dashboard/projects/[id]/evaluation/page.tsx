@@ -159,7 +159,14 @@ export default async function EvaluationPage({
               isLeader ? (
                 <p>Run the AI evaluation to get scores, risks, and predictions for this project.</p>
               ) : (
-                <p>No evaluation yet. Ask your project leader to run it.</p>
+                <div>
+                  <p className="font-medium">No evaluation yet</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    An evaluation reviews your documentation, tasks and
+                    milestones together and points at what is weakest. Your
+                    project leader can run one.
+                  </p>
+                </div>
               )
             ) : (
               <p>
