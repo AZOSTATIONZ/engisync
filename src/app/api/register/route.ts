@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
-import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { rateLimitShared, clientIp } from "@/lib/rate-limit";
 import { sendVerificationEmail } from "@/lib/verification";
 import { isEmailReserved } from "@/lib/account-lifecycle";
 
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   try {
     // Throttle signups: 5 per 10 minutes per IP.
     const ip = clientIp(req.headers);
-    const limit = rateLimit(`register:${ip}`, 5, 10 * 60 * 1000);
+    const limit = await rateLimitShared(`register:${ip}`, 5, 10 * 60 * 1000);
     if (!limit.ok) {
       return NextResponse.json(
         { error: "Too many attempts. Please try again later." },

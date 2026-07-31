@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getWorkspaceAnalytics } from "@/lib/analytics";
 import { chatComplete, isAIConfigured } from "@/lib/ai";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitShared } from "@/lib/rate-limit";
 
 export type InsightState = { error?: string; result?: string } | null;
 
@@ -21,7 +21,7 @@ export async function generateAnalyticsInsights(
         "AI is not configured. Add ANTHROPIC_API_KEY or OPENAI_API_KEY to your .env, then restart.",
     };
   }
-  const limit = rateLimit(`ai:${userId}`, 20, 5 * 60 * 1000);
+  const limit = await rateLimitShared(`ai:${userId}`, 20, 5 * 60 * 1000);
   if (!limit.ok) {
     return { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` };
   }

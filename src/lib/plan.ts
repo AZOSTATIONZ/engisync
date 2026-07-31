@@ -2,7 +2,7 @@ import { Plan } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isAIConfigured, AI_DISABLED, AI_OUT_OF_SERVICE } from "@/lib/ai";
 import { isAiEnabledByAdmin } from "@/lib/app-settings";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitShared } from "@/lib/rate-limit";
 
 export const PLAN_LABELS: Record<Plan, string> = {
   FREE: "Free",
@@ -37,7 +37,7 @@ export async function canUseAI(
 
   if (user.plan === Plan.FREE) {
     const day = new Date().toISOString().slice(0, 10);
-    const r = rateLimit(`ai-free:${userId}:${day}`, FREE_DAILY_AI, 24 * 60 * 60 * 1000);
+    const r = await rateLimitShared(`ai-free:${userId}:${day}`, FREE_DAILY_AI, 24 * 60 * 60 * 1000);
     if (!r.ok) {
       return {
         ok: false,

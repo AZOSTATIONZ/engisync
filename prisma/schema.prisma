@@ -1586,6 +1586,32 @@ model Expense {
   @@index([workspaceId])
 }
 
+/// Rate-limit counters that survive across serverless instances.
+///
+/// WHY A TABLE AND NOT REDIS
+/// The obvious answer is Upstash, and it would be faster. But it is another
+/// account, another key, another free tier to run out of, and another thing
+/// that can be down — for a counter that is read a few times per user per day.
+/// Postgres is already here, already has the connection open, and gives the
+/// one thing that actually matters: a single atomic statement that every
+/// instance agrees on.
+///
+/// WHY NOT EVERY LIMIT USES IT
+/// Each check costs a round trip, and this database is ~271ms away. Spending
+/// that on a profile-edit throttle would be a poor trade; spending it to stop
+/// a password being brute-forced, or to stop the Gemini free tier being
+/// exhausted, is obviously worth it. See `lib/rate-limit.ts` for which callers
+/// use which and why.
+model RateLimit {
+  /// Caller identity, e.g. "ai-free:<userId>:2026-07-31".
+  key     String   @id
+  count   Int      @default(0)
+  /// When the window rolls over. Rows past this are reusable and prunable.
+  resetAt DateTime
+
+  @@index([resetAt])
+}
+
 // ── Audit log (security requirement) ──────────
 
 model AuditLog {

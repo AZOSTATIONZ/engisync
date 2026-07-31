@@ -177,7 +177,7 @@ Honest current limits and their upgrade paths — none requires a rewrite:
 
 | Concern | Today | Upgrade path |
 |---|---|---|
-| Rate limiting | In-memory (per-instance on serverless) | Redis/Upstash, same call signature ⏳ |
+| Rate limiting | Postgres-backed where credentials/quota are at stake; in-memory elsewhere | ✅ Shared store done (Postgres, not Redis) |
 | File storage | Bytes in Postgres (simple, transactional) | S3/Supabase Storage + signed URLs before department-wide rollout ⏳ |
 | Analytics | Computed on request | Nightly precompute + on-write invalidation before a lecturer views 40 groups ⏳ |
 | Background jobs | None (all work inline) | Queue (e.g. pg-boss) unlocking scheduled reminders and automatic AI ⏳ |

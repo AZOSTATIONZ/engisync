@@ -91,7 +91,7 @@ Two layers: the student/group analytics dashboard, and the **lecturer analytics 
 
 ## Security implementation
 
-HTTPS, bcrypt, JWT, TOTP, Zod validation, Prisma-parameterised queries, output escaping in generated HTML, in-memory rate limiting, audit logging, expiring secure file links, and strict department/group isolation enforced at the data layer.
+HTTPS, bcrypt, JWT, TOTP, Zod validation, Prisma-parameterised queries, output escaping in generated HTML, rate limiting (Postgres-backed where credentials or quota are at stake, in-memory elsewhere), audit logging, expiring secure file links, and strict department/group isolation enforced at the data layer.
 
 ## Deployment progress
 

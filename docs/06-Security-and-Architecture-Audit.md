@@ -56,7 +56,7 @@ I attacked the app the way an outsider would: hunt for leaked credentials, then 
 
 **M-2 — In-memory rate limiting doesn't hold across serverless instances**
 *Exploit:* On Vercel, each instance keeps its own counter, so a distributed attacker gets N× the intended limit on login/register/AI endpoints.
-*Recommendation (not yet implemented):* Move `src/lib/rate-limit.ts` to a shared store (Upstash Redis) before large-scale rollout. Acceptable at current scale; **required** at thousands of users.
+*Resolved (31 Jul 2026).* `rateLimitShared()` in `src/lib/rate-limit.ts` uses a Postgres `RateLimit` row and one atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING`, so every instance agrees. Applied to login, registration, password reset, email verification, account deletion and both AI limits. Verified under concurrency: 10 parallel callers against a limit of 4 admit exactly 4. Postgres was chosen over Upstash deliberately — another account, key and dependency was not warranted for a counter read a few times per user per day. Deliberately NOT applied to the profile, share-download and contribution-declaration throttles, where the round trip would cost more than the abuse.
 
 **M-3 — File storage model**
 *Exploit:* Files are stored as `Bytes` in PostgreSQL and served through authenticated routes. Positively, this means **uploaded files can never be executed** — there is no filesystem path and no static serving, which structurally eliminates the classic upload-to-RCE and path-traversal/overwrite classes. However it inflates DB size and memory per request.

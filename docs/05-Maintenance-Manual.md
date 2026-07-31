@@ -71,7 +71,7 @@ Use Vercel Analytics/Logs for request health and the `/api/health` endpoint for 
 
 ## 12. Scaling
 
-- Move rate limiting from in-memory to a shared store (e.g., Redis/Upstash) so limits hold across serverless instances.
+- ~~Move rate limiting to a shared store~~ — done, using Postgres rather than Redis. A counter read a few times per user per day did not justify another account, key and dependency; `rateLimitShared()` does it in one atomic `INSERT … ON CONFLICT` statement. Verified: 10 concurrent callers against a limit of 4 admit exactly 4.
 - Use Neon connection pooling; keep queries indexed (indexes already exist on hot foreign keys).
 - Move file storage from Postgres bytes to object storage (S3/Supabase) for large files.
 - Split dev and production databases.

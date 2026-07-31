@@ -14,7 +14,7 @@ import {
   emailLayout,
   isEmailConfigured,
 } from "@/lib/email";
-import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { rateLimitShared, clientIp } from "@/lib/rate-limit";
 
 export type ResetState = { error?: string; success?: string } | null;
 
@@ -32,7 +32,7 @@ export async function requestPasswordReset(
   formData: FormData,
 ): Promise<ResetState> {
   const h = await headers();
-  const limit = rateLimit(`forgot:${clientIp(h)}`, 5, 15 * 60 * 1000);
+  const limit = await rateLimitShared(`forgot:${clientIp(h)}`, 5, 15 * 60 * 1000);
   if (!limit.ok) {
     return { error: "Too many attempts. Please try again later." };
   }

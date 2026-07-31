@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitShared } from "@/lib/rate-limit";
 import { sendEmail, emailLayout, isEmailConfigured } from "@/lib/email";
 import { getBaseUrl } from "@/lib/qr";
 import {
@@ -28,7 +28,7 @@ export async function requestAccountDeletion(
   const userId = session.user.id;
 
   // Throttle: deletion is a high-value target for a hijacked session.
-  const limit = rateLimit(`delete-account:${userId}`, 3, 15 * 60 * 1000);
+  const limit = await rateLimitShared(`delete-account:${userId}`, 3, 15 * 60 * 1000);
   if (!limit.ok) {
     return { error: "Too many attempts. Please wait 15 minutes and try again." };
   }

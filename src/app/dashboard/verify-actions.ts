@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/verification";
 import { isEmailConfigured } from "@/lib/email";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimitShared } from "@/lib/rate-limit";
 
 export type ResendState = { error?: string; success?: string } | null;
 
@@ -17,7 +17,7 @@ export async function resendVerification(): Promise<ResendState> {
   if (!isEmailConfigured()) {
     return { error: "Email isn't configured on this server." };
   }
-  const limit = rateLimit(`verify:${session.user.id}`, 3, 10 * 60 * 1000);
+  const limit = await rateLimitShared(`verify:${session.user.id}`, 3, 10 * 60 * 1000);
   if (!limit.ok) {
     return { error: "Please wait a bit before requesting another email." };
   }

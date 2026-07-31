@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validations";
-import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { rateLimitShared, clientIp } from "@/lib/rate-limit";
 
 export type PreLoginResult = {
   ok: boolean;
@@ -21,7 +21,7 @@ export async function preLogin(
   password: string,
 ): Promise<PreLoginResult> {
   const h = await headers();
-  const limit = rateLimit(`login:${clientIp(h)}`, 10, 5 * 60 * 1000);
+  const limit = await rateLimitShared(`login:${clientIp(h)}`, 10, 5 * 60 * 1000);
   if (!limit.ok) return { ok: false, error: "Too many attempts. Try again soon." };
 
   const parsed = loginSchema.safeParse({ email, password });

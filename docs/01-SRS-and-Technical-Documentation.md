@@ -184,7 +184,7 @@ Roles: **Guest**, **Individual User**, **Group Member**, **Group Leader**, **Dep
 
 ## 17. Security Features
 
-HTTPS everywhere; bcrypt password hashing; JWT sessions; TOTP 2FA; Zod validation on all inputs; parameterized queries via Prisma (SQL-injection safe); output escaping in generated HTML/report/download routes (XSS safe); CSRF mitigated by same-site/session model and action semantics; in-memory rate limiting on sensitive endpoints; audit logging of significant actions; expiring/one-time secure file links; strict department/group isolation.
+HTTPS everywhere; bcrypt password hashing; JWT sessions; TOTP 2FA; Zod validation on all inputs; parameterized queries via Prisma (SQL-injection safe); output escaping in generated HTML/report/download routes (XSS safe); CSRF mitigated by same-site/session model and action semantics; durable rate limiting on credential, quota and money endpoints (Postgres-backed, correct across serverless instances) with best-effort in-memory limits elsewhere; audit logging of significant actions; expiring/one-time secure file links; strict department/group isolation.
 
 ## 18. Deployment Architecture
 
@@ -233,7 +233,7 @@ Real payment processing (Stripe/Paynow), multi-university tenancy, a retrieval-a
 
 - File binaries are stored in Postgres (`Bytes`) — fine for coursework scale, not for large media.
 - AI features require a provider key; without one they are cleanly disabled, not broken.
-- Rate limiting is in-memory (per instance) — a shared store (Redis) is advised at scale.
+- Rate limiting is split by consequence: limits protecting credentials, paid AI quota and account deletion use a shared Postgres counter and hold across instances; profile, share-download and contribution-declaration throttles remain in-memory and are per-instance by design, since exceeding them is an annoyance rather than a loss.
 - Dev and prod currently share one database.
 
 ## 26. Maintenance Guide
