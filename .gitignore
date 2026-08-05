@@ -47,3 +47,4 @@ tsconfig.*check.json
 .vercel
 .env*
 audit/
+.playwright-mcp/
