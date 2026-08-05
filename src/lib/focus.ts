@@ -40,6 +40,8 @@ export type ProjectSummary = {
   name: string;
   role: string;
   completionPct: number;
+  totalTasks: number;
+  doneTasks: number;
   openTasks: number;
   needsMe: number;
   nextDue: Date | null;
@@ -214,6 +216,12 @@ export async function getFocus(userId: string, now: Date = new Date()): Promise<
       name: w.name,
       role: m.role as string,
       completionPct: total ? Math.round(((total - open) / total) * 100) : 0,
+      // The DENOMINATOR ships alongside the ratio, deliberately. "100% of
+      // tasks done" is arithmetically honest and still misleading when there
+      // is one task: a reader infers a finished project from a sample of one.
+      // A percentage without its sample size is a claim without evidence.
+      totalTasks: total,
+      doneTasks: total - open,
       openTasks: open,
       needsMe: mine.length,
       nextDue: dated[0]?.dueDate ?? null,

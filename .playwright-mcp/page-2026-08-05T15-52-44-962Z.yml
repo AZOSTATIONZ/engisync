@@ -1,0 +1,38 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - banner [ref=f4e3]:
+      - link "EngiSync" [ref=f4e4] [cursor=pointer]:
+        - /url: /
+      - button "Toggle theme" [ref=f4e9] [cursor=pointer]
+    - main [ref=f4e12]:
+      - generic [ref=f4e14]:
+        - complementary [ref=f4e15]:
+          - generic [ref=f4e16]:
+            - paragraph [ref=f4e17]: EngiSync
+            - heading [level=2] [ref=f4e18]: Where engineering teams stay in sync.
+          - list [ref=f4e35]:
+            - listitem [ref=f4e36]: • Plan projects, tasks and deadlines in one place
+            - listitem [ref=f4e37]: • Structured documentation your supervisor can review
+            - listitem [ref=f4e38]: • Fair, measurable contribution for every member
+        - main [ref=f4e39]:
+          - heading "Welcome back" [level=1] [ref=f4e40]
+          - paragraph [ref=f4e41]: Log in to your EngiSync account
+          - generic [ref=f4e43]:
+            - generic [ref=f4e45]:
+              - textbox "Email" [ref=f4e46]:
+                - /placeholder: " "
+              - generic: Email
+            - generic [ref=f4e48]:
+              - textbox "Password" [ref=f4e49]:
+                - /placeholder: " "
+              - generic: Password
+              - button "Show password" [ref=f4e50] [cursor=pointer]: Show
+            - link "Forgot password?" [ref=f4e52] [cursor=pointer]:
+              - /url: /forgot
+            - button "Log in" [ref=f4e53] [cursor=pointer]
+          - paragraph [ref=f4e54]:
+            - text: Don't have an account?
+            - link "Sign up" [ref=f4e55] [cursor=pointer]:
+              - /url: /register
+  - region "Notifications alt+T"
+  - alert [ref=f4e56]

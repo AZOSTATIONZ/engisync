@@ -61,7 +61,11 @@ export default async function ProjectsPage() {
                   </p>
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span>{p.role === "LEADER" ? "You lead this" : "Member"}</span>
-                    <span>{p.completionPct}% of tasks done</span>
+                    <span>
+                      {p.totalTasks === 0
+                        ? "No tasks yet"
+                        : `${p.doneTasks} of ${p.totalTasks} task${p.totalTasks === 1 ? "" : "s"} done`}
+                    </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div className="animate-grow-x h-full bg-primary" style={{ width: `${p.completionPct}%` }} />

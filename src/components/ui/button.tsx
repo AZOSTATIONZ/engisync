@@ -36,11 +36,22 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, type, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+    // HTML defaults a <button> to type="submit". Every icon button rendered
+    // inside a form without an explicit type therefore SUBMITS that form when
+    // clicked — silent, intermittent, and miserable to track down. Defaulting
+    // to "button" makes submitting opt-in, which is the safer direction: a
+    // form that does not submit is noticed immediately, one that submits by
+    // accident is not.
+    //
+    // `asChild` renders a Slot — usually an anchor — which must not receive a
+    // type attribute at all.
+    const resolvedType = asChild ? undefined : (type ?? "button");
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
+        type={resolvedType}
         ref={ref}
         {...props}
       />

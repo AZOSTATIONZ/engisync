@@ -1,0 +1,155 @@
+- generic [active] [ref=f5e1]:
+  - generic [ref=f5e2]:
+    - banner [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - link "EngiSync" [ref=f5e6] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=f5e11]:
+          - button "Search and navigate" [ref=f5e12] [cursor=pointer]:
+            - generic [ref=f5e13]: Search…
+            - generic [ref=f5e18]: ⌘K
+          - button "Toggle theme" [ref=f5e19] [cursor=pointer]
+          - button "Notifications" [ref=f5e23] [cursor=pointer]
+          - button "Account menu" [ref=f5e28] [cursor=pointer]:
+            - generic [ref=f5e34]: TAFADZWA MUSENDO
+    - generic [ref=f5e37]:
+      - complementary [ref=f5e38]:
+        - navigation [ref=f5e39]:
+          - generic [ref=f5e40]:
+            - link "Home" [ref=f5e41] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Projects" [ref=f5e47] [cursor=pointer]:
+              - /url: /dashboard/projects
+            - link "Knowledge" [ref=f5e50] [cursor=pointer]:
+              - /url: /dashboard/knowledge
+      - main [ref=f5e53]:
+        - generic [ref=f5e55]:
+          - generic [ref=f5e57]:
+            - paragraph [ref=f5e58]: Electronic Engineering
+            - heading "Good afternoon, TAFADZWA" [level=1] [ref=f5e59]
+            - paragraph [ref=f5e60]: Nothing is due today — you're clear.
+            - generic [ref=f5e61]:
+              - link [ref=f5e62] [cursor=pointer]:
+                - /url: /dashboard/projects
+                - generic [ref=f5e67]:
+                  - paragraph [ref=f5e68]: "3"
+                  - paragraph [ref=f5e69]: Active projects
+              - link [ref=f5e70] [cursor=pointer]:
+                - /url: /dashboard/my-work
+                - generic [ref=f5e75]:
+                  - paragraph [ref=f5e76]: "0"
+                  - paragraph [ref=f5e77]: Tasks need you
+              - link "33% Average progress" [ref=f5e78] [cursor=pointer]:
+                - /url: /dashboard/projects
+                - generic [ref=f5e85]:
+                  - paragraph [ref=f5e86]:
+                    - generic [ref=f5e87]: 33%
+                  - paragraph [ref=f5e88]: Average progress
+              - link [ref=f5e89] [cursor=pointer]:
+                - /url: /dashboard/calendar
+                - generic [ref=f5e96]:
+                  - paragraph [ref=f5e97]: "0"
+                  - paragraph [ref=f5e98]: Meetings today
+          - region "Quick actions" [ref=f5e99]:
+            - generic [ref=f5e100]:
+              - link "Create project Start a new group" [ref=f5e101] [cursor=pointer]:
+                - /url: /dashboard/projects/new
+                - generic [ref=f5e105]: Create project
+                - generic [ref=f5e106]: Start a new group
+              - link "Join project With a code" [ref=f5e107] [cursor=pointer]:
+                - /url: /dashboard/projects/new#join
+                - generic [ref=f5e112]: Join project
+                - generic [ref=f5e113]: With a code
+              - link "Find a project Ideas you can build" [ref=f5e114] [cursor=pointer]:
+                - /url: /dashboard/project-hub
+                - generic [ref=f5e118]: Find a project
+                - generic [ref=f5e119]: Ideas you can build
+              - link "Schedule meeting Set a time" [ref=f5e120] [cursor=pointer]:
+                - /url: /dashboard/meetings
+                - generic [ref=f5e124]: Schedule meeting
+                - generic [ref=f5e125]: Set a time
+              - link "Past projects Search before you build" [ref=f5e126] [cursor=pointer]:
+                - /url: /dashboard/repository
+                - generic [ref=f5e131]: Past projects
+                - generic [ref=f5e132]: Search before you build
+              - link "My work Everything assigned to me" [ref=f5e133] [cursor=pointer]:
+                - /url: /dashboard/my-work
+                - generic [ref=f5e138]: My work
+                - generic [ref=f5e139]: Everything assigned to me
+          - generic [ref=f5e140]:
+            - heading "Today" [level=3] [ref=f5e142]
+            - paragraph [ref=f5e144]: No tasks or meetings due today.
+          - generic [ref=f5e145]:
+            - generic [ref=f5e146]:
+              - heading "Your projects" [level=3] [ref=f5e147]
+              - link "All projects" [ref=f5e148] [cursor=pointer]:
+                - /url: /dashboard/projects
+            - generic [ref=f5e149]:
+              - link "PLC telemetry, to communicate using power lines Idea · You lead this" [ref=f5e150] [cursor=pointer]:
+                - /url: /dashboard/projects/cms1euywc0001ld04e10dnug0
+                - generic [ref=f5e152]:
+                  - generic [ref=f5e153]: PLC telemetry, to communicate using power lines
+                  - generic [ref=f5e154]: Idea · You lead this
+              - link "Rail Level Crossing System Idea · You lead this" [ref=f5e160] [cursor=pointer]:
+                - /url: /dashboard/projects/cms5xnsnl0001jo04c4bmzaat
+                - generic [ref=f5e162]:
+                  - generic [ref=f5e163]: Rail Level Crossing System
+                  - generic [ref=f5e164]: Idea · You lead this
+              - link "Smart Structural Health Monitoring System for Bridges Idea · You lead this" [ref=f5e171] [cursor=pointer]:
+                - /url: /dashboard/projects/cms1f8a0y0001l504hw0vwlq6
+                - generic [ref=f5e173]:
+                  - generic [ref=f5e174]: Smart Structural Health Monitoring System for Bridges
+                  - generic [ref=f5e175]: Idea · You lead this
+          - generic [ref=f5e181]:
+            - heading "Recent activity" [level=3] [ref=f5e183]
+            - list [ref=f5e185]:
+              - listitem [ref=f5e186]:
+                - generic [ref=f5e190]:
+                  - text: Brave Ordaine Tafireyi completed Document
+                  - generic [ref=f5e191]: Rail Level Crossing System
+                - generic [ref=f5e192]: 3d ago
+              - listitem [ref=f5e193]:
+                - generic [ref=f5e198]:
+                  - text: TAFADZWA MUSENDO moved the project to Idea
+                  - generic [ref=f5e199]: Rail Level Crossing System
+                - generic [ref=f5e200]: 5d ago
+              - listitem [ref=f5e201]:
+                - generic [ref=f5e206]:
+                  - text: TAFADZWA MUSENDO moved the project to Simulation
+                  - generic [ref=f5e207]: Rail Level Crossing System
+                - generic [ref=f5e208]: 5d ago
+              - listitem [ref=f5e209]:
+                - generic [ref=f5e215]:
+                  - text: TAFADZWA MUSENDO withdrew project access from EngiSync Admin
+                  - generic [ref=f5e216]: Smart Structural Health Monitoring System for Bridges
+                - generic [ref=f5e217]: 6d ago
+              - listitem [ref=f5e218]:
+                - generic [ref=f5e224]:
+                  - text: TAFADZWA MUSENDO invited a supervisor EngiSync Admin
+                  - generic [ref=f5e225]: Smart Structural Health Monitoring System for Bridges
+                - generic [ref=f5e226]: 6d ago
+              - listitem [ref=f5e227]:
+                - generic [ref=f5e232]:
+                  - text: Brave Ordaine Tafireyi uploaded Railway Level Crossing Project.docx
+                  - generic [ref=f5e233]: Rail Level Crossing System
+                - generic [ref=f5e234]: 6d ago
+              - listitem [ref=f5e235]:
+                - generic [ref=f5e239]:
+                  - text: TAFADZWA MUSENDO opened a contribution request for Components and Build Material
+                  - generic [ref=f5e240]: Rail Level Crossing System
+                - generic [ref=f5e241]: 1w ago
+              - listitem [ref=f5e242]:
+                - generic [ref=f5e246]:
+                  - text: TAFADZWA MUSENDO opened a contribution request for Steel rods
+                  - generic [ref=f5e247]: Smart Structural Health Monitoring System for Bridges
+                - generic [ref=f5e248]: 1w ago
+          - generic [ref=f5e256]:
+            - button "Show image 1" [ref=f5e257] [cursor=pointer]
+            - button "Show image 2" [ref=f5e258] [cursor=pointer]
+            - button "Show image 3" [ref=f5e259] [cursor=pointer]
+            - button "Show image 4" [ref=f5e260] [cursor=pointer]
+            - button "Show image 5" [ref=f5e261] [cursor=pointer]
+          - link "Open calendar" [ref=f5e263] [cursor=pointer]:
+            - /url: /dashboard/calendar
+  - region "Notifications alt+T"
+  - alert [ref=f5e268]

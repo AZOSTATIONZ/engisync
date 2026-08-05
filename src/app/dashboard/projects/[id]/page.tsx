@@ -156,8 +156,18 @@ export default async function ProjectOverviewPage({
           href={projectDocs(id)}
           icon={<FileText className="h-4 w-4" />}
           label="Progress"
-          value={`${donePct}%`}
-          note={`${project._count.files} file${project._count.files === 1 ? "" : "s"} attached`}
+          value={tasks.length === 0 ? "—" : `${donePct}%`}
+          /* The note carries the DENOMINATOR, not a different quantity. It
+             previously read "N files attached" beneath a number labelled
+             "Progress", so the subtitle described something other than the
+             figure above it — and a bare "100%" from a single task reads as a
+             finished project. The sample size is what makes the percentage
+             interpretable. */
+          note={
+            tasks.length === 0
+              ? "No tasks yet"
+              : `${tasks.length - open.length} of ${tasks.length} task${tasks.length === 1 ? "" : "s"} done`
+          }
         />
         <StatLink
           href={projectTeam(id)}

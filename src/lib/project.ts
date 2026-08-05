@@ -39,6 +39,12 @@ export async function listProjects(userId: string) {
       name: m.workspace.name,
       role: m.role as string,
       completionPct: total ? Math.round((done / total) * 100) : 0,
+      // Ship the denominator with the ratio. "100% of tasks done" is
+      // arithmetically true off a single task and still reads as a finished
+      // project — a percentage without its sample size is a claim without
+      // evidence.
+      totalTasks: total,
+      doneTasks: done,
       stage: (w?.stage ?? "IDEA") as ProjectStage,
       pace: w
         ? getPace(

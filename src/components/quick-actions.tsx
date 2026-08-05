@@ -35,7 +35,7 @@ const ACTIONS = [
   {
     href: `${routes.projects}/new`,
     label: "Create project",
-    hint: "Start a new group",
+    hint: "Start a new project",
     icon: FolderPlus,
     chip: "chip-brand",
     primary: true,

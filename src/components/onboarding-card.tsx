@@ -44,7 +44,7 @@ export function OnboardingCard({ steps }: { steps: OnboardingStep[] }) {
             <div>
               <p className="font-semibold">Get set up</p>
               <p className="text-sm text-muted-foreground">
-                {doneCount} of {steps.length} steps done — finish these to unlock the full workspace.
+                {doneCount} of {steps.length} steps done — finish this and you&apos;re set up.
               </p>
             </div>
           </div>

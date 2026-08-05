@@ -40,6 +40,16 @@ export function CommandPalette({ isSupervisor = false }: { isSupervisor?: boolea
 
   useEffect(() => setMounted(true), []);
 
+  /* The hint must match the keyboard in front of the user. Rendering ⌘ to a
+     Windows student is a small, constant signal that the product was built
+     for somebody else. Resolved after mount because `navigator` does not
+     exist during server rendering, and a guess would hydrate wrong. */
+  const [shortcutHint, setShortcutHint] = useState("Ctrl K");
+  useEffect(() => {
+    const mac = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+    setShortcutHint(mac ? "⌘K" : "Ctrl K");
+  }, []);
+
   // Global shortcut: ⌘K / Ctrl+K toggles, Escape closes.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -100,7 +110,7 @@ export function CommandPalette({ isSupervisor = false }: { isSupervisor?: boolea
           <span className="hidden sm:inline">Search…</span>
         </span>
         <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 font-mono text-[0.65rem] sm:inline">
-          ⌘K
+          {shortcutHint}
         </kbd>
       </button>
 

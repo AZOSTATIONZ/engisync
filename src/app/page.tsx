@@ -46,8 +46,6 @@ const departments = [
 const stats = [
   { value: 8, suffix: "", label: "Engineering departments" },
   { value: 12, suffix: "+", label: "Integrated modules" },
-  { value: 60, suffix: " FPS", label: "Smooth by design" },
-  { value: 100, suffix: "%", label: "Built for teamwork" },
 ];
 
 export default function HomePage() {
