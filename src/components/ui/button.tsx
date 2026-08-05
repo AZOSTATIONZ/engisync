@@ -18,11 +18,19 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
+      /* SIZES ARE 44px ON TOUCH, TIGHTER ON A POINTER.
+         WCAG 2.5.5 and both mobile platform guidelines put the minimum tap
+         target at 44px; these were 40px and 36px, which is usable for most
+         people and unreliable for anyone with a tremor, larger fingers, or a
+         phone on a moving kombi. A mouse is precise, so the desktop sizes stay
+         compact — `pointer: coarse` is the honest test for "is a finger doing
+         this?", far better than guessing from viewport width, which cannot
+         tell a tablet from a small laptop. */
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "h-11 px-4 py-2 sm:h-10 [@media(pointer:coarse)]:h-11",
+        sm: "h-10 rounded-md px-3 sm:h-9 [@media(pointer:coarse)]:h-10",
+        lg: "h-12 rounded-md px-8 sm:h-11",
+        icon: "h-11 w-11 sm:h-10 sm:w-10 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   AlertTriangle,
+  Paperclip,
   CheckSquare,
   FileText,
   MessageSquare,
@@ -136,7 +137,7 @@ export default async function ProjectOverviewPage({
       </Card>
 
       {/* Every number links to where you act on it. */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatLink
           href={projectTasks(id)}
           icon={<CheckSquare className="h-4 w-4" />}
@@ -153,8 +154,8 @@ export default async function ProjectOverviewPage({
           alert={overdue.length > 0}
         />
         <StatLink
-          href={projectDocs(id)}
-          icon={<FileText className="h-4 w-4" />}
+          href={projectTasks(id)}
+          icon={<CheckSquare className="h-4 w-4" />}
           label="Progress"
           value={tasks.length === 0 ? "—" : `${donePct}%`}
           /* The note carries the DENOMINATOR, not a different quantity. It
@@ -169,12 +170,35 @@ export default async function ProjectOverviewPage({
               : `${tasks.length - open.length} of ${tasks.length} task${tasks.length === 1 ? "" : "s"} done`
           }
         />
+        {/* EVIDENCE IS ITS OWN TILE NOW, and this is a repair.
+            The file count used to ride as the note under "Progress" — a
+            subtitle describing a different quantity from the number above it.
+            Correcting that note removed the only mention of files anywhere on
+            this screen, which mattered more than the original mislabelling:
+            evidence lives inside the Document tab's sections, so without a
+            signpost a student has no way to learn where their uploads went.
+            That is the exact confusion the evidence system was built to end. */}
+        <StatLink
+          href={projectDocs(id)}
+          icon={<Paperclip className="h-4 w-4" />}
+          label="Evidence"
+          value={String(project._count.files)}
+          note={
+            project._count.files === 0
+              ? "Attach files in Document"
+              : `File${project._count.files === 1 ? "" : "s"} in your report`
+          }
+        />
         <StatLink
           href={projectTeam(id)}
           icon={<Users className="h-4 w-4" />}
           label="Team"
           value={String(project._count.members)}
-          note="Members and invites"
+          /* The note used to read "Members and invites" while the number
+             counted members only — it described something the figure above it
+             did not include. Two different quantities under one heading is how
+             a leader ends up miscounting their own team. */
+          note={project._count.members === 1 ? "Just you so far" : "In this project"}
         />
       </div>
 

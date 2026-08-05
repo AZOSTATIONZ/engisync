@@ -62,3 +62,32 @@ describe("maskEmail", () => {
     expect(maskEmail("nope")).toBe("Member");
   });
 });
+
+describe("softenShouting", () => {
+  it("folds a name written entirely in capitals", () => {
+    expect(displayName({ name: "TAFADZWA MUSENDO", email: null })).toBe("Tafadzwa Musendo");
+  });
+
+  it("keeps hyphens and apostrophes as word boundaries", () => {
+    expect(displayName({ name: "MARY-JANE O'BRIEN", email: null })).toBe("Mary-Jane O'Brien");
+  });
+
+  it("NEVER touches a name that contains a lowercase letter", () => {
+    // These are spelled the way their owners spell them. Correcting a
+    // data-entry artefact is one thing; overruling somebody about their own
+    // name is another.
+    for (const n of ["van der Berg", "McDonald", "bell hooks", "d'Angelo", "eE Cummings"]) {
+      expect(displayName({ name: n, email: null })).toBe(n);
+    }
+  });
+
+  it("leaves initials and caseless text alone", () => {
+    expect(displayName({ name: "T.M.", email: null })).toBe("T.M.");
+    expect(displayName({ name: "北京", email: null })).toBe("北京");
+  });
+
+  it("still never leaks an email when no name is set", () => {
+    const out = displayName({ name: null, email: "someone@example.com" });
+    expect(out).not.toContain("someone");
+  });
+});
