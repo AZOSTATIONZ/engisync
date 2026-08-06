@@ -96,24 +96,90 @@ export function NotificationBell({
     };
   }, []);
 
-  // Fire browser notifications for unread items (if the user opted in).
+  /* Fire browser notifications for unread items (if the user opted in).
+     ------------------------------------------------------------------
+     THIS CRASHED THE WHOLE APP ON ANDROID.
+     The old code guarded with `"Notification" in window` and then called
+     `new Notification(...)`. On Chrome for Android that guard passes — the
+     object exists and `.permission` reads fine — but the CONSTRUCTOR is
+     forbidden and throws `TypeError: Illegal constructor`. Android requires
+     notifications to go through the service worker registration instead.
+
+     Because this ran in an effect with no handling, the TypeError propagated
+     to the nearest error boundary and took down every authenticated page:
+     the bell lives in the dashboard shell, so there was no route around it.
+     It presented as "a client-side exception has occurred" on a real phone
+     while desktop and logged-out browsing were perfectly fine.
+
+     Two lessons are encoded below. Feature-detect the CAPABILITY, not the
+     NAME — `"Notification" in window` answers a question nobody asked. And a
+     nice-to-have must never be able to break the page around it, so the
+     whole body is wrapped: if notifying fails, the bell still renders and
+     the app still works. */
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission !== "granted") return;
-    const key = "engisync-notified";
-    const notified: string[] = JSON.parse(sessionStorage.getItem(key) || "[]");
-    for (const n of items) {
-      if (!n.read && !notified.includes(n.id)) {
-        new Notification("EngiSync", { body: n.title });
-        notified.push(n.id);
+
+    let cancelled = false;
+
+    (async () => {
+      const key = "engisync-notified";
+
+      let notified: string[] = [];
+      try {
+        const raw = sessionStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(parsed)) notified = parsed;
+      } catch {
+        // Unreadable or corrupt. Start fresh rather than throw.
       }
-    }
-    sessionStorage.setItem(key, JSON.stringify(notified));
+
+      // Prefer the service worker: it is the only path Android permits, and
+      // on desktop it behaves identically.
+      let reg: ServiceWorkerRegistration | undefined;
+      try {
+        reg = await navigator.serviceWorker?.getRegistration();
+      } catch {
+        // No worker available; fall back below.
+      }
+      if (cancelled) return;
+
+      for (const n of items) {
+        if (n.read || notified.includes(n.id)) continue;
+        try {
+          if (reg) {
+            await reg.showNotification("EngiSync", { body: n.title });
+          } else {
+            new Notification("EngiSync", { body: n.title });
+          }
+          notified.push(n.id);
+        } catch {
+          // Platform refused this notification. Never surface it as a crash;
+          // stop trying rather than loop through every remaining item.
+          break;
+        }
+      }
+
+      try {
+        sessionStorage.setItem(key, JSON.stringify(notified));
+      } catch {
+        // Storage full or blocked. We simply may re-notify later.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [items]);
 
   async function enableDesktop() {
     if (!("Notification" in window)) return;
-    await Notification.requestPermission();
+    try {
+      await Notification.requestPermission();
+    } catch {
+      // Some browsers reject this outside a user gesture, or block it
+      // entirely. The button simply does nothing rather than crashing.
+    }
   }
 
   return (

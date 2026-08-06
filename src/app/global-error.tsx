@@ -144,10 +144,54 @@ export default function GlobalError({
             downloads a fresh one. You stay signed in.
           </p>
 
-          {error?.digest && (
-            <p style={{ marginTop: 12, fontSize: "0.7rem", color: "#475569" }}>
-              Reference: {error.digest}
-            </p>
+          {/* SHOW THE ACTUAL ERROR.
+              The first version of this screen showed only a digest, which is
+              populated for server errors and empty for client ones — so for
+              the exact failure that prompted this file, it displayed nothing
+              diagnostic at all. Debugging a phone that way is guesswork, and
+              guesswork already cost a wrong diagnosis here.
+
+              It is behind a disclosure because a stack trace is noise to a
+              student and a lifeline to whoever is fixing it, and it is
+              selectable so it can be copied into a message. Nothing here is
+              sensitive: it is this device's own exception, not user data. */}
+          {(error?.message || error?.digest) && (
+            <details style={{ marginTop: 20, textAlign: "left" }}>
+              <summary
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#64748B",
+                  cursor: "pointer",
+                  textAlign: "center",
+                }}
+              >
+                Technical details
+              </summary>
+              <pre
+                style={{
+                  marginTop: 10,
+                  padding: 12,
+                  borderRadius: 8,
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#94A3B8",
+                  fontSize: "0.68rem",
+                  lineHeight: 1.5,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  userSelect: "text",
+                  maxHeight: "40vh",
+                  overflow: "auto",
+                }}
+              >
+                {[
+                  error?.name && `${error.name}: ${error.message ?? ""}`,
+                  error?.digest && `digest ${error.digest}`,
+                  error?.stack,
+                ]
+                  .filter(Boolean)
+                  .join("\n\n")}
+              </pre>
+            </details>
           )}
         </div>
       </body>
