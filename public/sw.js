@@ -21,7 +21,12 @@
  * per release instead of once per visit.
  */
 
-const ASSET_CACHE = "engisync-static-v1";
+const ASSET_CACHE = "engisync-static-v2";
+
+self.addEventListener("install", () => {
+  // Do not wait for existing tabs to close before replacing a broken worker.
+  self.skipWaiting();
+});
 
 self.addEventListener("activate", (event) => {
   // Drop caches from previous releases so storage does not grow without bound.
@@ -52,19 +57,51 @@ self.addEventListener("fetch", (event) => {
     url.origin === self.location.origin && url.pathname.startsWith("/_next/static/");
   if (!cacheable) return;
 
+  /* A CACHE MUST NEVER BE ABLE TO BREAK THE PAGE.
+     ------------------------------------------------------------------
+     The first version of this handler had no catch anywhere in the chain:
+
+       respondWith(caches.match(req).then(hit => hit || fetch(req).then(...)))
+
+     If `caches.match` threw — Android evicting storage under pressure, a
+     corrupted cache, quota exhaustion — or if `fetch` rejected on a flaky
+     mobile connection, the promise handed to `respondWith` rejected, and the
+     browser turned that into a hard network error for the resource. For a
+     JavaScript chunk that means React never boots and the whole app dies with
+     "a client-side exception has occurred". It shipped, and it bricked the
+     landing page on a real phone on mobile data.
+
+     The cache existed to SAVE data, and instead it introduced a failure mode
+     that not having it would not have had. So the rule now is absolute: every
+     step is wrapped, and any problem at all falls through to an ordinary
+     network request. The worst this handler can now do is behave exactly as
+     though it were not installed. */
   event.respondWith(
-    caches.match(req).then((hit) => {
-      if (hit) return hit;
-      return fetch(req).then((res) => {
-        // Only store a genuine success; an error page cached under an asset
-        // URL would persist until the next release.
+    (async () => {
+      try {
+        const hit = await caches.match(req);
+        if (hit) return hit;
+      } catch {
+        // Cache unreadable — carry on to the network.
+      }
+
+      const res = await fetch(req);
+
+      // Store opportunistically. A failure here (quota, eviction, private
+      // mode) must never affect the response the page receives, so it is
+      // awaited separately and swallowed.
+      try {
         if (res && res.status === 200 && res.type === "basic") {
           const copy = res.clone();
-          caches.open(ASSET_CACHE).then((c) => c.put(req, copy));
+          const cache = await caches.open(ASSET_CACHE);
+          await cache.put(req, copy);
         }
-        return res;
-      });
-    }),
+      } catch {
+        // Not cached this time. Immaterial.
+      }
+
+      return res;
+    })(),
   );
 });
 
