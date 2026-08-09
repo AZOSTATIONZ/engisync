@@ -1,8 +1,7 @@
-import { NotificationType } from "@prisma/client";
+import { NotificationCategory, NotificationType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { userWorkspaceIds } from "@/lib/task";
-import { isEmailConfigured, sendEmail, emailLayout } from "@/lib/email";
-import { sendPush } from "@/lib/push";
+import { notify } from "@/lib/notify";
 
 type CreateArgs = {
   userId: string;
@@ -28,57 +27,33 @@ type CreateArgs = {
   essential?: boolean;
 };
 
-/** Best-effort email delivery for a newly created notification. */
-async function maybeEmail(args: CreateArgs) {
-  if (!isEmailConfigured()) return;
-  const user = await prisma.user.findUnique({
-    where: { id: args.userId },
-    select: { email: true, emailNotifications: true, essentialEmails: true },
-  });
-  if (!user?.email) return;
-
-  const allowed = args.essential ? user.essentialEmails : user.emailNotifications;
-  if (!allowed) return;
-
-  const base = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
-  const url = args.link ? `${base}${args.link}` : base;
-  await sendEmail({
-    to: user.email,
-    subject: args.title,
-    html: emailLayout(
-      args.title,
-      `<p>${args.body ?? ""}</p>${url ? `<p><a href="${url}">Open in EngiSync</a></p>` : ""}`,
-    ),
-  });
-}
-
 /**
- * Create a notification; if a dedupeKey is given, avoid duplicates.
- * Emails are sent only for genuinely new notifications (so recurring
- * reminders don't re-send on every page load).
+ * BACKWARDS-COMPATIBLE SHIM over `notify()`.
+ *
+ * Kept so existing call sites do not all have to change at once, and so the
+ * `essential` flag they already pass keeps meaning what it meant. It maps onto
+ * the new model rather than duplicating it: essential mail becomes a DEADLINE
+ * notification (the thing essential mail was invented for), and everything
+ * else becomes routine ACTIVITY, which is digest-only by default.
+ *
+ * New code should call `notify()` directly and choose a real category. This
+ * exists to make that migration incremental instead of a flag day.
  */
 export async function createNotification(args: CreateArgs) {
-  const { userId, type, title, body, link, dedupeKey } = args;
+  const category: NotificationCategory =
+    args.type === NotificationType.TASK_DUE || args.essential
+      ? NotificationCategory.DEADLINE
+      : NotificationCategory.ACTIVITY;
 
-  if (dedupeKey) {
-    const existing = await prisma.notification.findUnique({
-      where: { userId_dedupeKey: { userId, dedupeKey } },
-    });
-    if (existing) return existing;
-    const created = await prisma.notification.create({
-      data: { userId, type, title, body, link, dedupeKey },
-    });
-    await maybeEmail(args);
-    await sendPush(userId, { title, body, url: link ?? "/dashboard" });
-    return created;
-  }
-
-  const created = await prisma.notification.create({
-    data: { userId, type, title, body, link },
+  await notify({
+    userId: args.userId,
+    category,
+    type: args.type,
+    title: args.title,
+    body: args.body,
+    link: args.link,
+    dedupeKey: args.dedupeKey,
   });
-  await maybeEmail(args);
-  await sendPush(userId, { title, body, url: link ?? "/dashboard" });
-  return created;
 }
 
 // Throttle reminder scans per user (they run on every navbar render otherwise).
@@ -111,9 +86,15 @@ export async function generateDueSoonNotifications(userId: string) {
   for (const t of dueTasks) {
     if (!t.dueDate) continue;
     const overdue = t.dueDate < now;
-    await createNotification({
+    await notify({
       userId,
+      category: NotificationCategory.DEADLINE,
       type: NotificationType.TASK_DUE,
+      // Already overdue is URGENT, so it goes out immediately even inside
+      // quiet hours; merely due soon is NORMAL and will wait until morning if
+      // the student is asleep. The distinction matters because "overdue"
+      // cannot be acted on any later, while "due tomorrow" can.
+      priority: overdue ? "URGENT" : "NORMAL",
       title: overdue ? `Overdue: ${t.title}` : `Due soon: ${t.title}`,
       body: `This task is due ${t.dueDate.toLocaleDateString("en-GB", {
         day: "numeric",
@@ -121,9 +102,6 @@ export async function generateDueSoonNotifications(userId: string) {
       })}.`,
       link: "/dashboard/tasks",
       dedupeKey: `task-due:${t.id}`,
-      // The whole point of a deadline reminder is reaching someone who is NOT
-      // currently looking at the app.
-      essential: true,
     });
   }
 }

@@ -95,6 +95,48 @@ enum NotificationType {
   SYSTEM
 }
 
+/// What a notification is ABOUT, as a student would group it.
+///
+/// SIX, not twenty-three. The brief listed 23 kinds of notification and it
+/// would be easy to render 23 toggles; nobody configures 23 toggles. They
+/// either leave the defaults or switch the lot off, and switching the lot off
+/// is how a deadline reminder stops arriving. Categories are the unit a person
+/// can actually hold in their head — "tell me about deadlines but not about
+/// every task my teammates tick off" is a sentence someone might mean.
+///
+/// New notification kinds map onto an existing category rather than adding
+/// one. If a kind genuinely fits nowhere, that is a signal the taxonomy is
+/// wrong, not that it needs a seventh row in the settings page.
+enum NotificationCategory {
+  /// Due dates, milestones, meetings starting. The reason the product exists.
+  DEADLINE
+  /// Supervisor feedback, approvals, document review outcomes.
+  SUPERVISION
+  /// Invitations, joins, task assignment, role and capability changes.
+  TEAM
+  /// Contributions, expenses, budget thresholds, withdrawal decisions.
+  MONEY
+  /// Routine team activity — the category most worth muting.
+  ACTIVITY
+  /// Sign-ins, password and 2FA changes. NOT mutable; see notify().
+  SECURITY
+}
+
+/// How much of the user's attention this is allowed to take.
+///
+/// Priority decides CHANNEL and TIMING, never whether something is recorded —
+/// every notification lands in the bell regardless.
+enum NotificationPriority {
+  /// Email immediately, ignore quiet hours. Reserved for things that are
+  /// worse to learn late: a security event, a deadline today.
+  URGENT
+  /// Email immediately unless the user is inside quiet hours, in which case
+  /// it waits for the digest.
+  NORMAL
+  /// Never emailed on its own. Rolled into the daily digest.
+  LOW
+}
+
 enum MeetingProvider {
   GOOGLE_MEET
   ZOOM
@@ -183,6 +225,29 @@ model User {
   // than a respectful default.
   essentialEmails    Boolean @default(true)
   emailNotifications Boolean @default(false)
+
+  /// ── Quiet hours ──
+  ///
+  /// Hours are LOCAL, expressed as integers 0–23, with `timezone` saying which
+  /// local. Storing a UTC offset instead would drift the window twice a year
+  /// for anyone outside Zimbabwe, and storing nothing but the hour would put a
+  /// student's "22:00" wherever the server happens to think it is.
+  ///
+  /// The window WRAPS: start 22, end 7 means 22:00→07:00, which is the shape
+  /// people actually want and the one a naive `start <= h && h < end`
+  /// comparison gets wrong. See `inQuietHours`.
+  ///
+  /// Null start or end means no quiet hours — the default, because a product
+  /// that silently withholds a deadline reminder the user never asked it to
+  /// withhold is worse than one that pings at an awkward moment.
+  quietHoursStart Int?
+  quietHoursEnd   Int?
+
+  /// IANA zone. Defaults to Zimbabwe because that is where the users are;
+  /// nothing in the code assumes it.
+  timezone String @default("Africa/Harare")
+
+  notificationPreferences NotificationPreference[]
 
   // Subscription plan (admin-assigned for now; payments later).
   plan Plan @default(FREE)
@@ -1328,12 +1393,58 @@ model Notification {
   // Prevents duplicate auto-generated reminders (NULLs are distinct in Postgres).
   dedupeKey String?
 
+  /// What this is about, and how loud it is allowed to be. Defaults chosen so
+  /// existing rows remain valid without a backfill: everything already in the
+  /// table is routine activity by definition, since nothing that predates this
+  /// column was ever escalated.
+  category NotificationCategory @default(ACTIVITY)
+  priority NotificationPriority @default(NORMAL)
+
+  /// When this was emailed individually. Null means it never was — either it
+  /// was LOW, or the user was inside quiet hours, or email is unconfigured.
+  emailedAt DateTime?
+
+  /// When this was included in a digest. Set together with `emailedAt` being
+  /// null: the two are alternatives, and a notification is never both. Keeping
+  /// them separate is what makes the digest query "not yet delivered by any
+  /// route" rather than "not yet emailed", which would resend forever.
+  digestedAt DateTime?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
   @@unique([userId, dedupeKey])
   @@index([userId, read])
+  /// Drives the digest sweep: everything for a user that no route has
+  /// delivered yet. Without it that is a scan of every notification ever sent.
+  @@index([userId, emailedAt, digestedAt])
+}
+
+/// Per-category delivery choices.
+///
+/// ABSENCE OF A ROW MEANS "USE THE DEFAULT" (see lib/notify.ts). That is
+/// deliberate: writing six rows for all 41 existing users, and six more on
+/// every registration, would be a backfill and a write amplification in
+/// exchange for storing what the code already knows. A row appears only when
+/// somebody changes something.
+model NotificationPreference {
+  id       String               @id @default(cuid())
+  userId   String
+  category NotificationCategory
+
+  /// In-app is deliberately NOT configurable. The bell is the record of what
+  /// happened; letting it be silenced would mean a student could put their
+  /// account in a state where a supervisor's rejection is invisible with no
+  /// indication anything was hidden. Muting belongs on the channels that
+  /// interrupt you, not on the log.
+  email Boolean @default(true)
+  push  Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([userId])
 }
 
 // ── Resource library & secure sharing ─────────

@@ -20,6 +20,9 @@ import { ThemePicker } from "@/components/theme-personality";
 import { PublicProfileForm } from "./public-profile-form";
 import { TwoFactor } from "./twofactor-ui";
 import { AccountActivity } from "./account-activity";
+import { NotificationPreferences } from "./notification-preferences";
+import { CATEGORY_HINTS, CATEGORY_LABELS } from "@/lib/notify";
+import { NotificationCategory } from "@prisma/client";
 import { DeleteAccountSection } from "./delete-account";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -35,6 +38,9 @@ export default async function SettingsPage() {
       essentialEmails: true,
       systemRole: true,
       twoFactorEnabled: true,
+      quietHoursStart: true,
+      quietHoursEnd: true,
+      notificationPreferences: { select: { category: true, email: true, push: true } },
       // Folded into the existing select rather than a second query: the
       // page already loads this user, and a filtered relation count is
       // free compared with another trip to Neon.
@@ -189,6 +195,34 @@ export default async function SettingsPage() {
               <code>.env</code> to enable email.
             </p>
           )}
+
+          {/* Per-category control. The two switches above are the master
+              overrides; this is where a student decides that deadlines are
+              worth an email and their teammates' completed tasks are not. */}
+          <div className="border-t pt-4">
+            <NotificationPreferences
+              emailConfigured={emailReady}
+              quietStart={user?.quietHoursStart ?? null}
+              quietEnd={user?.quietHoursEnd ?? null}
+              rows={Object.values(NotificationCategory).map((category) => {
+                const pref = user?.notificationPreferences.find(
+                  (p) => p.category === category,
+                );
+                const routine = category === NotificationCategory.ACTIVITY;
+                return {
+                  category,
+                  label: CATEGORY_LABELS[category],
+                  hint: CATEGORY_HINTS[category],
+                  // No stored row means the user has never chosen — show the
+                  // same default `notify()` will apply, so the screen and the
+                  // behaviour agree.
+                  email: pref?.email ?? !routine,
+                  push: pref?.push ?? !routine,
+                  locked: category === NotificationCategory.SECURITY,
+                };
+              })}
+            />
+          </div>
 
           <div className="border-t pt-4">
             <p className="text-sm font-medium">Browser push notifications</p>

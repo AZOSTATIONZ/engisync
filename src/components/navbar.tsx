@@ -8,11 +8,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserMenu } from "@/components/user-menu";
 import { prisma } from "@/lib/prisma";
-import {
-  countUnread,
-  listNotifications,
-  generateDueSoonNotifications,
-} from "@/lib/notifications";
+import { countUnread, listNotifications } from "@/lib/notifications";
 
 export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean }) {
   const session = await auth();
@@ -29,7 +25,16 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
   } | null = null;
 
   if (session?.user?.id) {
-    await generateDueSoonNotifications(session.user.id);
+    /* The due-soon scan used to run HERE, on every render of a component that
+       appears on every authenticated page. It was throttled by an in-memory
+       Map, which on serverless is per-instance: each cold start begins with an
+       empty map, so the throttle mostly did not throttle and every navigation
+       could pay for a task scan.
+
+       It was also redundant. `/api/cron/reminders` already performs the same
+       sweep daily for everyone with something due, and does it for the people
+       who are NOT currently browsing — which is the entire point of a
+       reminder. Rendering the navbar is not an event that should cause writes. */
     [unread, notifications, profile] = await Promise.all([
       countUnread(session.user.id),
       listNotifications(session.user.id),

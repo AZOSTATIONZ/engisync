@@ -66,9 +66,20 @@ export default async function DashboardLayout({
 
      `??` not `||`: version 0 is the default for every existing account, and
      `||` would treat that legitimate value as missing. */
+  /* A DELETED ACCOUNT MUST NOT KEEP A WORKING SESSION.
+     The first version of this guard read `if (user && ...)`, which quietly
+     did nothing when the row was gone: a user whose account had been deleted
+     still carried a valid JWT and kept browsing for up to 30 days. The shell
+     rendered with a blank name and email, and the first write attempt failed
+     with a raw foreign-key error from Prisma rather than anything a person
+     could act on. Found by walking into it — a test account was deleted
+     underneath a live session and the app carried on as though nothing had
+     happened.
+
+     `!user` and a version mismatch are the same condition: this token no
+     longer corresponds to a usable account. */
   const tokenVersion = session.user.sessionVersion ?? 0;
-  const currentVersion = user?.sessionVersion ?? 0;
-  if (user && tokenVersion !== currentVersion) {
+  if (!user || tokenVersion !== user.sessionVersion) {
     redirect("/logout?reason=revoked");
   }
 

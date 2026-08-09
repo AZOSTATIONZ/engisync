@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateDueSoonNotifications } from "@/lib/notifications";
+import { sendDailyDigests } from "@/lib/digest";
 
 /**
  * Scheduled reminders.
@@ -69,10 +70,25 @@ export async function GET(req: Request) {
     }
   }
 
+  /* Flush the digest AFTER the reminder sweep, in that order deliberately:
+     reminders created moments ago are then eligible for today's digest rather
+     than waiting a further 24 hours. The Hobby plan allows one cron run per
+     day, so anything not delivered in this pass waits until tomorrow. */
+  let digest = { users: 0, sent: 0, items: 0 };
+  try {
+    digest = await sendDailyDigests(now);
+  } catch (err) {
+    // A digest failure must not mark the whole run failed — the reminders
+    // above already landed, and reporting 500 would invite a retry that
+    // re-runs them.
+    console.error("[cron/reminders] digest failed", err);
+  }
+
   return NextResponse.json({
     ok: true,
     checked: userIds.length,
     processed,
+    digest,
     at: now.toISOString(),
   });
 }

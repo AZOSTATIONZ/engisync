@@ -124,3 +124,22 @@ export function emailLayout(title: string, bodyHtml: string): string {
     <p style="font-size:12px;color:#94a3b8">EngiSync · engineering collaboration platform</p>
   </div>`;
 }
+
+/**
+ * Escape user-supplied text before it goes into an HTML email.
+ *
+ * Notification titles and bodies are assembled from things people typed —
+ * project names, task titles, a supervisor's comment. Interpolating those raw
+ * into the template puts whatever one user wrote into another user's mail
+ * client, where it is rendered by software with its own quirks and no CSP.
+ * React escapes for us everywhere else in this codebase, which is precisely
+ * why it is easy to forget that these strings never pass through React.
+ */
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}

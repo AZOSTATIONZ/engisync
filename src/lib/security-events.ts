@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { describeDevice, deviceFingerprint } from "@/lib/device";
 import { emailLayout, isEmailConfigured, sendEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
+import { NotificationCategory } from "@prisma/client";
 
 /**
  * The account's own security record.
@@ -163,25 +165,29 @@ export async function alertNewDevice(
 ): Promise<void> {
   const stamp = when.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 
-  try {
-    await prisma.notification.create({
-      data: {
-        userId,
-        type: "SYSTEM",
-        title: "New sign-in to your account",
-        body: `${label}${ip ? ` · ${ip}` : ""} · ${stamp}. If this wasn't you, change your password now.`,
-        link: "/dashboard/settings",
-        // One alert per device per day. Without this, a student whose phone
-        // drops its session repeatedly would get an identical warning every
-        // time it reconnected.
-        dedupeKey: `new-device:${label}:${when.toISOString().slice(0, 10)}`,
-      },
-    });
-  } catch {
-    // Almost certainly the dedupe key colliding, which is the mechanism
-    // working. Nothing to do.
-  }
+  /* Routed through the dispatcher rather than writing the row directly.
+     SECURITY is the one category `notify()` refuses to let a user mute, and
+     it is marked URGENT so it ignores quiet hours — being woken by a genuine
+     break-in alert is the correct outcome, and the alternative is learning
+     about it in tomorrow morning's digest. */
+  await notify({
+    userId,
+    category: NotificationCategory.SECURITY,
+    priority: "URGENT",
+    title: "New sign-in to your account",
+    body: `${label}${ip ? ` · ${ip}` : ""} · ${stamp}. If this wasn't you, change your password now.`,
+    link: "/dashboard/settings",
+    // One alert per device per day. Without this, a student whose phone drops
+    // its session repeatedly would get an identical warning every reconnect.
+    dedupeKey: `new-device:${label}:${when.toISOString().slice(0, 10)}`,
+    // The purpose-written email below replaces the generic one; without this
+    // a single sign-in would produce two emails saying the same thing.
+    emailHandledByCaller: true,
+  });
 
+  /* The dedicated email below stays, and is deliberately NOT the one
+     `notify()` sends: it spells out the device, address and time in a form
+     someone can act on, which a generic notification email cannot. */
   if (!isEmailConfigured()) return;
 
   try {
