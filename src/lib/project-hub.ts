@@ -497,3 +497,99 @@ export function staleSources(
     .filter((x) => now.getTime() - new Date(x.source.verified).getTime() > cutoffMs)
     .sort((a, b) => b.ageDays - a.ageDays);
 }
+
+/* ── Which discipline is a department? ───────────────────────────────────
+ *
+ * The Project Hub defaults to the student's own department, so this mapping
+ * decides what a person sees the moment they arrive. Getting it wrong is not
+ * cosmetic: an Electronic Engineering student shown mining projects concludes
+ * the hub is not for them and does not come back.
+ *
+ * MATCHED BY LONGEST KEYWORD, which is the whole trick. "Electrical" and
+ * "Electronic" share a prefix, and so do "Computer Engineering" and "Computer
+ * Science"; a first-match-wins loop over an object silently resolves those by
+ * declaration order, which is invisible and fragile. Preferring the longest
+ * matching keyword makes "computer science" beat "computer" on merit rather
+ * than on where someone happened to put the line.
+ *
+ * Codes are matched EXACTLY, never as substrings. "EE" appears inside plenty
+ * of words, and a department called "Engineering Management" should not
+ * become Electrical because its code shares two letters.
+ */
+
+/** Exact department codes seen in production, plus obvious variants. */
+const DEPARTMENT_CODE_DISCIPLINE: Record<string, Discipline> = {
+  EE: "ELECTRICAL",
+  ELEC: "ELECTRONIC",
+  ELECT: "ELECTRONIC",
+  COMP: "COMPUTER",
+  CE: "COMPUTER",
+  CS: "SOFTWARE",
+  SE: "SOFTWARE",
+  MECH: "MECHANICAL",
+  ME: "MECHANICAL",
+  CIVIL: "CIVIL",
+  CIV: "CIVIL",
+  CHEM: "CHEMICAL",
+  IE: "INDUSTRIAL",
+  IND: "INDUSTRIAL",
+  MINE: "MINING",
+  MIN: "MINING",
+  MECHT: "ELECTRONIC",
+};
+
+/** Name keywords. Longest match wins — see the note above. */
+const DEPARTMENT_NAME_DISCIPLINE: [string, Discipline][] = [
+  ["computer science", "SOFTWARE"],
+  ["software", "SOFTWARE"],
+  ["information technology", "SOFTWARE"],
+  ["computer engineering", "COMPUTER"],
+  ["computer", "COMPUTER"],
+  ["electronic", "ELECTRONIC"],
+  ["electronics", "ELECTRONIC"],
+  ["telecommunication", "ELECTRONIC"],
+  ["mechatronic", "ELECTRONIC"],
+  ["electrical", "ELECTRICAL"],
+  ["power", "ELECTRICAL"],
+  ["mechanical", "MECHANICAL"],
+  ["civil", "CIVIL"],
+  ["structural", "CIVIL"],
+  ["chemical", "CHEMICAL"],
+  ["process", "CHEMICAL"],
+  ["industrial", "INDUSTRIAL"],
+  ["manufacturing", "INDUSTRIAL"],
+  ["mining", "MINING"],
+  ["metallurg", "MINING"],
+  ["geolog", "MINING"],
+];
+
+/**
+ * Best-guess discipline for a department, or null when there is no confident
+ * answer.
+ *
+ * NULL RATHER THAN "GENERAL" ON PURPOSE. The caller uses this to decide
+ * whether to pre-filter the hub, and a wrong guess is worse than no guess: it
+ * hides most of the catalog from someone whose department we misread, with
+ * nothing on screen explaining why the list is short. No answer means show
+ * everything, which is merely unfiltered rather than misleading.
+ */
+export function disciplineForDepartment(
+  name?: string | null,
+  code?: string | null,
+): Discipline | null {
+  const codeKey = (code ?? "").trim().toUpperCase();
+  if (codeKey && DEPARTMENT_CODE_DISCIPLINE[codeKey]) {
+    return DEPARTMENT_CODE_DISCIPLINE[codeKey];
+  }
+
+  const hay = (name ?? "").toLowerCase();
+  if (!hay.trim()) return null;
+
+  let best: { discipline: Discipline; len: number } | null = null;
+  for (const [keyword, discipline] of DEPARTMENT_NAME_DISCIPLINE) {
+    if (hay.includes(keyword) && (!best || keyword.length > best.len)) {
+      best = { discipline, len: keyword.length };
+    }
+  }
+  return best?.discipline ?? null;
+}

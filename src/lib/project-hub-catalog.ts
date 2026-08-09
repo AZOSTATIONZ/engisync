@@ -1,4 +1,5 @@
 import type { HubProject } from "@/lib/project-hub";
+import { HUB_PROJECTS_EXTRA } from "@/lib/project-hub-catalog-extra";
 
 /**
  * The curated project catalogue.
@@ -28,7 +29,14 @@ import type { HubProject } from "@/lib/project-hub";
  *
  * 6. Links are `SourceId` references only. Never inline a URL here.
  */
-export const HUB_PROJECTS: HubProject[] = [
+/**
+ * The balanced starter set: four projects per discipline.
+ *
+ * `HUB_PROJECTS` below concatenates this with `HUB_PROJECTS_EXTRA`, which is
+ * weighted to the departments that actually have students. Keeping them apart
+ * keeps the two intents legible — see the note in the extra catalogue.
+ */
+const HUB_PROJECTS_BASE: HubProject[] = [
   /* ── ELECTRICAL ──────────────────────────────────────────────────── */
   {
     slug: "solar-phone-charging-station",
@@ -1197,4 +1205,15 @@ export const HUB_PROJECTS: HubProject[] = [
     tags: ["research", "literature", "writing", "method", "academic"],
     simulationOnly: true,
   },
+];
+
+/**
+ * Every project brief, in one array.
+ *
+ * Order matters only for the "all disciplines" view, where the balanced set
+ * leads and the demand-weighted additions follow.
+ */
+export const HUB_PROJECTS: HubProject[] = [
+  ...HUB_PROJECTS_BASE,
+  ...HUB_PROJECTS_EXTRA,
 ];

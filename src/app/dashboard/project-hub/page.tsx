@@ -13,6 +13,9 @@ import {
   type Tier,
 } from "@/lib/project-hub";
 import { HUB_PROJECTS } from "@/lib/project-hub-catalog";
+import { disciplineForDepartment } from "@/lib/project-hub";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 
@@ -45,10 +48,47 @@ export default async function ProjectHubPage({
 }) {
   const sp = await searchParams;
 
+  /* DEFAULT TO THE STUDENT'S OWN DEPARTMENT.
+     ------------------------------------------------------------------
+     This used to open on "All disciplines", so an Electronic Engineering
+     student — the largest group here, 11 of 41 — arrived at a list where most
+     entries were mining, civil and chemical projects they will never build.
+     The catalogue is deliberately balanced across disciplines, which makes
+     the unfiltered view actively worse the more complete it gets: four
+     relevant projects buried in thirty-eight.
+
+     The department is a DEFAULT, not a restriction. "All disciplines" stays
+     in the dropdown, and picking it puts `discipline=ALL` in the URL, so a
+     mechanical student who wants an electronics project is one click away and
+     can share that link. Nothing is hidden; the starting point is just the
+     one that is usually right.
+
+     `disciplineForDepartment` returns null when it cannot tell, and null
+     means show everything — an unfiltered list is merely unhelpful, whereas
+     a wrongly-filtered one is misleading with nothing on screen to explain
+     the short result. */
+  const session = await auth();
+  const membership = session?.user?.id
+    ? await prisma.departmentMember.findFirst({
+        where: { userId: session.user.id },
+        select: { department: { select: { name: true, code: true } } },
+        orderBy: { id: "asc" },
+      })
+    : null;
+
+  const homeDiscipline = disciplineForDepartment(
+    membership?.department.name,
+    membership?.department.code,
+  );
+
+  // An explicit choice in the URL always wins over the default.
+  const activeDiscipline: Discipline | "ALL" =
+    (sp.discipline as Discipline | "ALL") ?? homeDiscipline ?? "ALL";
+
   const maxBudget = sp.budget ? Number(sp.budget) : undefined;
   const results = searchProjects(HUB_PROJECTS, {
     q: sp.q,
-    discipline: (sp.discipline as Discipline) || "ALL",
+    discipline: activeDiscipline,
     tier: (sp.tier as Tier) || "ALL",
     maxBudget: Number.isFinite(maxBudget) ? maxBudget : undefined,
     simulationOnly: sp.sim === "1",
@@ -57,10 +97,17 @@ export default async function ProjectHubPage({
   const groups = groupByTier(results);
   const filtered =
     Boolean(sp.q) ||
-    (sp.discipline && sp.discipline !== "ALL") ||
+    activeDiscipline !== "ALL" ||
     (sp.tier && sp.tier !== "ALL") ||
     Boolean(sp.budget) ||
     sp.sim === "1";
+
+  /* True only when the department default is doing the filtering and the
+     student has not chosen anything themselves. That distinction is what the
+     notice below depends on: telling someone their view is narrowed is only
+     useful when they did not narrow it. */
+  const narrowedByDepartment =
+    !sp.discipline && homeDiscipline !== null && activeDiscipline !== "ALL";
 
   return (
     <div className="space-y-6">
@@ -93,7 +140,7 @@ export default async function ProjectHubPage({
         <div className="flex flex-wrap gap-2">
           <select
             name="discipline"
-            defaultValue={sp.discipline ?? "ALL"}
+            defaultValue={activeDiscipline}
             className="h-9 rounded-md border border-input bg-background px-2 text-sm"
             aria-label="Discipline"
           >
@@ -152,6 +199,26 @@ export default async function ProjectHubPage({
           )}
         </div>
       </form>
+
+      {/* SAY THAT THE LIST IS PRE-FILTERED, and offer the way out in the
+          same sentence. A default that silently hides two thirds of the
+          catalogue reads as "there is barely anything here" — the student
+          blames the product rather than looking for a control they never
+          knew was set. */}
+      {narrowedByDepartment && (
+        <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm">
+          Showing{" "}
+          <strong>{DISCIPLINE_LABEL[activeDiscipline as Discipline]}</strong>{" "}
+          projects because that&apos;s your department.{" "}
+          <Link
+            href="/dashboard/project-hub?discipline=ALL"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Show every discipline
+          </Link>
+          .
+        </p>
+      )}
 
       <p className="text-sm text-muted-foreground">
         {results.length} of {HUB_PROJECTS.length} projects
