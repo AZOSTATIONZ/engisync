@@ -88,6 +88,28 @@ enum EventType {
   REMINDER
 }
 
+/// How a user's dashboard avatar is drawn.
+///
+/// A PRESENTATION PREFERENCE, NOT A DEMOGRAPHIC RECORD. The brief that
+/// prompted this asked for a gender field collected at registration. That
+/// would mean storing a sensitive attribute about a real person in order to
+/// choose a cartoon, and requiring an answer before anyone has a reason to
+/// trust the product.
+///
+/// This asks a narrower question that the feature actually needs: which figure
+/// would you like to see? It defaults to NEUTRAL, is never required, and is
+/// used for exactly one thing — picking which SVG to draw. Nothing else in the
+/// product may read it.
+///
+/// Deliberately an enum rather than free text so the renderer registry stays
+/// exhaustive: adding a presentation means adding a drawing, and the compiler
+/// says so.
+enum AvatarPresentation {
+  NEUTRAL
+  MASCULINE
+  FEMININE
+}
+
 enum NotificationType {
   TASK_DUE
   WORKSPACE
@@ -288,9 +310,12 @@ model User {
   // unreadable, so the palette guarantees contrast instead.
   accentColor String?
   avatarStyle String?
-  headline    String?  @db.VarChar(80)
-  bio         String?  @db.VarChar(280)
-  skills      String[]
+
+  /// Which figure appears in the dashboard hero scene. See the enum.
+  avatarPresentation AvatarPresentation @default(NEUTRAL)
+  headline           String?            @db.VarChar(80)
+  bio                String?            @db.VarChar(280)
+  skills             String[]
 
   // ── Public portfolio ──
   // OFF by default and it must stay that way: publishing a student's work to

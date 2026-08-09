@@ -47,6 +47,7 @@ export function HeroWelcome({
   subtitle,
   stats,
   image,
+  scene,
 }: {
   greeting: string;
   firstName: string;
@@ -55,6 +56,8 @@ export function HeroWelcome({
   stats: HeroStat[];
   /** A photograph of the student's own discipline, used as a backdrop. */
   image?: string;
+  /** The animated discipline scene. Optional so the hero still works without it. */
+  scene?: React.ReactNode;
 }) {
   return (
     <section className="surface-premium edge-brand relative overflow-hidden rounded-2xl">
@@ -91,7 +94,16 @@ export function HeroWelcome({
         style={{ background: "var(--grad-brand)" }}
       />
 
-      <div className="relative p-5 sm:p-7">
+      {/* THE SCENE SITS BESIDE THE WORK, NOT OVER IT.
+          Same reasoning as the photograph above: the first thing a student
+          needs on this page is what to do next. On a wide screen the engineer
+          occupies otherwise-empty space to the right of the greeting, so it
+          costs nothing. On a phone it appears BELOW the stats rather than
+          above them — being greeted by an illustration while your overdue
+          count is pushed off-screen would be the feature working against the
+          product. */}
+      <div className="relative p-5 sm:p-7 lg:flex lg:items-center lg:gap-8">
+        <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-muted-foreground">
           {department ? department : "EngiSync"}
         </p>
@@ -131,6 +143,13 @@ export function HeroWelcome({
             </Link>
           ))}
         </div>
+        </div>
+
+        {scene && (
+          <div className="mt-6 w-full shrink-0 lg:mt-0 lg:w-[260px] xl:w-[300px]">
+            {scene}
+          </div>
+        )}
       </div>
     </section>
   );

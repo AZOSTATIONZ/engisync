@@ -26,6 +26,8 @@ import { projectHome, routes } from "@/lib/routes";
 import { PaceBadge } from "@/components/pace-badge";
 import { DisciplineHero } from "@/components/discipline-hero";
 import { mediaFor } from "@/lib/media";
+import { AvatarScene } from "@/components/avatar/avatar-scene";
+import { disciplineForDepartment } from "@/lib/project-hub";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { OnboardingCard } from "@/components/onboarding-card";
@@ -64,7 +66,7 @@ export default async function DashboardPage() {
   const userId = session!.user.id;
   const now = new Date();
 
-  const [focus, activity, myDept] = await Promise.all([
+  const [focus, activity, myDept, me] = await Promise.all([
     getFocus(userId, now),
     getActivityForUser(userId, 8),
     // Department drives the imagery: a civil student should not see stock
@@ -73,9 +75,25 @@ export default async function DashboardPage() {
       where: { userId },
       select: { department: { select: { name: true, code: true } } },
     }),
+    // One extra column on a query this page already makes. The avatar's
+    // appearance is a preference, so it belongs to the user rather than to
+    // their department.
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarPresentation: true },
+    }),
   ]);
   const deptCount = myDept ? 1 : 0;
   const media = mediaFor(myDept?.department.name, myDept?.department.code);
+
+  /* The hero scene: an engineer from THIS student's discipline.
+     `disciplineForDepartment` returns null for someone who has not joined a
+     department yet — eleven of the current users — and GENERAL is a real
+     drafting-board scene rather than an empty frame, because the person with
+     no department is exactly the person who most needs the product to look
+     like it was built for them. */
+  const heroDiscipline =
+    disciplineForDepartment(myDept?.department.name, myDept?.department.code) ?? "GENERAL";
 
   const firstName = session?.user.name?.split(" ")[0] ?? "there";
   const hasProjects = focus.projects.length > 0;
@@ -109,6 +127,12 @@ export default async function DashboardPage() {
         }
         stats={buildHeroStats(focus)}
         image={media.images[0]}
+        scene={
+          <AvatarScene
+            discipline={heroDiscipline}
+            presentation={me?.avatarPresentation ?? "NEUTRAL"}
+          />
+        }
       />
 
       {/* WHY THE HERO IMAGE MOVED

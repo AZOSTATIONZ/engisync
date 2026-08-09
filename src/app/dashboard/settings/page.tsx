@@ -20,6 +20,8 @@ import { ThemePicker } from "@/components/theme-personality";
 import { PublicProfileForm } from "./public-profile-form";
 import { TwoFactor } from "./twofactor-ui";
 import { AccountActivity } from "./account-activity";
+import { AvatarPresentationPicker } from "./avatar-presentation";
+import { disciplineForDepartment } from "@/lib/project-hub";
 import { NotificationPreferences } from "./notification-preferences";
 import { CATEGORY_HINTS, CATEGORY_LABELS } from "@/lib/notify";
 import { NotificationCategory } from "@prisma/client";
@@ -38,6 +40,11 @@ export default async function SettingsPage() {
       essentialEmails: true,
       systemRole: true,
       twoFactorEnabled: true,
+      avatarPresentation: true,
+      deptMemberships: {
+        take: 1,
+        select: { department: { select: { name: true, code: true } } },
+      },
       quietHoursStart: true,
       quietHoursEnd: true,
       notificationPreferences: { select: { category: true, email: true, push: true } },
@@ -98,6 +105,27 @@ export default async function SettingsPage() {
               avatarStyle: user?.avatarStyle ?? null,
               image: user?.image ?? null,
             }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Your engineer</CardTitle>
+          <CardDescription>
+            The animated engineer on your dashboard, drawn from your
+            department.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AvatarPresentationPicker
+            initial={user?.avatarPresentation ?? "NEUTRAL"}
+            discipline={
+              disciplineForDepartment(
+                user?.deptMemberships[0]?.department.name,
+                user?.deptMemberships[0]?.department.code,
+              ) ?? "GENERAL"
+            }
           />
         </CardContent>
       </Card>

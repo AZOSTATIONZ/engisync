@@ -834,3 +834,148 @@
   background: hsl(var(--border));
   border-radius: 9999px;
 }
+
+/* ── Dashboard avatar scene ──────────────────────────────────────────────
+ *
+ * Every keyframe below animates ONLY `transform` or `opacity`. That is not
+ * stylistic preference — it is the finding from July's measurement on this
+ * dashboard, where animating a full-height gradient took it from 60fps to
+ * 31fps and `will-change`, `translateZ(0)` and `contain: paint` all failed to
+ * rescue it. Transform and opacity are composited; everything else repaints.
+ *
+ * Durations are deliberately long. This sits beside a student's work for
+ * hours, and anything quick in peripheral vision becomes the thing they ask
+ * you to remove.
+ */
+
+.es-avatar {
+  position: relative;
+  width: 100%;
+  /* Reserves the box before paint, so the dashboard never reflows around it. */
+  aspect-ratio: 240 / 170;
+  /* Skips rendering entirely while off-screen, on top of the observer below. */
+  content-visibility: auto;
+  contain-intrinsic-size: 240px 170px;
+}
+
+.es-avatar__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  color: hsl(var(--foreground));
+}
+
+/* Scrolled out of view: stop the work rather than let it drain a phone. */
+.es-avatar--paused * {
+  animation-play-state: paused !important;
+}
+
+@keyframes es-sway {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50%      { transform: rotate(1.6deg); }
+}
+@keyframes es-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(9px); }
+}
+@keyframes es-spin { to { transform: rotate(360deg); } }
+@keyframes es-spin-reverse { to { transform: rotate(-360deg); } }
+@keyframes es-piston {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(-14px); }
+}
+@keyframes es-sweep {
+  from { transform: translateX(0); }
+  /* Exactly one wavelength group, so the loop has no visible seam. */
+  to   { transform: translateX(-80px); }
+}
+@keyframes es-blink {
+  0%, 44%   { opacity: 0.15; }
+  50%, 94%  { opacity: 1; }
+  100%      { opacity: 0.15; }
+}
+@keyframes es-arc {
+  /* Absent almost all the time. A constant spark reads as a fault, not as
+     working plant. */
+  0%, 92%   { opacity: 0; }
+  94%, 97%  { opacity: 0.9; }
+  100%      { opacity: 0; }
+}
+@keyframes es-scroll {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-63px); }  /* 7 lines x 9px: seamless wrap */
+}
+@keyframes es-caret {
+  0%, 49%  { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+@keyframes es-rise {
+  from { transform: translateY(0); opacity: 0; }
+  15%  { opacity: 0.8; }
+  85%  { opacity: 0.8; }
+  to   { transform: translateY(-84px); opacity: 0; }
+}
+@keyframes es-convey {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-44px); }  /* one box pitch */
+}
+@keyframes es-lift {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(-16deg); }
+}
+@keyframes es-dig {
+  0%, 100% { transform: rotate(0deg); }
+  40%      { transform: rotate(14deg); }
+  70%      { transform: rotate(-6deg); }
+}
+@keyframes es-haul {
+  from { transform: translateX(-40px); opacity: 0; }
+  10%  { opacity: 1; }
+  85%  { opacity: 1; }
+  to   { transform: translateX(120px); opacity: 0; }
+}
+@keyframes es-breathe {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-1.2px); }
+}
+@keyframes es-arm {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(-5deg); }
+}
+
+.es-anim-sway         { animation: es-sway 7s ease-in-out infinite; }
+.es-anim-bob          { animation: es-bob 9s ease-in-out infinite; }
+.es-anim-spin         { animation: es-spin 14s linear infinite; }
+.es-anim-spin-reverse { animation: es-spin-reverse 10s linear infinite; }
+.es-anim-piston       { animation: es-piston 5s ease-in-out infinite; }
+.es-anim-sweep        { animation: es-sweep 6s linear infinite; }
+.es-anim-blink        { animation: es-blink 4s ease-in-out infinite; }
+.es-anim-blink-late   { animation: es-blink 4s ease-in-out infinite 1.3s; }
+.es-anim-blink-slow   { animation: es-blink 6.5s ease-in-out infinite 0.6s; }
+.es-anim-arc          { animation: es-arc 11s linear infinite; }
+.es-anim-scroll       { animation: es-scroll 8s linear infinite; }
+.es-anim-caret        { animation: es-caret 1.2s steps(1) infinite; }
+.es-anim-rise         { animation: es-rise 6s linear infinite; }
+.es-anim-rise-late    { animation: es-rise 6s linear infinite 2s; }
+.es-anim-rise-slow    { animation: es-rise 8.5s linear infinite 1s; }
+.es-anim-convey       { animation: es-convey 5s linear infinite; }
+.es-anim-lift         { animation: es-lift 9s ease-in-out infinite; }
+.es-anim-dig          { animation: es-dig 8s ease-in-out infinite; }
+.es-anim-haul         { animation: es-haul 16s linear infinite; }
+
+/* The figure itself: a breath and a small arm movement, nothing more. */
+.es-figure            { animation: es-breathe 5s ease-in-out infinite; }
+.es-figure__arm       { animation: es-arm 6.5s ease-in-out infinite; transform-origin: 66px 70px; }
+.es-figure__held      { animation: es-arm 6.5s ease-in-out infinite; transform-origin: 66px 70px; }
+
+/* REDUCED MOTION: stop, do not hide.
+ *
+ * The scene is the point of the feature, and someone who gets motion sickness
+ * from a moving crane still deserves to see an engineer from their discipline.
+ * Holding frame 0 gives a composed, deliberate pose rather than whatever the
+ * loop happened to be mid-way through. */
+@media (prefers-reduced-motion: reduce) {
+  .es-avatar * {
+    animation: none !important;
+  }
+}
