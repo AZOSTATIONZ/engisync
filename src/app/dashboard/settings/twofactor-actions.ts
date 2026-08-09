@@ -1,12 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateTotpSecret, otpauthUrl, verifyTotp } from "@/lib/totp";
 import { generateQrDataUrl } from "@/lib/qr";
 import { clearBackupCodes, issueBackupCodes } from "@/lib/two-factor";
+import { recordSecurityEvent } from "@/lib/security-events";
+import { clientIp } from "@/lib/rate-limit";
 
 export type TwoFactorState = { error?: string; success?: string } | null;
 
@@ -65,9 +68,17 @@ export async function confirmTwoFactor(
     data: { twoFactorEnabled: true },
   });
   const backupCodes = await issueBackupCodes(user.id);
-  await prisma.auditLog.create({
-    data: { userId: user.id, action: "2FA_ENABLED" },
-  });
+  // Through recordSecurityEvent so the activity list carries the address and
+  // device for this change too — see the note in forgot/actions.ts.
+  {
+    const h = await headers();
+    await recordSecurityEvent({
+      userId: user.id,
+      action: "2FA_ENABLED",
+      ip: clientIp(h),
+      userAgent: h.get("user-agent"),
+    });
+  }
 
   revalidatePath("/dashboard/settings");
   return {
@@ -101,9 +112,17 @@ export async function regenerateBackupCodes(
   }
 
   const backupCodes = await issueBackupCodes(user.id);
-  await prisma.auditLog.create({
-    data: { userId: user.id, action: "2FA_BACKUP_CODES_REGENERATED" },
-  });
+  // Through recordSecurityEvent so the activity list carries the address and
+  // device for this change too — see the note in forgot/actions.ts.
+  {
+    const h = await headers();
+    await recordSecurityEvent({
+      userId: user.id,
+      action: "2FA_BACKUP_CODES_REGENERATED",
+      ip: clientIp(h),
+      userAgent: h.get("user-agent"),
+    });
+  }
 
   revalidatePath("/dashboard/settings");
   return { success: "New recovery codes generated.", backupCodes };
@@ -131,9 +150,17 @@ export async function disableTwoFactor(code: string): Promise<TwoFactorState> {
   // would silently resurrect them if 2FA were re-enabled later — the user
   // would be shown a fresh set while an old printout still worked.
   await clearBackupCodes(user.id);
-  await prisma.auditLog.create({
-    data: { userId: user.id, action: "2FA_DISABLED" },
-  });
+  // Through recordSecurityEvent so the activity list carries the address and
+  // device for this change too — see the note in forgot/actions.ts.
+  {
+    const h = await headers();
+    await recordSecurityEvent({
+      userId: user.id,
+      action: "2FA_DISABLED",
+      ip: clientIp(h),
+      userAgent: h.get("user-agent"),
+    });
+  }
 
   revalidatePath("/dashboard/settings");
   return { success: "Two-factor authentication is off." };

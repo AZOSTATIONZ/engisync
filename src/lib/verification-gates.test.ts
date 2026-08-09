@@ -134,3 +134,41 @@ describe("verified-email gates", () => {
     expect(body).toContain("accounts");
   });
 });
+
+describe("password reset as proof of address ownership", () => {
+  const resetSource = readFileSync(
+    join(ROOT, "app/(auth)/forgot/actions.ts"),
+    "utf8",
+  );
+
+  it("marks the email verified on a completed reset", () => {
+    // Redeeming a link that was sent to an address IS proof of controlling
+    // that mailbox — the same proof the verification flow asks for. Without
+    // this, a user who demonstrably received our mail stays blocked by the
+    // Phase 5 gates, and the only route out is a banner almost nobody seeks.
+    expect(resetSource).toContain("emailVerified:");
+  });
+
+  it("does NOT overwrite an existing verification timestamp", () => {
+    // The column answers "when did they first prove this address?", so a
+    // long-verified account must keep its original date rather than having it
+    // reset every time the password changes.
+    expect(resetSource).toContain("existing?.emailVerified ?? new Date()");
+  });
+
+  it("records the reset with its address and device", () => {
+    // This was the ONLY event in the activity list with no IP and no device,
+    // because it wrote to auditLog directly. It is also the event where
+    // "where did this come from?" matters most.
+    expect(resetSource).toContain("recordSecurityEvent");
+    expect(resetSource).toContain("clientIp(h)");
+    expect(resetSource).toContain('h.get("user-agent")');
+  });
+
+  it("still revokes every existing session", () => {
+    // Pinned alongside the above so a future edit to this block cannot
+    // quietly drop the revocation — a reset that leaves an intruder signed in
+    // is not a reset.
+    expect(resetSource).toContain("sessionVersion: { increment: 1 }");
+  });
+});

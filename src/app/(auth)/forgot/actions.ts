@@ -15,6 +15,7 @@ import {
   isEmailConfigured,
 } from "@/lib/email";
 import { rateLimitShared, clientIp } from "@/lib/rate-limit";
+import { recordSecurityEvent } from "@/lib/security-events";
 
 export type ResetState = { error?: string; success?: string } | null;
 
@@ -100,11 +101,34 @@ export async function resetPassword(
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+
+  /* COMPLETING A RESET PROVES CONTROL OF THE MAILBOX.
+     ------------------------------------------------------------------
+     The link was sent to that address and nowhere else, and it has just been
+     redeemed. That is precisely the proof the verification flow asks for —
+     the same act, arriving by a different door. Leaving the account marked
+     unverified afterwards insists on evidence we have already been given.
+
+     It matters more now that Phase 5's gates are live: an unverified user is
+     blocked from inviting a teammate, and the most natural path to becoming
+     verified is one almost nobody takes deliberately. 3 of 41 accounts were
+     verified when this shipped, and a banner alone was never going to change
+     that.
+
+     `??` not a blind overwrite: an account verified last year keeps its
+     original timestamp, because "when did they first prove this address?" is
+     the question the column answers. */
+  const existing = await prisma.user.findUnique({
+    where: { id: record.userId },
+    select: { emailVerified: true },
+  });
+
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
       data: {
         passwordHash,
+        emailVerified: existing?.emailVerified ?? new Date(),
         // Strand every session issued before this moment. Without it, a reset
         // performed BECAUSE the account was compromised left the intruder
         // signed in for up to 30 days — the JWT does not care that the
@@ -122,8 +146,19 @@ export async function resetPassword(
       data: { used: true },
     }),
   ]);
-  await prisma.auditLog.create({
-    data: { userId: record.userId, action: "PASSWORD_RESET" },
+
+  /* Recorded through `recordSecurityEvent` rather than writing the row
+     directly, which is how this event ended up as the ONLY one in the
+     activity list with no address and no device against it. "Where was my
+     password reset from?" is the question a person asks when they suspect
+     something, and it was the single row that could not answer. */
+  const h = await headers();
+  await recordSecurityEvent({
+    userId: record.userId,
+    action: "PASSWORD_RESET",
+    ip: clientIp(h),
+    userAgent: h.get("user-agent"),
+    metadata: { verifiedByReset: !existing?.emailVerified },
   });
 
   return { success: "Your password has been reset. You can now log in." };
