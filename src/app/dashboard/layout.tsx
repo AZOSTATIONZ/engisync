@@ -31,6 +31,10 @@ export default async function DashboardLayout({
     select: {
       emailVerified: true,
       accentColor: true,
+      // Session revocation. Free here — this query already runs on every
+      // authenticated page, so validating the token's generation costs one
+      // more column rather than another round trip. See the check below.
+      sessionVersion: true,
       _count: { select: { projectGrants: { where: { revokedAt: null } } } },
       // The department drives the ambient motif. Folded into this query as a
       // nested select rather than fetched separately — the whole point of the
@@ -42,6 +46,31 @@ export default async function DashboardLayout({
       },
     },
   });
+
+  /* ENFORCE SESSION REVOCATION.
+     ------------------------------------------------------------------
+     Sessions are JWTs, valid for 30 days, and the server cannot cancel one.
+     That made password reset a half-measure: it rewrote the hash and burned
+     the reset tokens while every already-signed-in device stayed signed in
+     for up to a month. If the reset was prompted by a compromise, the remedy
+     left the intruder exactly where they were.
+
+     `sessionVersion` is stamped into the token at sign-in. Bumping the user's
+     copy — on password reset, on any 2FA change, on "sign out everywhere" —
+     strands every token minted before the bump.
+
+     THIS LAYOUT IS THE RIGHT PLACE. It renders on every authenticated page,
+     it already loads the user, and it runs in Node where the database is
+     reachable (middleware is edge and cannot check this). A user with a
+     superseded token gets no further than the shell.
+
+     `??` not `||`: version 0 is the default for every existing account, and
+     `||` would treat that legitimate value as missing. */
+  const tokenVersion = session.user.sessionVersion ?? 0;
+  const currentVersion = user?.sessionVersion ?? 0;
+  if (user && tokenVersion !== currentVersion) {
+    redirect("/logout?reason=revoked");
+  }
 
   const showVerify = isEmailConfigured() && !user?.emailVerified;
   const supervises = (user?._count.projectGrants ?? 0) > 0;

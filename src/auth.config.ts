@@ -31,6 +31,11 @@ export const authConfig = {
       if (user) {
         token.id = user.id as string;
         if (user.systemRole) token.systemRole = user.systemRole;
+        // Stamp the session generation at sign-in. This file is edge-safe and
+        // must not touch the database, so the token only CARRIES the version;
+        // comparing it against the current one happens in lib/policy.ts,
+        // which already runs in Node and already loads the user.
+        token.sessionVersion = (user as { sessionVersion?: number }).sessionVersion ?? 0;
       }
       return token;
     },
@@ -38,6 +43,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.systemRole = token.systemRole as typeof session.user.systemRole;
+        session.user.sessionVersion = (token.sessionVersion as number) ?? 0;
       }
       return session;
     },

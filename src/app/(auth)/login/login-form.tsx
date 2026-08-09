@@ -109,7 +109,11 @@ export function LoginForm({
     });
     setLoading(false);
     if (res?.error) {
-      setError(needCode ? "Invalid 2FA code." : "Invalid email or password.");
+      setError(
+        needCode
+          ? "That code wasn't accepted. Recovery codes work only once — if you've used this one already, try another."
+          : "Invalid email or password.",
+      );
     } else {
       router.push("/dashboard");
       router.refresh();
@@ -240,19 +244,38 @@ export function LoginForm({
           </Link>
         </div>
 
+        {/* ONE field, two kinds of secret.
+            A 6-digit TOTP code and an 11-character recovery code both arrive
+            here. The constraints used to be `inputMode="numeric"` and
+            `maxLength={6}`, which made a recovery code literally impossible
+            to type — the browser truncated it at six characters and phones
+            offered a digits-only keypad. The recovery path would have shipped
+            dead in the exact situation it exists for: a student holding their
+            codes on paper because their phone is gone.
+
+            `text` keyboard and a length that fits the longer secret. The
+            server decides which it is; the form does not need to know. */}
         {needCode && (
-          <FloatField
-            id="code"
-            name="code"
-            label="Authenticator code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            required
-            autoFocus
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
+          <>
+            <FloatField
+              id="code"
+              name="code"
+              label="Authenticator or recovery code"
+              inputMode="text"
+              autoComplete="one-time-code"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={13}
+              required
+              autoFocus
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <p className="-mt-2 text-xs text-muted-foreground">
+              Lost your phone? Enter one of your recovery codes instead.
+            </p>
+          </>
         )}
 
         <p aria-live="assertive" className="text-sm text-destructive empty:hidden">

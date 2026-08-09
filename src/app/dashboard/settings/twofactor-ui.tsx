@@ -7,18 +7,31 @@ import {
   startTwoFactorSetup,
   confirmTwoFactor,
   disableTwoFactor,
+  regenerateBackupCodes,
 } from "./twofactor-actions";
+import { RecoveryCodes } from "./recovery-codes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function TwoFactor({ enabled }: { enabled: boolean }) {
+/** Mirrors BACKUP_CODE_LOW_WATER; a count at or below this gets a warning. */
+const LOW_WATER = 3;
+
+export function TwoFactor({
+  enabled,
+  remainingCodes,
+}: {
+  enabled: boolean;
+  remainingCodes: number;
+}) {
   const [on, setOn] = useState(enabled);
   const [setup, setSetup] = useState<{ qr: string; secret: string } | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [freshCodes, setFreshCodes] = useState<string[] | null>(null);
+  const [remaining, setRemaining] = useState(remainingCodes);
 
   async function begin() {
     setBusy(true);
@@ -39,7 +52,26 @@ export function TwoFactor({ enabled }: { enabled: boolean }) {
       setSetup(null);
       setCode("");
       setMsg(res.success);
+      // Show the codes immediately. This is the only moment they exist in
+      // readable form, so the panel takes over the section until acknowledged.
+      if (res.backupCodes) {
+        setFreshCodes(res.backupCodes);
+        setRemaining(res.backupCodes.length);
+      }
     } else setErr(res?.error ?? "Could not enable 2FA.");
+  }
+
+  async function regenerate() {
+    setBusy(true);
+    setErr(null);
+    const res = await regenerateBackupCodes(code);
+    setBusy(false);
+    if (res?.backupCodes) {
+      setCode("");
+      setMsg(res.success ?? null);
+      setFreshCodes(res.backupCodes);
+      setRemaining(res.backupCodes.length);
+    } else setErr(res?.error ?? "Could not generate new codes.");
   }
 
   async function turnOff() {
@@ -54,15 +86,45 @@ export function TwoFactor({ enabled }: { enabled: boolean }) {
     } else setErr(res?.error ?? "Could not disable 2FA.");
   }
 
+  // The codes panel outranks everything else while it is up: closing this
+  // screen without saving them is the failure mode the feature exists to
+  // prevent, so it is not competing for attention with anything.
+  if (freshCodes) {
+    return (
+      <RecoveryCodes codes={freshCodes} onAcknowledge={() => setFreshCodes(null)} />
+    );
+  }
+
   if (on) {
     return (
       <div className="space-y-3">
         <p className="flex items-center gap-2 text-sm text-green-600">
           <ShieldCheck className="h-4 w-4" /> Two-factor authentication is on.
         </p>
+
+        <div className="rounded-md border p-3 text-sm">
+          <p className="font-medium">Recovery codes</p>
+          {remaining <= LOW_WATER ? (
+            <p className="mt-1 text-amber-600">
+              {remaining === 0
+                ? "You have no recovery codes left. If you lose your phone you will be locked out — generate a new set now."
+                : `Only ${remaining} left. Generate a new set before you run out.`}
+            </p>
+          ) : (
+            <p className="mt-1 text-muted-foreground">
+              {remaining} unused. Each one works once, and they are the way
+              back in if you lose your phone.
+            </p>
+          )}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Generating a new set immediately invalidates the old one. Enter a
+            code from your authenticator app below, then choose an action.
+          </p>
+        </div>
+
         <div className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
-            <Label htmlFor="off-code">Enter a code to disable</Label>
+            <Label htmlFor="off-code">Authenticator code</Label>
             <Input
               id="off-code"
               inputMode="numeric"
@@ -73,6 +135,9 @@ export function TwoFactor({ enabled }: { enabled: boolean }) {
               onChange={(e) => setCode(e.target.value)}
             />
           </div>
+          <Button size="sm" variant="outline" disabled={busy} onClick={regenerate}>
+            New recovery codes
+          </Button>
           <Button size="sm" variant="destructive" disabled={busy} onClick={turnOff}>
             Disable 2FA
           </Button>

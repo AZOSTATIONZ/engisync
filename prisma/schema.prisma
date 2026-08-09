@@ -164,9 +164,9 @@ enum ExpenseCategory {
 // ── Auth.js models ────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String     @unique
   emailVerified DateTime?
   image         String?
   passwordHash  String? // null for OAuth-only users
@@ -188,8 +188,28 @@ model User {
   plan Plan @default(FREE)
 
   // Two-factor
-  twoFactorEnabled Boolean @default(false)
+  twoFactorEnabled Boolean               @default(false)
   twoFactorSecret  String?
+  backupCodes      TwoFactorBackupCode[]
+
+  /// SESSION REVOCATION FOR JWT SESSIONS.
+  ///
+  /// Sessions are JWTs (see auth.config.ts) so that middleware can authorize
+  /// at the edge without a database round trip. The cost of that choice is
+  /// that a JWT is valid until it expires — 30 days — and the server holds no
+  /// state with which to cancel it.
+  ///
+  /// That made password reset a half-measure: it rewrote the hash and burned
+  /// the outstanding tokens, but every device already signed in STAYED signed
+  /// in for up to a month. When the reset was prompted by a compromise, the
+  /// remedy did not evict the intruder, which inverts the entire point.
+  ///
+  /// This integer is stamped into the token at sign-in and compared on each
+  /// authorization. Bumping it invalidates every token issued before the bump
+  /// — password reset, 2FA changes, and an explicit "sign out everywhere".
+  /// One integer comparison buys real revocation while keeping verification
+  /// stateless on the hot path.
+  sessionVersion Int @default(0)
 
   // ── Personalization ──
   // Deliberately NO avatar file field. Avatars are generated deterministically
@@ -202,8 +222,8 @@ model User {
   // unreadable, so the palette guarantees contrast instead.
   accentColor String?
   avatarStyle String?
-  headline    String? @db.VarChar(80)
-  bio         String? @db.VarChar(280)
+  headline    String?  @db.VarChar(80)
+  bio         String?  @db.VarChar(280)
   skills      String[]
 
   // ── Public portfolio ──
@@ -211,33 +231,33 @@ model User {
   // the open internet is a decision only they can make. `handle` is the URL at
   // /p/<handle>; unique and lowercase so two people cannot claim the same one
   // by differing in case.
-  handle        String?  @unique
-  publicProfile Boolean  @default(false)
+  handle        String? @unique
+  publicProfile Boolean @default(false)
 
-  accounts     Account[]
-  sessions     Session[]
-  memberships  WorkspaceMember[]
-  ledWorkspaces Workspace[] @relation("WorkspaceLeader")
+  accounts      Account[]
+  sessions      Session[]
+  memberships   WorkspaceMember[]
+  ledWorkspaces Workspace[]       @relation("WorkspaceLeader")
 
-  createdTasks  Task[] @relation("TaskCreator")
-  assignedTasks Task[] @relation("TaskAssignee")
-  timeLogs      TimeLog[]
-  events        CalendarEvent[] @relation("EventCreator")
-  notifications Notification[]
-  files         FileResource[]  @relation("FileUploader")
-  shareLinks    ShareLink[]     @relation("ShareCreator")
-  createdMeetings Meeting[]     @relation("MeetingCreator")
-  attendances   Attendance[]
-  contributions Contribution[] @relation("Contributor")
-  expensesSpent Expense[]      @relation("ExpenseSpender")
-  withdrawalRequests WithdrawalRequest[] @relation("WithdrawalRequester")
-  deptMemberships   DepartmentMember[]
-  createdDepartments Department[]     @relation("DeptCreator")
-  deptAnnouncements DepartmentAnnouncement[] @relation("DeptAnnouncementAuthor")
-  joinRequests      JoinRequest[]
-  pushSubscriptions PushSubscription[]
-  passwordResetTokens PasswordResetToken[]
-  projectGrants       ProjectGrant[] @relation("ProjectGrantee")
+  createdTasks            Task[]                   @relation("TaskCreator")
+  assignedTasks           Task[]                   @relation("TaskAssignee")
+  timeLogs                TimeLog[]
+  events                  CalendarEvent[]          @relation("EventCreator")
+  notifications           Notification[]
+  files                   FileResource[]           @relation("FileUploader")
+  shareLinks              ShareLink[]              @relation("ShareCreator")
+  createdMeetings         Meeting[]                @relation("MeetingCreator")
+  attendances             Attendance[]
+  contributions           Contribution[]           @relation("Contributor")
+  expensesSpent           Expense[]                @relation("ExpenseSpender")
+  withdrawalRequests      WithdrawalRequest[]      @relation("WithdrawalRequester")
+  deptMemberships         DepartmentMember[]
+  createdDepartments      Department[]             @relation("DeptCreator")
+  deptAnnouncements       DepartmentAnnouncement[] @relation("DeptAnnouncementAuthor")
+  joinRequests            JoinRequest[]
+  pushSubscriptions       PushSubscription[]
+  passwordResetTokens     PasswordResetToken[]
+  projectGrants           ProjectGrant[]           @relation("ProjectGrantee")
   emailVerificationTokens EmailVerificationToken[]
 
   createdAt DateTime @default(now())
@@ -296,6 +316,31 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+/// Single-use recovery codes for two-factor authentication.
+///
+/// Stored as an unsalted SHA-256 of the normalised code, which is unusual
+/// enough to be worth defending here: these are 50 bits of uniformly random
+/// entropy, not user-chosen passwords, so there is no dictionary to build a
+/// rainbow table from and nothing for a slow KDF to protect. Salting would
+/// also forbid lookup by value, forcing a scan of every one of a user's codes
+/// — ten bcrypt comparisons per login attempt, on an unauthenticated path.
+/// See lib/backup-codes.ts for the full reasoning.
+///
+/// `usedAt` rather than a boolean: when a recovery code was spent is exactly
+/// the kind of thing you want on record when investigating an account.
+model TwoFactorBackupCode {
+  id       String    @id @default(cuid())
+  userId   String
+  codeHash String    @unique
+  usedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model PasswordResetToken {
@@ -363,10 +408,10 @@ model Workspace {
   // Engineering lifecycle. `stageEnteredAt` is what makes "are we behind
   // schedule?" answerable — without a timestamp we can only say where a
   // project is, never how long it has been stuck there.
-  stage         ProjectStage @default(IDEA)
-  stageEnteredAt DateTime    @default(now())
+  stage          ProjectStage @default(IDEA)
+  stageEnteredAt DateTime     @default(now())
   /// Optional target end date, used to pace expected progress.
-  targetEndDate DateTime?
+  targetEndDate  DateTime?
 
   // Budget
   budgetTarget Decimal? @db.Decimal(12, 2)
@@ -377,31 +422,31 @@ model Workspace {
   department   Department? @relation(fields: [departmentId], references: [id])
 
   // Secure access controls.
-  maxMembers      Int?     // null = unlimited
-  requireApproval Boolean  @default(false)
+  maxMembers      Int? // null = unlimited
+  requireApproval Boolean @default(false)
 
   leaderId String
   leader   User   @relation("WorkspaceLeader", fields: [leaderId], references: [id])
 
-  members       WorkspaceMember[]
-  tasks         Task[]
-  events        CalendarEvent[]
-  files         FileResource[]
-  meetings      Meeting[]
-  contributions Contribution[]
-  expenses      Expense[]
-  joinRequests  JoinRequest[]
-  invites       GroupInvite[]
-  collaborations WorkspaceCollaboration[]
-  discussions   DiscussionThread[]
-  quizzes       Quiz[]
-  evaluation    AIEvaluation?
-  milestones    Milestone[]
-  risks         ProjectRisk[]
-  deliverables  Deliverable[]
-  feedback      ProjectFeedback[]
-  document      ProjectDocument?
-  activity      Activity[]
+  members              WorkspaceMember[]
+  tasks                Task[]
+  events               CalendarEvent[]
+  files                FileResource[]
+  meetings             Meeting[]
+  contributions        Contribution[]
+  expenses             Expense[]
+  joinRequests         JoinRequest[]
+  invites              GroupInvite[]
+  collaborations       WorkspaceCollaboration[]
+  discussions          DiscussionThread[]
+  quizzes              Quiz[]
+  evaluation           AIEvaluation?
+  milestones           Milestone[]
+  risks                ProjectRisk[]
+  deliverables         Deliverable[]
+  feedback             ProjectFeedback[]
+  document             ProjectDocument?
+  activity             Activity[]
   contributionRequests ContributionRequest[]
   grants               ProjectGrant[]
   paymentInstruction   PaymentInstruction?
@@ -456,7 +501,9 @@ model ReservedIdentity {
   @@index([until])
 }
 
-/** Pending, verified account-deletion requests (two-step confirmation). */
+/**
+ * Pending, verified account-deletion requests (two-step confirmation).
+ */
 model AccountDeletionRequest {
   id        String   @id @default(cuid())
   userId    String   @unique
@@ -515,17 +562,17 @@ model DepartmentResource {
   status ResourceStatus @default(PENDING)
 
   // AI-generated metadata (filled on approval).
-  description  String?             @db.Text
-  difficulty   ResourceDifficulty?
-  category     String?
-  whyUseful    String?             @db.Text
-  tags         String[]            @default([])
-  topics       String[]            @default([])
+  description String?             @db.Text
+  difficulty  ResourceDifficulty?
+  category    String?
+  whyUseful   String?             @db.Text
+  tags        String[]            @default([])
+  topics      String[]            @default([])
 
   // Moderation.
-  moderationReason  String?  @db.Text
+  moderationReason  String?   @db.Text
   suggestedCategory String?
-  moderatedByAI     Boolean  @default(false)
+  moderatedByAI     Boolean   @default(false)
   moderatedAt       DateTime?
 
   department   Department            @relation(fields: [departmentId], references: [id], onDelete: Cascade)
@@ -593,12 +640,12 @@ model ProjectDocument {
   workspaceId String @unique
 
   // When locked, students cannot edit any section (supervisor-controlled).
-  locked     Boolean @default(false)
+  locked               Boolean   @default(false)
   // Final-report approval (all sections signed off).
-  approved   Boolean @default(false)
-  approvedAt DateTime?
+  approved             Boolean   @default(false)
+  approvedAt           DateTime?
   // Overall project-completion sign-off by the supervisor.
-  completionApproved   Boolean @default(false)
+  completionApproved   Boolean   @default(false)
   completionApprovedAt DateTime?
 
   workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -610,14 +657,14 @@ model ProjectDocument {
 }
 
 model ReportVersion {
-  id            String @id @default(cuid())
-  documentId    String
-  versionNumber Int
-  submittedById String
+  id              String  @id @default(cuid())
+  documentId      String
+  versionNumber   Int
+  submittedById   String
   submittedByName String
-  note          String? @db.Text
+  note            String? @db.Text
   // JSON snapshot of every section's title + content at submission time.
-  snapshot      String  @db.Text
+  snapshot        String  @db.Text
 
   document ProjectDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
@@ -637,8 +684,8 @@ model DocumentSection {
   status     SectionStatus @default(DRAFT)
   locked     Boolean       @default(false)
 
-  document ProjectDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  comments SectionComment[]
+  document    ProjectDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  comments    SectionComment[]
   /// Engineering evidence filed against this section — the schematic for
   /// "Circuit Diagrams", the STEP model for "System Design", and so on.
   attachments FileResource[]
@@ -651,11 +698,11 @@ model DocumentSection {
 }
 
 model SectionComment {
-  id         String  @id @default(cuid())
-  sectionId  String
-  authorId   String
-  authorName String
-  body       String  @db.Text
+  id           String  @id @default(cuid())
+  sectionId    String
+  authorId     String
+  authorName   String
+  body         String  @db.Text
   // True when the comment is a supervisor's correction request.
   isCorrection Boolean @default(false)
 
@@ -714,8 +761,8 @@ model Deliverable {
 // ── AI project evaluation (cached report) ─────
 
 model AIEvaluation {
-  id          String @id @default(cuid())
-  workspaceId String @unique
+  id          String  @id @default(cuid())
+  workspaceId String  @unique
   data        Json // structured report from the AI
   model       String?
   createdById String
@@ -759,11 +806,11 @@ model DiscussionMessage {
 }
 
 model Quiz {
-  id            String  @id @default(cuid())
-  workspaceId   String
-  createdById   String
-  title         String
-  description   String?
+  id          String  @id @default(cuid())
+  workspaceId String
+  createdById String
+  title       String
+  description String?
 
   workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   questions QuizQuestion[]
@@ -788,12 +835,12 @@ model QuizQuestion {
 }
 
 model QuizAttempt {
-  id        String @id @default(cuid())
-  quizId    String
-  userId    String
-  userName  String
-  score     Int
-  total     Int
+  id       String @id @default(cuid())
+  quizId   String
+  userId   String
+  userName String
+  score    Int
+  total    Int
 
   quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
@@ -849,11 +896,11 @@ model Department {
   createdById String
   createdBy   User   @relation("DeptCreator", fields: [createdById], references: [id])
 
-  members       DepartmentMember[]
-  workspaces    Workspace[]
-  announcements DepartmentAnnouncement[]
+  members        DepartmentMember[]
+  workspaces     Workspace[]
+  announcements  DepartmentAnnouncement[]
   collaborations WorkspaceCollaboration[]
-  resources     DepartmentResource[]
+  resources      DepartmentResource[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -959,12 +1006,12 @@ model ProjectGrant {
 
   role ProjectGrantRole @default(SUPERVISOR)
 
-  grantedById String?
+  grantedById   String?
   /// Denormalised so the record stays readable after an account is deleted.
   grantedByName String
   /// Set when the grant is withdrawn. Null = active.
-  revokedAt   DateTime?
-  revokedById String?
+  revokedAt     DateTime?
+  revokedById   String?
 
   createdAt DateTime @default(now())
 
@@ -1104,10 +1151,10 @@ model PublishedProject {
   supervisorName String?
 
   /// Provenance (plain strings, no FK — see design note).
-  workspaceId    String?
-  departmentId   String?
-  submittedById  String
-  approvedById   String?
+  workspaceId   String?
+  departmentId  String?
+  submittedById String
+  approvedById  String?
 
   rejectionReason String?
   downloads       Int     @default(0)
@@ -1324,7 +1371,7 @@ model FileResource {
   /// canonical form of source-code evidence for most student projects, and
   /// copying a snapshot of it into Postgres would be both wasteful and
   /// immediately stale. Exactly one of `data` or `externalUrl` is set.
-  data Bytes?
+  data        Bytes?
   /// Set for link-based evidence (e.g. a GitHub repo). Never fetched by the
   /// server — stored as data and rendered as a link, which keeps this free of
   /// SSRF risk.
@@ -1376,15 +1423,15 @@ model FileResource {
 }
 
 model ShareLink {
-  id       String @id @default(cuid())
-  token    String @unique
-  fileId   String
-  file     FileResource @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  id     String       @id @default(cuid())
+  token  String       @unique
+  fileId String
+  file   FileResource @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   expiresAt     DateTime?
   maxDownloads  Int?
-  downloadCount Int      @default(0)
-  revoked       Boolean  @default(false)
+  downloadCount Int       @default(0)
+  revoked       Boolean   @default(false)
 
   createdById String
   createdBy   User   @relation("ShareCreator", fields: [createdById], references: [id])
@@ -1442,16 +1489,16 @@ model Attendance {
 
 /// A request for money: "PCB manufacturing, US$120, $15 each, due 15 August".
 model ContributionRequest {
-  id       String  @id @default(cuid())
-  title    String
-  purpose  String?
+  id              String    @id @default(cuid())
+  title           String
+  purpose         String?
   /// Total the project needs to raise.
-  targetAmount    Decimal  @db.Decimal(12, 2)
+  targetAmount    Decimal   @db.Decimal(12, 2)
   /// Expected share per member, if the leader split it evenly.
-  perMemberAmount Decimal? @db.Decimal(12, 2)
-  currency String   @default("USD")
-  dueDate  DateTime?
-  closed   Boolean  @default(false)
+  perMemberAmount Decimal?  @db.Decimal(12, 2)
+  currency        String    @default("USD")
+  dueDate         DateTime?
+  closed          Boolean   @default(false)
 
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -1485,11 +1532,11 @@ model PaymentInstruction {
 }
 
 model Contribution {
-  id          String             @id @default(cuid())
-  amount      Decimal            @db.Decimal(12, 2)
-  method      ContributionMethod @default(ECOCASH)
-  reference   String? // e.g. EcoCash transaction reference
-  note        String?
+  id        String             @id @default(cuid())
+  amount    Decimal            @db.Decimal(12, 2)
+  method    ContributionMethod @default(ECOCASH)
+  reference String? // e.g. EcoCash transaction reference
+  note      String?
 
   status ContributionStatus @default(DECLARED)
 

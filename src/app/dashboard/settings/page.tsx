@@ -34,6 +34,10 @@ export default async function SettingsPage() {
       essentialEmails: true,
       systemRole: true,
       twoFactorEnabled: true,
+      // Folded into the existing select rather than a second query: the
+      // page already loads this user, and a filtered relation count is
+      // free compared with another trip to Neon.
+      _count: { select: { backupCodes: { where: { usedAt: null } } } },
       headline: true,
       bio: true,
       skills: true,
@@ -203,7 +207,10 @@ export default async function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <TwoFactor enabled={user?.twoFactorEnabled ?? false} />
+          <TwoFactor
+            enabled={user?.twoFactorEnabled ?? false}
+            remainingCodes={user?._count.backupCodes ?? 0}
+          />
         </CardContent>
       </Card>
 

@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { generateTotpSecret, otpauthUrl, verifyTotp } from "@/lib/totp";
 import { generateQrDataUrl } from "@/lib/qr";
+import { clearBackupCodes, issueBackupCodes } from "@/lib/two-factor";
 
 export type TwoFactorState = { error?: string; success?: string } | null;
 
@@ -33,8 +34,20 @@ export async function startTwoFactorSetup(): Promise<
   return { secret, otpauthUrl: url, qr };
 }
 
-/** Confirm setup by validating a code, then enable 2FA. */
-export async function confirmTwoFactor(code: string): Promise<TwoFactorState> {
+/**
+ * Confirm setup by validating a code, then enable 2FA AND issue recovery
+ * codes.
+ *
+ * The codes are returned here, in the same step that turns 2FA on, because
+ * this is the only moment they exist in readable form — they are stored as
+ * hashes and can never be shown again. Enabling 2FA without handing back a
+ * recovery path is precisely the defect this replaces: it made the most
+ * security-conscious users the only ones who could permanently lock
+ * themselves out of their own account.
+ */
+export async function confirmTwoFactor(
+  code: string,
+): Promise<TwoFactorState & { backupCodes?: string[] }> {
   const user = await requireUser();
   const record = await prisma.user.findUnique({
     where: { id: user.id },
@@ -51,12 +64,49 @@ export async function confirmTwoFactor(code: string): Promise<TwoFactorState> {
     where: { id: user.id },
     data: { twoFactorEnabled: true },
   });
+  const backupCodes = await issueBackupCodes(user.id);
   await prisma.auditLog.create({
     data: { userId: user.id, action: "2FA_ENABLED" },
   });
 
   revalidatePath("/dashboard/settings");
-  return { success: "Two-factor authentication is on." };
+  return {
+    success: "Two-factor authentication is on.",
+    backupCodes,
+  };
+}
+
+/**
+ * Issue a fresh set, invalidating the old one.
+ *
+ * Requires a current TOTP code: whoever regenerates recovery codes can use
+ * them to enter the account later, so this is as sensitive as logging in and
+ * is gated the same way. Deliberately does NOT accept a backup code as proof
+ * — someone holding a single stolen code could otherwise mint ten more and
+ * lock the real owner out.
+ */
+export async function regenerateBackupCodes(
+  code: string,
+): Promise<TwoFactorState & { backupCodes?: string[] }> {
+  const user = await requireUser();
+  const record = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { twoFactorSecret: true, twoFactorEnabled: true },
+  });
+  if (!record?.twoFactorEnabled || !record.twoFactorSecret) {
+    return { error: "2FA isn't enabled." };
+  }
+  if (!verifyTotp(record.twoFactorSecret, code)) {
+    return { error: "That code isn't valid." };
+  }
+
+  const backupCodes = await issueBackupCodes(user.id);
+  await prisma.auditLog.create({
+    data: { userId: user.id, action: "2FA_BACKUP_CODES_REGENERATED" },
+  });
+
+  revalidatePath("/dashboard/settings");
+  return { success: "New recovery codes generated.", backupCodes };
 }
 
 /** Disable 2FA (requires a current valid code). */
@@ -77,6 +127,10 @@ export async function disableTwoFactor(code: string): Promise<TwoFactorState> {
     where: { id: user.id },
     data: { twoFactorEnabled: false, twoFactorSecret: null },
   });
+  // Recovery codes are meaningless once 2FA is off, and leaving them behind
+  // would silently resurrect them if 2FA were re-enabled later — the user
+  // would be shown a fresh set while an old printout still worked.
+  await clearBackupCodes(user.id);
   await prisma.auditLog.create({
     data: { userId: user.id, action: "2FA_DISABLED" },
   });

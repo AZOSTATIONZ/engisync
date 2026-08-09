@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { authConfig } from "@/auth.config";
 import { loginSchema } from "@/lib/validations";
 import { verifyTotp } from "@/lib/totp";
+import { consumeBackupCode } from "@/lib/two-factor";
 
 // Accept either naming convention: AUTH_* (Auth.js default) or the
 // GOOGLE_CLIENT_* / MICROSOFT_CLIENT_* names documented in .env.example.
@@ -32,6 +33,32 @@ export const socialProviders = {
   microsoft: Boolean(msId && msSecret),
 };
 
+/* WHY AUTOMATIC ACCOUNT LINKING IS OFF.
+   ---------------------------------------------------------------------
+   Both providers previously set `allowDangerousEmailAccountLinking: true`,
+   which silently attaches an OAuth identity to any existing account sharing
+   the same address. Auth.js calls the option "dangerous" literally, and with
+   unverified registration it opened a pre-registration takeover:
+
+     1. Attacker registers victim@university.ac.zw with a password of their
+        choosing. Nothing verifies they own the mailbox.
+     2. The real owner later signs in with Google.
+     3. Auth.js links their Google identity INTO the attacker's account.
+     4. Both now hold access. The attacker keeps password entry indefinitely,
+        sees every project the victim joins, and no log records any of it.
+
+   Turning this off costs nothing today: production has zero linked OAuth
+   accounts, so no existing sign-in changes. A user who registered with a
+   password now gets `OAuthAccountNotLinked` instead of a silent merge, and
+   signs in with their password as before.
+
+   The right long-term answer is linking initiated from Settings by an
+   already-authenticated user — proving control of BOTH identities — rather
+   than inferring consent from a matching string during sign-in. That is
+   deliberately not bolted on here; it belongs with email verification
+   enforcement, and shipping the safe default first is what matters. */
+const SAFE_LINKING = false as const;
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(prisma),
@@ -41,7 +68,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           Google({
             clientId: googleId,
             clientSecret: googleSecret,
-            allowDangerousEmailAccountLinking: true,
+            allowDangerousEmailAccountLinking: SAFE_LINKING,
           }),
         ]
       : []),
@@ -51,7 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             clientId: msId,
             clientSecret: msSecret,
             issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
-            allowDangerousEmailAccountLinking: true,
+            allowDangerousEmailAccountLinking: SAFE_LINKING,
           }),
         ]
       : []),
@@ -73,10 +100,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
 
-        // Enforce 2FA when enabled.
+        /* Enforce 2FA when enabled — TOTP, OR a single-use recovery code.
+           ----------------------------------------------------------------
+           Before recovery codes existed, this branch was a one-way door: a
+           student whose phone was lost, wiped or replaced failed `verifyTotp`
+           forever, and there was no path around it. The care they took by
+           turning 2FA on was the thing that destroyed their account.
+
+           TOTP is tried first because it is what almost every successful
+           login uses; the recovery path is the exception and is allowed to
+           cost an extra query. A spent code is marked used inside a single
+           conditional UPDATE (see `consumeBackupCode`), so it cannot be
+           replayed — including by two requests racing deliberately. */
         if (user.twoFactorEnabled && user.twoFactorSecret) {
           const code = typeof credentials?.code === "string" ? credentials.code : "";
-          if (!verifyTotp(user.twoFactorSecret, code)) return null;
+          const totpOk = verifyTotp(user.twoFactorSecret, code);
+          const recoveryOk = totpOk ? false : await consumeBackupCode(user.id, code);
+          if (!totpOk && !recoveryOk) return null;
         }
 
         return {
@@ -85,6 +125,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           image: user.image,
           systemRole: user.systemRole,
+          sessionVersion: user.sessionVersion,
         };
       },
     }),

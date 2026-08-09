@@ -103,7 +103,14 @@ export async function resetPassword(
   await prisma.$transaction([
     prisma.user.update({
       where: { id: record.userId },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        // Strand every session issued before this moment. Without it, a reset
+        // performed BECAUSE the account was compromised left the intruder
+        // signed in for up to 30 days — the JWT does not care that the
+        // password changed. See User.sessionVersion.
+        sessionVersion: { increment: 1 },
+      },
     }),
     prisma.passwordResetToken.update({
       where: { token },
