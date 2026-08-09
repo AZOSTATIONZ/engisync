@@ -35,10 +35,29 @@ was nowhere else to apply it to.
    production, the `.env` edit did not take.
 
 **Your dev branch contains a copy of real student data** — names, email
-addresses, password hashes. It is the same Neon account and the same owner, so
-this is not a new exposure, but treat that branch with the same care as
-production: do not paste its connection string anywhere, and do not point a
-deployed preview at it.
+addresses, password hashes, EcoCash references and uploaded coursework.
+
+Scrub it as soon as you have created it:
+
+```bash
+npm run db:anonymise              # report only, changes nothing
+npm run db:anonymise -- --confirm # rewrite
+```
+
+This replaces every name and address with a stable pseudonym, resets all
+passwords to `DevPassword-123!` so you can sign in as anyone, deletes sessions,
+2FA secrets, recovery codes, tokens, push subscriptions and OAuth credentials,
+clears IP addresses, device labels and payment references, and replaces
+uploaded file bytes with a placeholder.
+
+It **refuses to run against production, with no override** — unlike the
+migration guard, there is no legitimate reason to want that.
+
+**It does not make the data anonymous in the legal sense.** Free text is
+scrubbed only where a name matches a user in the database; a nickname, a
+misspelling or somebody who never had an account survives. Treat the branch as
+sensitive — just less so. Do not paste its connection string anywhere, and do
+not point a deployed preview at it.
 
 ## Everyday work
 
@@ -48,6 +67,7 @@ deployed preview at it.
 | Apply existing migrations to production | `npm run prisma:deploy` |
 | See which database you are pointed at | `npm run db:guard` |
 | Reset your dev branch to a clean state | `npm run prisma:reset` |
+| Scrub real student data from your dev branch | `npm run db:anonymise` |
 
 ## The guard
 
