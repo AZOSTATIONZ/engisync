@@ -1368,11 +1368,27 @@ model FileResource {
   mimeType    String
   size        Int
 
-  /// NULLABLE since evidence may live elsewhere. A GitHub repository is the
-  /// canonical form of source-code evidence for most student projects, and
-  /// copying a snapshot of it into Postgres would be both wasteful and
-  /// immediately stale. Exactly one of `data` or `externalUrl` is set.
-  data        Bytes?
+  /// ── WHERE THE BYTES ACTUALLY ARE ──
+  ///
+  /// Exactly one of `data`, `storageKey` or `externalUrl` is set, and
+  /// `lib/files.ts:fileLocation()` is the single place that decides which.
+  ///
+  /// `data` is the ORIGINAL and now the legacy path: bytes inside Postgres.
+  /// It worked at three files and does not survive growth. Every download
+  /// materialises the whole file in server memory; backup and restore time
+  /// scale with total upload volume, so recovery gets slower precisely as the
+  /// product succeeds; and any query that forgets to exclude this column
+  /// drags megabytes across the connection. It stays nullable and readable so
+  /// existing rows keep working — nothing is rewritten in place.
+  data Bytes?
+
+  /// Object storage key — the path we asked the store to write. New uploads
+  /// go here whenever object storage is configured. Kept separate from
+  /// `externalUrl` because the two mean different things: this is OUR object,
+  /// which we can re-read and delete, whereas `externalUrl` is somebody
+  /// else's page that we only ever link to.
+  storageKey String?
+
   /// Set for link-based evidence (e.g. a GitHub repo). Never fetched by the
   /// server — stored as data and rendered as a link, which keeps this free of
   /// SSRF risk.

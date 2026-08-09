@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { fileLocation, readFileBytes } from "@/lib/file-bytes";
 
 /**
  * Public download via a temporary access key (no auth required).
@@ -21,9 +22,30 @@ export async function GET(
     );
   }
 
+  // `include: { file: true }` pulled the whole blob column on EVERY request,
+  // including the ones rejected below for expiry or revocation. Selecting the
+  // metadata means an expired link now costs kilobytes instead of megabytes,
+  // on a public endpoint anyone can hammer.
   const link = await prisma.shareLink.findUnique({
     where: { token },
-    include: { file: true },
+    select: {
+      id: true,
+      token: true,
+      fileId: true,
+      revoked: true,
+      expiresAt: true,
+      maxDownloads: true,
+      downloadCount: true,
+      file: {
+        select: {
+          id: true,
+          name: true,
+          mimeType: true,
+          storageKey: true,
+          externalUrl: true,
+        },
+      },
+    },
   });
 
   if (!link || link.revoked) {
@@ -42,10 +64,21 @@ export async function GET(
   // Link evidence has no bytes. Checked BEFORE the download counter is
   // incremented, so a share of link-only evidence cannot burn down its
   // download allowance without ever serving anything.
-  if (!link.file.data) {
+  if (fileLocation({ ...link.file, data: null }) === "link") {
     return NextResponse.json(
       { error: "This evidence is a link, not a stored file." },
       { status: 409 },
+    );
+  }
+
+  // Fetched before the counter is incremented, for the same reason the link
+  // check is: a download that cannot be served must not consume the
+  // allowance. Handles object storage and legacy database rows alike.
+  const bytes = await readFileBytes(link.file.id);
+  if (!bytes) {
+    return NextResponse.json(
+      { error: "This file's contents could not be retrieved." },
+      { status: 502 },
     );
   }
 
@@ -67,11 +100,11 @@ export async function GET(
     }),
   ]);
 
-  return new NextResponse(new Uint8Array(link.file.data), {
+  return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": link.file.mimeType,
       "Content-Disposition": `attachment; filename="${encodeURIComponent(link.file.name)}"`,
-      "Content-Length": String(link.file.size),
+      "Content-Length": String(bytes.byteLength),
     },
   });
 }

@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { authorize } from "@/lib/policy";
 import { getBaseUrl } from "@/lib/qr";
 import { MAX_FILE_BYTES, formatBytes } from "@/lib/files";
+import { buildStorageKey, deleteObject, putObject } from "@/lib/storage";
+import { fileLocation } from "@/lib/file-bytes";
 import { isRepositoryUrl, validateEvidence } from "@/lib/evidence";
 import { projectDocs } from "@/lib/routes";
 
@@ -135,13 +137,36 @@ export async function uploadEvidence(
     select: { id: true, version: true },
   });
 
+  /* WHERE THE BYTES GO.
+     ------------------------------------------------------------------
+     Object storage when it is configured, Postgres when it is not. Uploads
+     used to go into the database unconditionally, which is fine at three
+     files and is the thing that does not survive growth — every download then
+     materialises the whole file in server memory, and backup time scales with
+     total upload volume.
+
+     `putObject` returns null rather than throwing when storage is
+     unconfigured OR when the write fails. Both collapse to the same safe
+     answer here: keep the bytes in the database. A student mid-upload must
+     not lose their work because an object store had a bad minute, and this is
+     what makes enabling storage a pure environment change with no flag day. */
+  const mimeType = file.type || "application/octet-stream";
+  const storageKey = await putObject(
+    buildStorageKey(workspaceId, file.name),
+    bytes,
+    mimeType,
+  );
+
   const created = await prisma.fileResource.create({
     data: {
       name: file.name,
       description,
-      mimeType: file.type || "application/octet-stream",
+      mimeType,
       size: file.size,
-      data: bytes,
+      // Exactly one of these is set. Writing both would double the storage
+      // cost and leave two copies to keep in step.
+      data: storageKey ? null : bytes,
+      storageKey,
       sha256,
       kind: check.kind,
       documentSectionId: section.id,
@@ -233,10 +258,18 @@ export async function shareEvidence(
 
   const file = await prisma.fileResource.findFirst({
     where: { id: fileId, workspaceId },
-    select: { id: true, data: true, externalUrl: true },
+    // `data` is NOT selected: needing the bytes to answer "is this a link?"
+    // was the old shape of this check and it would now be actively wrong.
+    select: { id: true, storageKey: true, externalUrl: true },
   });
   if (!file) return { error: "File not found in this project." };
-  if (!file.data) {
+  /* "Has no bytes in the database" used to be a synonym for "is a link".
+     Once uploads can live in object storage that synonym breaks: such a row
+     has an empty `data` column and is very much a real file. Testing it the
+     old way would have refused to share every newly uploaded document with
+     a message about links, which is both wrong and baffling. `fileLocation`
+     exists so this question has exactly one answer everywhere. */
+  if (fileLocation({ ...file, data: null }) === "link") {
     return { error: "This evidence is already a link — share the URL directly." };
   }
 
@@ -292,7 +325,13 @@ export async function deleteEvidence(
 
   const file = await prisma.fileResource.findFirst({
     where: { id: fileId, workspaceId },
-    select: { id: true, name: true, uploaderId: true, supersededBy: { select: { id: true } } },
+    select: {
+      id: true,
+      name: true,
+      uploaderId: true,
+      storageKey: true,
+      supersededBy: { select: { id: true } },
+    },
   });
   if (!file) return { error: "File not found in this project." };
 
@@ -310,6 +349,17 @@ export async function deleteEvidence(
   }
 
   await prisma.fileResource.delete({ where: { id: file.id } });
+
+  /* Drop the stored object too, or every deletion leaks storage that nothing
+     will ever reference again — the row was the only record of the key.
+
+     Deliberately AFTER the row delete and deliberately not awaited into the
+     result: the row is the source of truth about what exists. Failing here
+     leaves an orphan costing a fraction of a cent, whereas failing BEFORE the
+     row delete would leave the user staring at a file they were told was
+     gone. `deleteObject` swallows its own errors for the same reason. */
+  if (file.storageKey) await deleteObject(file.storageKey);
+
   await prisma.auditLog.create({
     data: { userId, action: "EVIDENCE_DELETED", target: fileId, metadata: { name: file.name } },
   });
