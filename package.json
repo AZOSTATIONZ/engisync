@@ -2,7 +2,7 @@
   "name": "engisync",
   "version": "0.1.0",
   "private": true,
-  "description": "EngiSync — collaboration & productivity platform for university engineering students",
+  "description": "EngiSync \u2014 collaboration & productivity platform for university engineering students",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -12,10 +12,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "node scripts/db-guard.mjs \"prisma migrate dev\" && prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts",
-    "format": "prettier --write ."
+    "db:seed": "node scripts/db-guard.mjs \"db seed\" && tsx prisma/seed.ts",
+    "format": "prettier --write .",
+    "db:guard": "node scripts/db-guard.mjs",
+    "prisma:reset": "node scripts/db-guard.mjs \"prisma migrate reset\" && prisma migrate reset"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
