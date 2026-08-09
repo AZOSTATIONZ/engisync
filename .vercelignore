@@ -1,0 +1,25 @@
+# What must never be uploaded to Vercel.
+#
+# BELT AND BRACES, NOT LOAD-BEARING. Every path below is already covered by
+# .gitignore, and the Vercel CLI falls back to .gitignore when this file is
+# absent — so nothing here changes what gets deployed today. It exists to make
+# the exclusion explicit and to stop it depending on .gitignore continuing to
+# be correct: the two files answer different questions ("what do we version?"
+# versus "what do we ship?"), and they only happen to agree right now.
+#
+# The paths matter because `public/images` and `public/videos` hold 434 MB of
+# local working media — full-resolution stock originals, none of it committed
+# and none of it referenced by any working code path. Git-triggered deploys
+# build from the repository and have never seen it. A `vercel --prod` from a
+# developer's machine uploads the working DIRECTORY instead, so the day
+# somebody loosens a .gitignore rule, this is what stops half a gigabyte of
+# unused media becoming a public URL on a project whose users are on metered
+# mobile data.
+
+public/images
+public/videos
+
+# Local-only working files: audit output, Playwright snapshots, scratch scripts.
+audit
+.playwright-mcp
+scripts/tmp
