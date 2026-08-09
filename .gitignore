@@ -48,3 +48,4 @@ tsconfig.*check.json
 .env*
 audit/
 .playwright-mcp/
+scripts/tmp/
