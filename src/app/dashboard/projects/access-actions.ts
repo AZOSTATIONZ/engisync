@@ -595,6 +595,11 @@ export async function createInvite(
   const authz = await authorize(workspaceId, userId, "member.invite");
   if (!authz.ok) return { error: authz.error };
 
+  // An invite link is a credential handed to someone outside the project.
+  // Same reasoning as inviteByEmail; see the note there.
+  const unverified = await verifiedAccountGate(userId);
+  if (unverified) return { error: unverified };
+
   const expiresInHours = parseInt(String(formData.get("expiresInHours") ?? "0"), 10);
   const rawMaxUses = String(formData.get("maxUses") ?? "").trim();
   const maxUses = rawMaxUses ? Math.max(1, parseInt(rawMaxUses, 10)) : null;
@@ -618,6 +623,14 @@ export async function inviteByEmail(
   const userId = await requireUserId();
   const workspaceId = String(formData.get("workspaceId") ?? "");
   const email = String(formData.get("email") ?? "").trim();
+
+  /* Verified email required. This action reaches OUTSIDE the account, so the
+     address behind it has to be real. `verifiedAccountGate` returns null when
+     email is unconfigured on the server, which is what stops this becoming an
+     outage before SMTP exists — nobody is asked for a verification they have
+     no way to obtain. */
+  const unverified = await verifiedAccountGate(userId);
+  if (unverified) return { error: unverified };
 
   const authz = await authorize(workspaceId, userId, "member.invite");
   if (!authz.ok) return { error: authz.error };

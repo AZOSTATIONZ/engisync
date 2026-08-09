@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { verifiedAccountGate } from "@/lib/verification";
 import {
   LIMITS,
   clampText,
@@ -86,6 +87,16 @@ export async function updatePublicProfile(
   const userId = session.user.id;
 
   const wantsPublic = formData.get("publicProfile") === "on";
+
+  /* Verification is required to PUBLISH, never to unpublish.
+     Publishing puts a student's work on the open internet under a claimed
+     identity, which is exactly the thing an unverified address should not be
+     able to do. Making somebody verify in order to make their page PRIVATE
+     again would be perverse — the safe direction must always stay open. */
+  if (wantsPublic) {
+    const unverified = await verifiedAccountGate(userId);
+    if (unverified) return { error: unverified };
+  }
 
   if (!wantsPublic) {
     await prisma.user.update({

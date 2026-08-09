@@ -13,6 +13,7 @@ import { buildStorageKey, deleteObject, putObject } from "@/lib/storage";
 import { fileLocation } from "@/lib/file-bytes";
 import { isRepositoryUrl, validateEvidence } from "@/lib/evidence";
 import { projectDocs } from "@/lib/routes";
+import { verifiedAccountGate } from "@/lib/verification";
 
 export type EvidenceState = { error?: string; success?: string } | null;
 
@@ -252,6 +253,14 @@ export async function shareEvidence(
   fileId: string,
 ): Promise<EvidenceState & { url?: string }> {
   const userId = await requireUserId();
+
+  /* Verified email required. This action reaches OUTSIDE the account, so the
+     address behind it has to be real. `verifiedAccountGate` returns null when
+     email is unconfigured on the server, which is what stops this becoming an
+     outage before SMTP exists — nobody is asked for a verification they have
+     no way to obtain. */
+  const unverified = await verifiedAccountGate(userId);
+  if (unverified) return { error: unverified };
 
   const authz = await authorize(workspaceId, userId, "file.upload");
   if (!authz.ok) return { error: authz.error };

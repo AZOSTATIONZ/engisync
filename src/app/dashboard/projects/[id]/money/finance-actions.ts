@@ -12,6 +12,7 @@ import { recordActivity } from "@/lib/activity-log";
 import { createNotification } from "@/lib/notifications";
 import { displayName } from "@/lib/identity";
 import { rateLimit } from "@/lib/rate-limit";
+import { verifiedAccountGate } from "@/lib/verification";
 import {
   checkDeclaration,
   isBlocked,
@@ -78,6 +79,19 @@ export async function createContributionRequest(
   const userId = await requireUserId();
   const authz = await authorize(workspaceId, userId, "budget.manage");
   if (!authz.ok) return { error: authz.error };
+
+  /* MONEY REQUIRES A VERIFIED IDENTITY.
+     Asking teammates to pay in, and publishing the account details they pay
+     into, are the two actions in this product where being sure who is asking
+     matters most. An unverified address is an unproven identity, and the
+     failure here is not a data-quality nuisance — it is a student sending
+     money somewhere on the strength of a name.
+
+     Dormant until email works: `verifiedAccountGate` returns null when SMTP
+     is unconfigured, so nobody is blocked from a verification they cannot
+     get. */
+  const unverified = await verifiedAccountGate(userId);
+  if (unverified) return { error: unverified };
 
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return { error: "Give the request a title." };
@@ -174,6 +188,11 @@ export async function savePaymentInstructions(
   const userId = await requireUserId();
   const authz = await authorize(workspaceId, userId, "budget.manage");
   if (!authz.ok) return { error: authz.error };
+
+  // These are the account details teammates will actually send money to.
+  // See createContributionRequest for the reasoning.
+  const unverified = await verifiedAccountGate(userId);
+  if (unverified) return { error: unverified };
 
   const str = (k: string) => String(formData.get(k) ?? "").trim() || null;
 
