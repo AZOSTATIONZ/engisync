@@ -10,6 +10,8 @@ import { authorize } from "@/lib/policy";
 import { recordActivity } from "@/lib/activity-log";
 import { createNotification } from "@/lib/notifications";
 import { displayName } from "@/lib/identity";
+import { fileLocation, readFileBytes } from "@/lib/file-bytes";
+import { buildStorageKey, putObject } from "@/lib/storage";
 import {
   buildChecklist,
   checklistPasses,
@@ -255,11 +257,26 @@ export async function approvePublication(publishedId: string): Promise<RepoState
 
   // Snapshot: replace each placeholder (source file id) with the real bytes.
   for (const f of pub.files) {
+    /* Before approval, `data` holds the SOURCE FILE'S ID as UTF-8 rather than
+       any file content — a placeholder, so that a rejected submission costs no
+       storage. `data` is nullable now, so the placeholder can in principle be
+       missing; that means the pending row was written wrong and there is
+       nothing to snapshot. Refuse rather than archive an empty file, because a
+       silent empty entry claims a submission was preserved when it was not. */
+    if (!f.data) {
+      return {
+        error:
+          "This submission is missing its file references and can't be archived. Ask the group to resubmit.",
+      };
+    }
     // Prisma 6 returns Bytes as Uint8Array; wrap in Buffer to decode.
     const sourceId = Buffer.from(f.data).toString("utf8");
     const src = await prisma.fileResource.findUnique({
       where: { id: sourceId },
-      select: { data: true, size: true, name: true },
+      // `data` is NOT selected. Asking for it here dragged the whole blob
+      // across the connection just to answer "is this a link?", and after
+      // Phase 4 it does not even answer that correctly.
+      select: { storageKey: true, externalUrl: true, size: true, name: true },
     });
     if (!src) {
       return {
@@ -267,18 +284,49 @@ export async function approvePublication(publishedId: string): Promise<RepoState
           "A selected file was deleted from the project after submission. Ask the group to resubmit.",
       };
     }
-    // Link evidence has no bytes to archive. The archive must be
-    // self-contained — a published project whose "source code" is a URL to a
-    // repository that may be deleted or made private is not an archive — so
-    // this is refused rather than stored as an empty file.
-    if (!src.data) {
+
+    /* Link evidence has no bytes to archive. The archive must be
+       self-contained — a published project whose "source code" is a URL to a
+       repository that may be deleted or made private is not an archive — so
+       this is refused rather than stored as an empty file.
+
+       THIS TEST USED TO BE `!src.data`, WHICH PHASE 4 BROKE. Once uploads can
+       live in object storage, "no bytes in Postgres" stopped meaning "is a
+       link": a perfectly ordinary uploaded report has an empty column. The old
+       check would have refused every storage-backed file from the archive,
+       telling the student their report was a URL. I fixed that synonym in two
+       other places in Phase 4 and missed this one; it was latent only because
+       object storage is not switched on yet. */
+    if (fileLocation({ ...src, data: null }) === "link") {
       return {
         error: `"${src.name}" is a link, not a stored file, so it can't go into the permanent archive. Upload the actual files (for example a source archive) and resubmit.`,
       };
     }
+
+    const bytes = await readFileBytes(sourceId);
+    if (!bytes) {
+      return {
+        error: `"${src.name}" could not be read, so the archive would be incomplete. Try again, or re-upload the file and resubmit.`,
+      };
+    }
+
+    /* Snapshot to object storage when it is configured, Postgres otherwise.
+       A separate object from the source on purpose: the archive is a
+       SNAPSHOT, and sharing a key with the project file would mean deleting
+       the project's copy silently emptied the permanent record. */
+    const key = await putObject(
+      buildStorageKey(`published-${f.id}`, src.name),
+      bytes,
+      "application/octet-stream",
+    );
+
     await prisma.publishedFile.update({
       where: { id: f.id },
-      data: { data: src.data, size: src.size },
+      data: {
+        data: key ? null : Buffer.from(bytes),
+        storageKey: key,
+        size: src.size,
+      },
     });
   }
 

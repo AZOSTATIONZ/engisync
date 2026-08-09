@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { readPublishedFileBytes } from "@/lib/file-bytes";
 
 /**
  * Download an archived file.
@@ -22,10 +23,10 @@ export async function GET(
   const { id } = await params;
   const file = await prisma.publishedFile.findUnique({
     where: { id },
+    // Metadata only; bytes are fetched below and may live in object storage.
     select: {
       name: true,
       mimeType: true,
-      data: true,
       published: { select: { id: true, status: true } },
     },
   });
@@ -34,12 +35,22 @@ export async function GET(
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
+  const bytes = await readPublishedFileBytes(id);
+  if (!bytes) {
+    // Counted only once the bytes are in hand, so a download that cannot be
+    // served does not inflate the archive's download figure.
+    return NextResponse.json(
+      { error: "This archived file could not be retrieved." },
+      { status: 502 },
+    );
+  }
+
   await prisma.publishedProject.update({
     where: { id: file.published.id },
     data: { downloads: { increment: 1 } },
   });
 
-  return new NextResponse(Buffer.from(file.data), {
+  return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": file.mimeType,
       "Content-Disposition": `attachment; filename="${encodeURIComponent(file.name)}"`,

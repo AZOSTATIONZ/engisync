@@ -71,3 +71,34 @@ export async function readFileBytes(fileId: string): Promise<Uint8Array | null> 
   });
   return row?.data ? new Uint8Array(row.data) : null;
 }
+
+/**
+ * Bytes for an ARCHIVED file (`PublishedFile`).
+ *
+ * A near-twin of `readFileBytes` rather than a shared generic, because the two
+ * tables mean different things and are allowed to diverge: an archive entry is
+ * a permanent snapshot with no `externalUrl` concept at all — a published
+ * project whose "source code" is a link to a repository that might later be
+ * deleted or made private is not an archive.
+ */
+export async function readPublishedFileBytes(
+  fileId: string,
+): Promise<Uint8Array | null> {
+  const meta = await prisma.publishedFile.findUnique({
+    where: { id: fileId },
+    select: { storageKey: true },
+  });
+  if (!meta) return null;
+
+  if (meta.storageKey) {
+    const bytes = await getObject(meta.storageKey);
+    if (bytes) return bytes;
+    console.error("[file-bytes] archive storage miss, trying database", fileId);
+  }
+
+  const row = await prisma.publishedFile.findUnique({
+    where: { id: fileId },
+    select: { data: true },
+  });
+  return row?.data ? new Uint8Array(row.data) : null;
+}

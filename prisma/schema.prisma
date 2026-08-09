@@ -1247,7 +1247,25 @@ model PublishedFile {
   name        String
   mimeType    String
   size        Int
-  data        Bytes
+
+  /// ── WHERE THE ARCHIVED BYTES ARE ──
+  ///
+  /// Same three-state model as FileResource, and for the same reasons — see
+  /// the note there. `data` is the legacy home and stays readable; new
+  /// snapshots go to `storageKey` whenever object storage is configured.
+  ///
+  /// NULLABLE NOW, which it was not before. The column was `Bytes` outright,
+  /// so a row could not exist without its bytes — reasonable when Postgres was
+  /// the only place bytes could live, and wrong once they can live elsewhere.
+  /// Made nullable while the table was empty, which is the cheapest this
+  /// change will ever be.
+  ///
+  /// A row with neither is a defect, not a valid state: an archive entry
+  /// pointing at nothing is worse than no entry, because it claims a
+  /// submission was preserved when it was not. `snapshotPublishedFiles`
+  /// refuses to create one.
+  data       Bytes?
+  storageKey String?
 
   createdAt DateTime @default(now())
 
