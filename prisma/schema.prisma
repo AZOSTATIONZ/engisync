@@ -191,6 +191,7 @@ model User {
   twoFactorEnabled Boolean               @default(false)
   twoFactorSecret  String?
   backupCodes      TwoFactorBackupCode[]
+  knownDevices     KnownDevice[]
 
   /// SESSION REVOCATION FOR JWT SESSIONS.
   ///
@@ -1668,8 +1669,55 @@ model AuditLog {
   target    String?
   metadata  Json?
   ipAddress String?
+  /// Raw User-Agent of the request. Stored for SECURITY events so a student
+  /// looking at "someone signed in from a Windows PC" can tell whether that
+  /// was them. Product events leave it null — it is not worth the bytes.
+  userAgent String?
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([action])
+  /// Drives the account-activity list: one user's events, newest first.
+  /// Without this, rendering that list is a sequential scan of every audit
+  /// row ever written.
+  @@index([userId, createdAt])
+}
+
+/// A device this user has successfully signed in from before.
+///
+/// WHY FINGERPRINT THE USER-AGENT AND NOT THE IP
+/// A phone on Econet changes IP constantly — between cells, between wifi and
+/// data, sometimes mid-session. Including the address would mean alerting the
+/// same student several times a day about "new device" sign-ins that are all
+/// them, and an alert that cries wolf is worse than no alert: it trains the
+/// one person who could recognise a real intrusion to dismiss the message
+/// without reading it.
+///
+/// The User-Agent is coarse — every Chrome-on-Windows user shares one — but
+/// it is stable, and it is only ever compared WITHIN a single account. The
+/// question is not "who is this?" but "has this account been used from
+/// something like this before?", and for that it is the right instrument.
+///
+/// The honest limitation: an attacker on the same browser and OS as the
+/// victim produces no alert. This is a tripwire, not an access control, and
+/// nothing is authorised on the strength of it.
+model KnownDevice {
+  id          String @id @default(cuid())
+  userId      String
+  /// SHA-256 of the normalised User-Agent. Hashed rather than stored raw so
+  /// the unique index is a fixed width and the table is not a browsing
+  /// history.
+  fingerprint String
+  /// Human-readable summary ("Chrome on Android") for the activity list.
+  label       String
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  /// Last address seen, for display only. Never used to decide anything.
+  lastIp      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId])
 }

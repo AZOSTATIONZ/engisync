@@ -10,6 +10,12 @@ import { authConfig } from "@/auth.config";
 import { loginSchema } from "@/lib/validations";
 import { verifyTotp } from "@/lib/totp";
 import { consumeBackupCode } from "@/lib/two-factor";
+import { clientIp } from "@/lib/rate-limit";
+import {
+  alertNewDevice,
+  noteDeviceSignIn,
+  recordSecurityEvent,
+} from "@/lib/security-events";
 
 // Accept either naming convention: AUTH_* (Auth.js default) or the
 // GOOGLE_CLIENT_* / MICROSOFT_CLIENT_* names documented in .env.example.
@@ -89,7 +95,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
         code: { label: "2FA code", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
@@ -112,11 +118,62 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
            cost an extra query. A spent code is marked used inside a single
            conditional UPDATE (see `consumeBackupCode`), so it cannot be
            replayed — including by two requests racing deliberately. */
+        let usedRecoveryCode = false;
         if (user.twoFactorEnabled && user.twoFactorSecret) {
           const code = typeof credentials?.code === "string" ? credentials.code : "";
           const totpOk = verifyTotp(user.twoFactorSecret, code);
           const recoveryOk = totpOk ? false : await consumeBackupCode(user.id, code);
           if (!totpOk && !recoveryOk) return null;
+          usedRecoveryCode = recoveryOk;
+        }
+
+        /* THIS is where a sign-in actually completes.
+           `preLogin` only pre-checks the password to decide whether to show
+           the 2FA field; it runs on attempts that never finish. Recording
+           success there would log a sign-in for every abandoned 2FA prompt,
+           so the record is written here instead, where returning a user IS
+           the sign-in.
+
+           Everything below is best-effort and individually wrapped. An
+           account whose activity log cannot be written must still be able to
+           log in — otherwise the security feature becomes the outage. */
+        try {
+          const ip = clientIp(req?.headers ?? new Headers());
+          const userAgent = req?.headers?.get("user-agent") ?? null;
+          const { isNew, label } = await noteDeviceSignIn(user.id, ip, userAgent);
+
+          await recordSecurityEvent({
+            userId: user.id,
+            action: "LOGIN_SUCCEEDED",
+            ip,
+            userAgent,
+            metadata: { device: label, newDevice: isNew },
+          });
+
+          if (usedRecoveryCode) {
+            // Worth its own line in the activity list: using a recovery code
+            // means somebody could not produce the second factor, which is
+            // either a lost phone or someone else entirely.
+            await recordSecurityEvent({
+              userId: user.id,
+              action: "LOGIN_BACKUP_CODE_USED",
+              ip,
+              userAgent,
+            });
+          }
+
+          if (isNew) {
+            await recordSecurityEvent({
+              userId: user.id,
+              action: "LOGIN_NEW_DEVICE",
+              ip,
+              userAgent,
+              metadata: { device: label },
+            });
+            await alertNewDevice(user.id, label, ip);
+          }
+        } catch (err) {
+          console.error("[auth] post-sign-in recording failed", err);
         }
 
         return {

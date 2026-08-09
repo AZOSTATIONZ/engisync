@@ -19,6 +19,7 @@ import { ProfileForm } from "./profile-form";
 import { ThemePicker } from "@/components/theme-personality";
 import { PublicProfileForm } from "./public-profile-form";
 import { TwoFactor } from "./twofactor-ui";
+import { AccountActivity } from "./account-activity";
 import { DeleteAccountSection } from "./delete-account";
 
 export const metadata: Metadata = { title: "Settings" };
@@ -211,6 +212,19 @@ export default async function SettingsPage() {
             enabled={user?.twoFactorEnabled ?? false}
             remainingCodes={user?._count.backupCodes ?? 0}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Account activity</CardTitle>
+          <CardDescription>
+            Recent sign-ins and security changes on your account. Check this if
+            something feels wrong.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AccountActivity userId={session!.user.id} />
         </CardContent>
       </Card>
 

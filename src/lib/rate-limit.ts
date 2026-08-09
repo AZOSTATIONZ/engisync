@@ -134,6 +134,65 @@ export async function rateLimitShared(
 }
 
 /**
+ * Read a counter WITHOUT consuming from it.
+ *
+ * WHY THIS IS NEEDED. `rateLimitShared` counts every call, which is right for
+ * "how many requests has this IP made?" but wrong for "how many times has
+ * this account been guessed at?". Counting every login ATTEMPT would let a
+ * user's own successful sign-ins push them towards their own lockout.
+ *
+ * So the account limiter counts failures only: peek before the attempt,
+ * `bumpRateLimit` after a failure, `clearRateLimit` after a success. A person
+ * who knows their password never accumulates anything at all.
+ *
+ * Fails OPEN, like its siblings — an unavailable counter must not become an
+ * outage of the login form.
+ */
+export async function peekRateLimit(
+  key: string,
+  limit: number,
+): Promise<RateLimitResult> {
+  try {
+    const rows = await prisma.$queryRaw<{ count: number; resetAt: Date }[]>`
+      SELECT "count", "resetAt" FROM "RateLimit"
+      WHERE "key" = ${key} AND "resetAt" > NOW();
+    `;
+    const row = rows[0];
+    if (!row) return { ok: true, remaining: limit, retryAfterSec: 0 };
+
+    const count = Number(row.count);
+    if (count >= limit) {
+      return {
+        ok: false,
+        remaining: 0,
+        retryAfterSec: Math.max(
+          1,
+          Math.ceil((new Date(row.resetAt).getTime() - Date.now()) / 1000),
+        ),
+      };
+    }
+    return { ok: true, remaining: limit - count, retryAfterSec: 0 };
+  } catch (err) {
+    console.error("[rate-limit] peek unavailable; allowing", err);
+    return { ok: true, remaining: limit, retryAfterSec: 0 };
+  }
+}
+
+/** Consume one unit. Same atomic upsert as `rateLimitShared`, result ignored. */
+export async function bumpRateLimit(key: string, windowMs: number): Promise<void> {
+  await rateLimitShared(key, Number.MAX_SAFE_INTEGER, windowMs);
+}
+
+/** Reset a counter — called after a genuine success. */
+export async function clearRateLimit(key: string): Promise<void> {
+  try {
+    await prisma.rateLimit.deleteMany({ where: { key } });
+  } catch (err) {
+    console.error("[rate-limit] clear failed", err);
+  }
+}
+
+/**
  * Drop expired rows. Not on the hot path — the window rollover above already
  * reuses a stale row in place, so this only reclaims space for keys that are
  * never seen again (an IP that visited once, a user who left).
