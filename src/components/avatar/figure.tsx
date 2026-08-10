@@ -43,7 +43,31 @@ export function Figure({
   holding?: "clipboard" | "tablet" | "probe" | "none";
 }) {
   return (
-    <g className="es-figure">
+    /* SCALED ABOUT THE FEET, not the centre.
+       The engineer read as part of the scenery next to a full-height reactor
+       vessel — legible, but the environment was the subject and the person
+       was decoration, which is backwards for a feature whose whole point is
+       "this was built for you".
+
+       The origin is (54, 160): the middle of the boots, on the ground line
+       every scene draws. Scaling about the centre would lift the figure off
+       that line and leave them floating, which is the failure you get from
+       reaching for `scale()` alone.
+
+       This wrapper exists ONLY to scale. The breathing animation stays on the
+       inner group because a CSS `transform` animation replaces the element's
+       transform attribute outright — putting both on one element would mean
+       the first frame of `es-breathe` silently discarding the scale.
+
+       WHY 1.14 AND NOT MORE. The figure spans y=24 to y=160, so scaling about
+       the feet pushes its head towards the top of a 170-unit viewBox: 1.2
+       measured just 2px of clearance at the default width, which never quite
+       clipped but looked cramped and left nothing for a taller hard hat or a
+       future accessory. 1.14 keeps roughly four times that margin and is
+       still visibly larger. If the figure ever needs to be bigger than this,
+       the viewBox needs more headroom — scaling further is the wrong lever. */
+    <g transform="translate(54 160) scale(1.14) translate(-54 -160)">
+      <g className="es-figure">
       {/* Legs — identical across presentations. */}
       <path
         d="M46 118 L44 156 L50 156 L54 122 L58 156 L64 156 L62 118 Z"
@@ -165,6 +189,7 @@ export function Figure({
           <circle cx="71" cy="85" r="2" fill="#f8fafc" />
         </g>
       )}
+      </g>
     </g>
   );
 }

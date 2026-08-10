@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-// @ts-expect-error — plain .mjs script, no types; the logic is what matters.
+// Imported from a plain .mjs script. TypeScript infers the exports from the
+// source, so no directive is needed — an earlier `@ts-expect-error` here was
+// itself an error, and I only caught it because `tsc` ran later than `lint`
+// and `vitest` did.
 import { pseudonym, pseudoEmail, substitute, sortReplacements } from "../../scripts/anonymise-dev-db.mjs";
 
 /**
