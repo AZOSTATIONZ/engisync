@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Forgot password" };
 export default function ForgotPage() {
   return (
     <div className="w-full max-w-[920px]">
-      <div className="flex overflow-hidden rounded-2xl border border-border/60 bg-card/70 shadow-2xl shadow-black/20 backdrop-blur-xl">
+      <div className="elev-4 flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/70 backdrop-blur-xl md:flex-row">
         <AuthBrandPanel variant="forgot" />
 
         <main className="flex-1 p-6 sm:p-8 md:p-10">

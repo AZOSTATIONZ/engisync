@@ -1,147 +1,158 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, Copy, Share } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Check, Download, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
- * Platform-specific install instructions.
+ * One button that installs the app.
  *
- * WHY DETECT THE PLATFORM AT ALL
- * The three routes to installing are genuinely different — Chrome has a menu
- * item, Safari has a Share sheet and no programmatic install, desktop has an
- * address-bar icon. Showing all three to everyone means every reader has to
- * work out which two paragraphs to ignore, and the one person who needed the
- * iOS steps skims past them.
+ * WHY THIS REPLACED A LIST OF INSTRUCTIONS
+ * The first version of this page explained how to install on each platform.
+ * It was accurate and nobody would have read it. Chrome exposes
+ * `beforeinstallprompt`, which lets a single tap do the whole thing — asking
+ * someone to open a menu and hunt for "Install app" when the browser will do
+ * it for them is work we created, not work that exists.
  *
- * Detection runs AFTER mount, never during render. Reading `navigator` while
- * rendering on the server produces a hydration mismatch, and the usual
- * symptom is React discarding the server HTML and re-rendering — a visible
- * flash on exactly the page meant to make a good first impression. The
- * generic steps are rendered first and replaced once the platform is known.
+ * Written instructions are now the FALLBACK, not the offer, and they appear
+ * only where there is genuinely no alternative:
+ *
+ *   - iOS has no programmatic install at all. Safari exposes nothing; the
+ *     Share sheet is the only route. Those users get the steps because
+ *     nothing else is possible, not as a style choice.
+ *   - Desktop Chrome sometimes withholds the event until it has seen a bit of
+ *     engagement. If it never arrives, short steps appear instead of a button
+ *     that would do nothing.
+ *
+ * The event itself is captured by an inline script in the root layout, long
+ * before React hydrates — see the comment there. This component reads what
+ * that script stashed, so a slow phone does not miss the prompt.
  */
 
-type Platform = "android" | "ios" | "desktop";
 
-function detect(): Platform {
+type State = "checking" | "ready" | "ios" | "unsupported" | "installed";
+
+function isIos(): boolean {
   const ua = navigator.userAgent;
-  // iPadOS 13+ claims to be a Mac; touch points separate a real iPad from a
-  // desktop Safari, where the install route is different.
-  if (/iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1)) {
-    return "ios";
-  }
-  if (/Android/.test(ua)) return "android";
-  return "desktop";
+  // iPadOS 13+ reports itself as a Mac; touch points separate a real iPad
+  // from a desktop Safari, where the route differs.
+  return (
+    /iPad|iPhone|iPod/.test(ua) ||
+    (ua.includes("Macintosh") && navigator.maxTouchPoints > 1)
+  );
 }
 
-const STEPS: Record<Platform, { title: string; steps: string[]; note?: string }> = {
-  android: {
-    title: "Install on Android",
-    steps: [
-      "Open this page in Chrome",
-      "Tap the ⋮ menu, top right",
-      "Tap Install app (or Add to Home screen)",
-      "Open EngiSync from your home screen",
-    ],
-    note: "Reminders and group messages arrive as normal phone notifications once installed.",
-  },
-  ios: {
-    title: "Install on iPhone or iPad",
-    steps: [
-      "Open this page in Safari — not Chrome",
-      "Tap the Share button at the bottom",
-      "Scroll down and tap Add to Home Screen",
-      "Tap Add, then open EngiSync from your home screen",
-    ],
-    // This is a real iOS limitation, not an EngiSync shortcoming, and saying
-    // so prevents someone concluding notifications are broken.
-    note: "On iPhone, notifications only work after you add it to the home screen. Safari is required — Chrome on iOS cannot install web apps.",
-  },
-  desktop: {
-    title: "Install on your computer",
-    steps: [
-      "Open this page in Chrome or Edge",
-      "Click the install icon in the address bar, on the right",
-      "Or use the ⋮ menu → Cast, save and share → Install",
-      "EngiSync opens in its own window, like any other program",
-    ],
-  },
-};
-
-export function InstallSteps({ url }: { url: string }) {
-  const [platform, setPlatform] = useState<Platform | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => setPlatform(detect()), []);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard blocked (insecure context, permissions). The URL is printed
-      // on the page anyway, so this is a convenience, not the only route.
-    }
-  }
-
-  async function share() {
-    // Web Share opens WhatsApp, Messages and the rest — the way a student
-    // would actually pass this to a classmate.
-    try {
-      await navigator.share({
-        title: "EngiSync",
-        text: "Our engineering project workspace — install it on your phone:",
-        url,
-      });
-    } catch {
-      // Cancelled, or unsupported. Copy remains available.
-    }
-  }
-
-  const content = platform ? STEPS[platform] : null;
-
+function isInstalled(): boolean {
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border bg-card p-4">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-          The link
-        </p>
-        <p className="mt-1 break-all font-mono text-sm">{url}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={copy}>
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? "Copied" : "Copy link"}
-          </Button>
-          {typeof navigator !== "undefined" && "share" in navigator && (
-            <Button size="sm" variant="outline" onClick={share}>
-              <Share className="h-4 w-4" /> Share
-            </Button>
-          )}
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+export function InstallSteps() {
+  const [state, setState] = useState<State>("checking");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (isInstalled()) return setState("installed");
+    if (isIos()) return setState("ios");
+    if (window.__engisyncInstall) return setState("ready");
+
+    // The event may still be on its way. Listen for the signal the head
+    // script dispatches, and fall back to written steps if it never comes.
+    const onReady = () => setState("ready");
+    window.addEventListener("engisync:installable", onReady);
+    window.addEventListener("appinstalled", () => setState("installed"));
+
+    const timer = setTimeout(() => {
+      setState((s) => (s === "checking" ? "unsupported" : s));
+    }, 2500);
+
+    return () => {
+      window.removeEventListener("engisync:installable", onReady);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const install = useCallback(async () => {
+    const evt = window.__engisyncInstall;
+    if (!evt) return;
+    setBusy(true);
+    // Single-use: clear first so a double tap cannot call prompt() twice on
+    // the same event, which throws.
+    window.__engisyncInstall = undefined;
+    try {
+      await evt.prompt();
+      const { outcome } = await evt.userChoice;
+      setState(outcome === "accepted" ? "installed" : "unsupported");
+    } catch {
+      setState("unsupported");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  if (state === "installed") {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-primary/40 bg-primary/10 p-4">
+        <Check className="h-5 w-5 shrink-0 text-primary" />
+        <div>
+          <p className="font-semibold">Already installed</p>
+          <p className="text-sm text-muted-foreground">
+            Open EngiSync from your home screen.
+          </p>
         </div>
       </div>
+    );
+  }
 
-      {content ? (
-        <div>
-          <h2 className="font-semibold">{content.title}</h2>
-          <ol className="mt-2 ml-5 list-decimal space-y-1.5 text-sm">
-            {content.steps.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ol>
-          {content.note && (
-            <p className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
-              {content.note}
-            </p>
-          )}
-        </div>
-      ) : (
-        /* Rendered on the server and for the instant before detection runs. */
-        <div>
-          <h2 className="font-semibold">Install it</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Open this page on the device you want to install on, and the exact
-            steps for it will appear here.
+  if (state === "ios") {
+    return (
+      <div className="space-y-3">
+        {/* No button is possible here. Apple does not allow it. */}
+        <p className="text-lg font-semibold">Add to your home screen</p>
+        <ol className="ml-5 list-decimal space-y-2 text-base">
+          <li>
+            Tap{" "}
+            <Share className="inline h-5 w-5 align-text-bottom text-primary" />{" "}
+            at the bottom of Safari
+          </li>
+          <li>
+            Tap <span className="font-semibold">Add to Home Screen</span>
+          </li>
+        </ol>
+        <p className="text-sm text-muted-foreground">
+          Must be Safari — Chrome on iPhone can&apos;t install apps.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <Button
+        size="lg"
+        className="h-14 w-full text-base"
+        onClick={install}
+        disabled={state !== "ready" || busy}
+      >
+        <Download className="h-5 w-5" />
+        {busy ? "Installing…" : "Install EngiSync"}
+      </Button>
+
+      {state === "checking" && (
+        <p className="text-center text-sm text-muted-foreground">
+          Preparing…
+        </p>
+      )}
+
+      {state === "unsupported" && (
+        <div className="rounded-lg border p-3 text-sm">
+          <p className="font-medium">Your browser didn&apos;t offer the button.</p>
+          <p className="mt-1 text-muted-foreground">
+            Open the browser menu (⋮) and choose{" "}
+            <span className="font-medium">Install app</span> or{" "}
+            <span className="font-medium">Add to Home screen</span>.
           </p>
         </div>
       )}

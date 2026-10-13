@@ -286,11 +286,20 @@ export function LoginForm({
           type="submit"
           disabled={loading}
           className={cn(
-            "flex h-12 w-full items-center justify-center gap-2 rounded-xl font-semibold text-white shadow-lg shadow-primary/20 transition-all",
-            "bg-gradient-to-br from-[#6C5CE7] to-[#2EA6FF]",
-            "hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/25",
+            "flex h-12 w-full items-center justify-center gap-2 rounded-xl font-semibold transition-all",
+            /* BRAND TOKEN, NOT A HARDCODED GRADIENT.
+               This was `from-[#6C5CE7] to-[#2EA6FF]` — a purple-to-blue that
+               predates the Midnight Engineering palette and matched nothing
+               else in the product, so the first screen a user ever saw
+               belonged to a different brand than the app behind it.
+               `bg-primary` follows the theme, the per-user accent, and both
+               light and dark modes for free. `text-primary-foreground` is
+               required with it: electric cyan is a LIGHT colour, and white
+               text on it fails contrast badly. */
+            "bg-primary text-primary-foreground shadow-lg shadow-primary/25",
+            "hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/30 hover:brightness-110",
             "active:translate-y-0 active:scale-[.99]",
-            "disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0",
+            "disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:brightness-100",
           )}
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}

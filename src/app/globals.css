@@ -47,7 +47,11 @@
     /* Shadows carry the brand hue instead of neutral black. Pure black over a
        tinted surface reads as dirt; a tinted shadow reads as depth. */
     --shadow-color: 222 47% 30%;
-    --primary: 221 83% 53%;
+    /* NOTE: --primary is set below, in the semantic accents block, to the
+       darkened electric cyan. A second declaration here was overriding
+       nothing (the later one wins) but read as the brand colour to anyone
+       skimming, which is how the auth pages ended up hardcoding a blue that
+       the product had already stopped using. */
     --primary-foreground: 210 40% 98%;
     --secondary: 213 27% 92%;
     --secondary-foreground: 222 40% 16%;

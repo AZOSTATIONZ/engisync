@@ -56,6 +56,23 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* CAPTURE THE INSTALL EVENT BEFORE REACT EXISTS.
+            `beforeinstallprompt` fires as soon as Chrome decides the app is
+            installable — frequently before React has hydrated and attached its
+            own listener. A component that only starts listening on mount
+            therefore misses it on most first visits, and the Install button
+            never appears. Stashing it on `window` from an inline script in the
+            head means the event is already waiting by the time anything
+            renders. preventDefault() also suppresses Chrome's own mini-infobar
+            so ours is the only prompt. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__engisyncInstall=e;window.dispatchEvent(new Event('engisync:installable'))});",
+          }}
+        />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>

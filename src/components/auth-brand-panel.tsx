@@ -45,6 +45,36 @@ const PANEL_COPY: Record<
   },
 };
 
+/**
+ * Compact brand strip for narrow screens.
+ *
+ * WHY THIS EXISTS
+ * The panel below is `hidden md:flex`, so below 768px every trace of the
+ * brand disappeared and the page became a form floating in empty space —
+ * which is exactly how it felt. Phones are the majority of this product's
+ * traffic, so the mobile view had the weakest identity of any screen.
+ *
+ * It is a STRIP, not a shrunken panel: one line of positioning copy over the
+ * brand gradient, roughly 90px tall. A phone screen is mostly consumed by the
+ * form and the keyboard, so brand presence has to cost almost no vertical
+ * space. The bullets and the animation stay desktop-only, where there is room
+ * for them to be read rather than skipped.
+ */
+function MobileBrandStrip({ heading }: { heading: string }) {
+  return (
+    <div className="relative overflow-hidden bg-[#070B14] px-6 py-5 md:hidden">
+      {/* Cyan glow rather than a cyan fill — see the note on the panel below. */}
+      <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-[#22D3EE]/25 blur-3xl" />
+      <p className="relative text-xs font-medium uppercase tracking-wider text-[#22D3EE]">
+        EngiSync
+      </p>
+      <p className="relative mt-1 max-w-[24ch] text-base font-semibold leading-snug text-white">
+        {heading}
+      </p>
+    </div>
+  );
+}
+
 export function AuthBrandPanel({
   variant = "login",
 }: {
@@ -52,17 +82,53 @@ export function AuthBrandPanel({
 }) {
   const copy = PANEL_COPY[variant];
   return (
-    <aside
-      aria-hidden="true"
-      className="relative hidden overflow-hidden bg-gradient-to-br from-[#6C5CE7] via-[#4B6FE3] to-[#2EA6FF] p-8 md:flex md:w-[46%] md:flex-col md:justify-between"
-    >
-      {/* Soft depth blobs */}
-      <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-16 -left-10 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
+    <>
+      <MobileBrandStrip heading={copy.heading} />
+      <aside
+        /* NOT aria-hidden any more. The artwork is decorative and marked so
+           individually, but the heading and bullets are real positioning copy
+           — hiding them meant a screen-reader user was the only person who
+           never learned what EngiSync does. */
+        aria-label="About EngiSync"
+        /* MIDNIGHT SURFACE, CYAN ACCENT — not a cyan fill.
+         *
+         * The old panel was a hardcoded #6C5CE7→#2EA6FF purple-to-blue that
+         * matched nothing else in the product. The obvious fix was to swap in
+         * the brand cyan, but a cyan→violet gradient is a contrast trap: cyan
+         * is a LIGHT colour and violet a dark one, so white text passes at one
+         * end of the panel and fails at the other, and no single text colour
+         * works across it.
+         *
+         * Dark surface with cyan used as an accent solves that — white text is
+         * legible everywhere — and matches the Midnight Engineering palette
+         * the rest of the app already uses. Literal hex rather than tokens
+         * here because this panel is deliberately dark in BOTH themes: it is
+         * the brand's own surface, like a product's packaging, and should not
+         * invert to white when someone picks the light theme.
+         */
+        className="relative hidden overflow-hidden bg-[#070B14] p-8 md:flex md:w-[46%] md:flex-col md:justify-between"
+      >
+      {/* Cyan glow, not white haze. On a near-black surface a white blur reads
+          as grey smudge; the brand colour reads as light coming off the
+          artwork. Both are decorative and non-interactive. */}
+      <div className="pointer-events-none absolute -right-12 -top-12 h-56 w-56 rounded-full bg-[#22D3EE]/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 -left-12 h-64 w-64 rounded-full bg-[#8B5CF6]/20 blur-3xl" />
+      {/* Blueprint grid, barely visible — engineering identity without
+          decoration competing with the form beside it. */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.06]"
+        style={{
+          backgroundImage:
+            "linear-gradient(#22D3EE 1px, transparent 1px), linear-gradient(90deg, #22D3EE 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
 
       <div className="relative">
-        <p className="text-sm font-medium tracking-wide text-white/80">EngiSync</p>
-        <h2 className="mt-2 max-w-[16ch] text-2xl font-bold leading-tight text-white">
+        <p className="text-xs font-medium uppercase tracking-wider text-[#22D3EE]">
+          EngiSync
+        </p>
+        <h2 className="mt-2 max-w-[18ch] text-2xl font-bold leading-tight text-white">
           {copy.heading}
         </h2>
       </div>
@@ -71,8 +137,8 @@ export function AuthBrandPanel({
       <div className="relative flex flex-1 items-center justify-center py-6">
         <svg
           viewBox="0 0 220 220"
-          className="h-52 w-52 text-white"
-          role="presentation"
+          className="h-52 w-52 text-[#22D3EE]"
+          aria-hidden="true"
           focusable="false"
         >
           {/* Orbit rings */}
@@ -103,9 +169,18 @@ export function AuthBrandPanel({
         </svg>
       </div>
 
-      <ul className="relative space-y-2 text-sm text-white/85">
+      {/* `text-white/85` on near-black clears 4.5:1 comfortably. The marker is
+          a cyan element rather than a bullet character so it carries brand
+          without relying on colour to convey meaning. */}
+      <ul className="relative space-y-2.5 text-sm text-white/85">
         {copy.bullets.map((b) => (
-          <li key={b}>• {b}</li>
+          <li key={b} className="flex gap-2.5">
+            <span
+              aria-hidden="true"
+              className="mt-[0.45rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[#22D3EE]"
+            />
+            <span>{b}</span>
+          </li>
         ))}
       </ul>
 
@@ -154,6 +229,7 @@ export function AuthBrandPanel({
           }
         }
       `}</style>
-    </aside>
+      </aside>
+    </>
   );
 }

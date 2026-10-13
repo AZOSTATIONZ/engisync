@@ -44,6 +44,11 @@ tsconfig.*check.json
 /public/videos/*
 !/public/videos/README.md
 
+# Local editor/assistant permission settings — specific to one machine and one
+# person's tooling, not to the project. Committing it means everyone inherits
+# whatever was approved on a single laptop.
+.claude/settings.local.json
+
 .vercel
 .env*
 audit/

@@ -33,10 +33,6 @@ import { Button } from "@/components/ui/button";
  * decision, so a dismissal on a lab PC should not follow you to your phone.
  */
 
-type InstallEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
 
 const DISMISS_KEY = "engisync-install-dismissed";
 
@@ -61,7 +57,7 @@ function isStandalone(): boolean {
 }
 
 export function InstallPrompt() {
-  const [deferred, setDeferred] = useState<InstallEvent | null>(null);
+  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosHelp, setShowIosHelp] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -81,13 +77,24 @@ export function InstallPrompt() {
       return;
     }
 
-    const onPrompt = (e: Event) => {
-      // Suppress Chrome's own infobar so ours is the only ask.
-      e.preventDefault();
-      setDeferred(e as InstallEvent);
+    /* The event is captured and stashed by an inline script in the root
+       layout, which runs long before React hydrates. Listening for
+       `beforeinstallprompt` here would never fire: by the time this effect
+       runs the event has already been dispatched and consumed, and a listener
+       added afterwards does not receive past events. Read what the head
+       script stored, and listen for the signal it emits in case it has not
+       arrived yet. */
+    if (window.__engisyncInstall) {
+      setDeferred(window.__engisyncInstall);
+      setVisible(true);
+    }
+
+    const onPrompt = () => {
+      if (!window.__engisyncInstall) return;
+      setDeferred(window.__engisyncInstall);
       setVisible(true);
     };
-    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("engisync:installable", onPrompt);
 
     // Once installed, take the banner away immediately rather than waiting
     // for the next page load.
@@ -95,7 +102,7 @@ export function InstallPrompt() {
     window.addEventListener("appinstalled", onInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("engisync:installable", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
     };
   }, []);
