@@ -23,9 +23,36 @@
 
 const ASSET_CACHE = "engisync-static-v2";
 
-self.addEventListener("install", () => {
+/* OFFLINE FALLBACK — the one HTML page that may be cached.
+ *
+ * The rule above ("no HTML, ever") exists because a service worker cache is
+ * shared across accounts on a device. /offline is the single exception, and
+ * only because it is provably safe: it is a static page with no user data, no
+ * fetching and identical bytes for every visitor. Serving it to the wrong
+ * person reveals nothing.
+ *
+ * It is used ONLY when a navigation request fails outright — the network is
+ * gone. A successful response, including an error status from the server, is
+ * always passed through untouched. The cache never shadows a working network.
+ */
+const OFFLINE_URL = "/offline";
+const OFFLINE_CACHE = "engisync-offline-v1";
+
+self.addEventListener("install", (event) => {
   // Do not wait for existing tabs to close before replacing a broken worker.
   self.skipWaiting();
+  // Pre-cache the fallback; if it fails the worker still installs and simply
+  // has no fallback, which is the previous behaviour rather than a breakage.
+  event.waitUntil(
+    (async () => {
+      try {
+        const cache = await caches.open(OFFLINE_CACHE);
+        await cache.add(new Request(OFFLINE_URL, { cache: "reload" }));
+      } catch {
+        // No fallback available this release. Not fatal.
+      }
+    })(),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -34,7 +61,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== ASSET_CACHE).map((k) => caches.delete(k))),
+        Promise.all(
+          keys
+            .filter((k) => k !== ASSET_CACHE && k !== OFFLINE_CACHE)
+            .map((k) => caches.delete(k)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -48,6 +79,36 @@ self.addEventListener("fetch", (event) => {
   try {
     url = new URL(req.url);
   } catch {
+    return;
+  }
+
+  /* NAVIGATIONS: network only, with an offline fallback.
+   *
+   * Note what this does NOT do. It never reads a cached copy of the page the
+   * user asked for, and it never writes one. It tries the network; if the
+   * network answers at all — 200, 404, 500 — that answer is returned
+   * unaltered. Only an outright failure (no connection) falls back, and the
+   * fallback is the generic /offline page, never the page requested.
+   *
+   * That distinction is the whole safety argument: a student's project page
+   * is never stored, so it can never be served to whoever picks the device up
+   * next. */
+  if (req.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          return await fetch(req);
+        } catch {
+          try {
+            const cached = await caches.match(OFFLINE_URL);
+            if (cached) return cached;
+          } catch {
+            // Fallback unavailable; fall through to the browser's own error.
+          }
+          return Response.error();
+        }
+      })(),
+    );
     return;
   }
 

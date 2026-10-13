@@ -7,6 +7,7 @@ import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { VerifyBanner } from "@/components/verify-banner";
+import { InstallPrompt } from "@/components/install-prompt";
 import { LivingBackground } from "@/components/living-background";
 import { disciplineFor } from "@/lib/media";
 
@@ -150,6 +151,10 @@ export default async function DashboardLayout({
         </main>
       </div>
       <BottomNav />
+      {/* Offered only inside the app, never on the landing page — someone who
+          has signed in and is using it is the only person for whom "put this
+          on your home screen" is a useful suggestion rather than an advert. */}
+      <InstallPrompt />
     </div>
   );
 }

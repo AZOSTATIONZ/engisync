@@ -1,73 +1,97 @@
 import type { MetadataRoute } from "next";
 
 /**
- * The web app manifest — what makes EngiSync installable to a phone's home
- * screen, launching without browser chrome.
+ * Web app manifest — what makes EngiSync installable.
  *
- * WHY A PWA AND NOT A NATIVE APP
- * This product has no product API. Thirty files export Server Actions; the
- * eight route handlers are infrastructure (auth, health, cron, file download,
- * push subscription). A React Native or Flutter client could not call any of
- * it — an entire API surface would have to be built first, for every project,
- * task, document, evidence, budget and grant mutation in the app, before a
- * single screen existed.
+ * WHY THIS FILE IS THE WHOLE "MOBILE APP" FOR NOW
+ * The service worker in public/sw.js already caches build assets and handles
+ * web push. The only thing standing between this app and an icon on a
+ * student's home screen was a manifest. With it, Android offers "Install app",
+ * the app opens without browser chrome, and push notifications arrive exactly
+ * as they would from a Play Store build — at no cost, with no review cycle,
+ * and with no second codebase to keep in sync.
  *
- * It would also be the wrong trade for these users. On Zimbabwean mobile data
- * a 40 MB store download to reach a site that already works is a cost with no
- * benefit, and updates would cost it again. An installed PWA is the same bytes
- * they have already downloaded, with a home-screen icon and no browser bars.
+ * Written as a TypeScript route rather than a static public/manifest.json so
+ * the shape is checked at build time. A manifest with one misspelled key
+ * silently stops the install prompt appearing, and nothing in the UI would
+ * tell you.
  *
- * `display: standalone` rather than `fullscreen`: this app is full of forms and
- * text fields, and hiding the status bar means hiding the clock and battery
- * from a student working to a deadline.
+ * ICONS — the `purpose` field is not decoration:
+ *   "any"      used as supplied, inside whatever frame the OS draws.
+ *   "maskable" the launcher may crop up to 20% from every edge into a circle
+ *              or squircle. Those files inset the mark into the centre 80%
+ *              safe zone; supplying a non-maskable icon here gets the logo's
+ *              edges sliced off on most Android launchers.
+ * Both are listed because Android picks per-launcher.
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "EngiSync — Engineering Projects",
+    name: "EngiSync — Engineering Collaboration",
     short_name: "EngiSync",
     description:
-      "Plan, document and submit university engineering projects — tasks, evidence, meetings, budget and supervisor review in one place.",
+      "Projects, tasks, documentation, budgets and deadlines for university engineering teams.",
+
     start_url: "/dashboard",
-    // Scope excludes nothing: the whole origin is the app.
+    // `id` is what the browser uses to decide whether an install is the SAME
+    // app on a later visit. Without it the start_url is used, so changing the
+    // landing route would strand the installed copy as a separate app.
+    id: "/",
     scope: "/",
+
+    // `standalone` removes the browser UI. Deliberately not "fullscreen":
+    // this app is used between lectures, and hiding the clock and battery on
+    // a phone someone is checking in a corridor is hostile.
     display: "standalone",
     orientation: "portrait-primary",
-    /* Static hex, deliberately. `theme_color` is read by the OS before any CSS
-       runs, so it cannot follow the user's chosen personality — it must be a
-       literal. These are the Midnight defaults, which is what an installing
-       user sees first. */
+
     background_color: "#070B14",
     theme_color: "#070B14",
+
+    // Right-to-left is not supported in the copy yet; saying so is honest.
+    dir: "ltr",
+    lang: "en-ZW",
+
     categories: ["education", "productivity"],
-    /* STATIC PNGs, not generated at request or build time.
-       These were originally `icon.tsx` / `apple-icon.tsx` using
-       `next/og`'s ImageResponse. That looked tidier — the mark could not drift
-       from the navbar — but it FAILED THE PRODUCTION BUILD outright:
 
-         Error occurred prerendering page "/icon"
-         TypeError: Invalid URL
-         Export encountered an error on /icon/route, exiting the build.
-
-       An app icon changes roughly never, so generating it on every build was
-       buying a guarantee nobody needed at the cost of a build-time dependency
-       that can fail. They are now rasterised once with sharp from the same
-       lucide `Cpu` glyph the navbar uses, and committed. */
     icons: [
-      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/icon.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-      { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/maskable-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
+
+    /**
+     * Long-press the home screen icon to jump straight to a task.
+     *
+     * Chosen as the three things a student opens the app to DO, not the three
+     * biggest features: check what is due, start something new, find an idea.
+     * Android shows at most four and reverses the order in some launchers, so
+     * the most important one is listed first and the list is kept short.
+     */
     shortcuts: [
       {
-        name: "My projects",
-        short_name: "Projects",
-        url: "/dashboard/projects",
+        name: "My Work",
+        short_name: "My Work",
+        description: "Tasks, deadlines and meetings assigned to you",
+        url: "/dashboard/my-work",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
       {
-        name: "Start a project",
+        name: "New project",
         short_name: "New",
+        description: "Create a project or join one with a code",
         url: "/dashboard/projects/new",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Project Hub",
+        short_name: "Hub",
+        description: "Projects you can build, with parts lists and budgets",
+        url: "/dashboard/project-hub",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
     ],
+
+    prefer_related_applications: false,
   };
 }
