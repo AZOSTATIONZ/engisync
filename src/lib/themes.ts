@@ -706,6 +706,20 @@ export function shade(triple: string, deltaL: number): string {
   return `${m[1]} ${String(Number(next.toFixed(2)))}%`;
 }
 
+/**
+ * Rewrite a triple to an absolute lightness, keeping hue and saturation.
+ *
+ * `shade` moves lightness by a delta, which is right for deriving a gradient
+ * endpoint from a surface. It is wrong for "make this as dark as it needs to
+ * be whatever it started as": light-mode primaries sit near 36% and dark-mode
+ * ones near 65%, so one delta cannot reach a fixed floor from both.
+ */
+export function atLightness(triple: string, lightness: number): string {
+  const m = /^(.+?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%$/.exec(triple.trim());
+  if (!m) return triple;
+  return `${m[1]} ${m[2]}% ${Math.min(100, Math.max(0, lightness))}%`;
+}
+
 export function themeCss(): string {
   const block = (sel: string, t: ThemeTokens, dark: boolean) =>
     `${sel}{--background:${t.bg};--card:${t.card};--elevated:${t.elevated};` +
@@ -715,6 +729,9 @@ export function themeCss(): string {
     // replaced moved it toward the surface instead, which took the default
     // theme's hovered button below AA. See globals.css for the measurement.
     `--primary-hover:${shade(t.primary, dark ? 6 : -6)};` +
+    // Underlay for `.banner-brand`, in THIS theme's hue rather than
+    // Midnight's. See the rule in globals.css for what it is holding up.
+    `--banner-underlay:${atLightness(t.primary, 10)};` +
     `--shadow-color:${t.shadow};--border:${t.border};--ring:${t.primary};` +
     // Premium surface gradient, derived from this theme rather than fixed.
     // Light reads brightest at the top; dark falls away towards the bottom.

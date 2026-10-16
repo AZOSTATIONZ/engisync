@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { THEMES, shade } from "@/lib/themes";
+import { THEMES, atLightness, shade } from "@/lib/themes";
 import { ACCENTS } from "@/lib/personalization";
 import {
   AA_NON_TEXT,
@@ -278,6 +278,66 @@ describe("accent colours meet AA on the surfaces they override", () => {
         // a flat fill and nobody would notice it had broken.
         expect(contrastRatio(primary, partner), `accent ${key}.${mode}`).not.toBeNaN();
         expect(partner, `accent ${key}.${mode} partner`).not.toBe(primary);
+      });
+    }
+  }
+});
+
+describe("the brand banner keeps its white text legible", () => {
+  /* `.banner-brand` is the only surface in the product that composites rather
+     than using a flat token, so no token-pair check can see it. It layers the
+     brand gradient at partial alpha over `--banner-underlay` and hardcodes
+     `color: #fff`, and it carries page headings on the project documentation,
+     department resources and supervisor documentation pages.
+
+     It shipped failing AA in every dark theme — Midnight 2.10:1, Minimalism
+     1.37:1 — because the rule was written when only light mode existed, where
+     `--primary` is darkened so it can carry white. Nothing caught it because
+     nothing modelled the composite. This does. */
+  const WHITE = { r: 1, g: 1, b: 1 };
+  const over = (
+    f: { r: number; g: number; b: number },
+    a: number,
+    b: { r: number; g: number; b: number },
+  ) => ({ r: f.r * a + b.r * (1 - a), g: f.g * a + b.g * (1 - a), b: f.b * a + b.b * (1 - a) });
+  const vsWhite = (c: { r: number; g: number; b: number }) => {
+    const l = luminance(c);
+    const w = luminance(WHITE);
+    return (Math.max(w, l) + 0.05) / (Math.min(w, l) + 0.05);
+  };
+
+  // These alphas mirror globals.css. If the stylesheet changes and this does
+  // not, the test is measuring a banner that no longer exists — so the pairs
+  // are named here and asserted against the stylesheet below.
+  const ALPHA = { light: [0.92, 0.72], dark: [0.4, 0.3] } as const;
+
+  it("matches the alphas actually in the stylesheet", () => {
+    const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+    for (const a of [...ALPHA.light, ...ALPHA.dark]) {
+      expect(css, `alpha ${a} should appear in .banner-brand`).toContain(`/ ${a})`);
+    }
+    expect(css).toContain("--banner-underlay");
+    expect(css, "the Midnight-coloured underlay should be gone").not.toContain(
+      "hsl(222 47% 11%), hsl(222 47% 11%)",
+    );
+  });
+
+  for (const theme of THEMES) {
+    for (const mode of ["light", "dark"] as const) {
+      it(`${theme.label} (${mode}) carries white at 4.5:1`, () => {
+        const underlay = parseHsl(atLightness(theme[mode].primary, 10))!;
+        const [a1, a2] = ALPHA[mode];
+        const stops = [
+          vsWhite(over(parseHsl(theme[mode].primary)!, a1, underlay)),
+          vsWhite(over(parseHsl(theme[mode].primary2)!, a2, underlay)),
+        ];
+        // The LIGHTER stop is the one white fails on, so both are checked.
+        for (const [i, r] of stops.entries()) {
+          expect(
+            r,
+            `${theme.key}.${mode} stop ${i + 1} — white on banner ${r.toFixed(2)}:1`,
+          ).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
+        }
       });
     }
   }

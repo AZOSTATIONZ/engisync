@@ -70,7 +70,13 @@ export default async function ResourceHubPage({
               <Library className="h-4 w-4" /> AI-curated Resource Hub
             </p>
             <h1 className="mt-1 page-title">{dept.name}</h1>
-            <p className="max-w-lg text-sm text-white/80">
+            {/* Full white, not `text-white/80`. The banner is already a
+                composite, so fading the text on top of it drops the pair to
+                3.84:1 at its worst (Neon Circuit, dark) — under AA for body
+                text. `/85` is no better at 4.12. Opaque white measures 5.01
+                at the same worst case. The subtitle reads as secondary
+                through size and width here, which costs no contrast. */}
+            <p className="max-w-lg text-sm text-white">
               Every resource is AI-checked for relevance, quality, and safety before it appears here.
             </p>
           </div>

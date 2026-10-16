@@ -443,7 +443,44 @@
         hsl(var(--primary) / 0.92),
         hsl(var(--primary-2, var(--primary)) / 0.72)
       ),
-      linear-gradient(0deg, hsl(222 47% 11%), hsl(222 47% 11%));
+      linear-gradient(
+        0deg,
+        hsl(var(--banner-underlay)),
+        hsl(var(--banner-underlay))
+      );
+  }
+
+  /* DARK MODE NEEDS DIFFERENT ALPHAS, not just a different underlay.
+     ------------------------------------------------------------------
+     The comment above is from when this banner only had to work in light
+     mode, where `--primary` is deliberately DARKENED so it can carry white.
+     In dark mode `--primary` is deliberately BRIGHT, and at 0.92 it swamped
+     the underlay completely — so white text sat on an almost-full-strength
+     brand colour.
+
+     Measured across all twenty styles, every dark theme failed, including
+     all nine that shipped: Midnight, the default, at 2.10:1; Neon Circuit
+     1.69:1; Neo-Brutalism 1.66:1; Minimalism 1.37:1, which is white on
+     near-white. This is on the project documentation page, department
+     resources and supervisor documentation — pages students read.
+
+     Lower alphas let the dark underlay through, which is the only thing
+     keeping white legible here. Solved for the worst case across every
+     style rather than tuned against one: 0.4/0.3 leaves the weakest at
+     5.01:1. theme-contrast.test.ts computes this composite and fails if any
+     style drops below AA. */
+  .dark .banner-brand {
+    background-image:
+      linear-gradient(
+        135deg,
+        hsl(var(--primary) / 0.4),
+        hsl(var(--primary-2, var(--primary)) / 0.3)
+      ),
+      linear-gradient(
+        0deg,
+        hsl(var(--banner-underlay)),
+        hsl(var(--banner-underlay))
+      );
   }
 
   /* ── GRADIENT ICON CHIP ───────────────────────────────────────────
