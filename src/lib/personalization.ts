@@ -69,14 +69,30 @@ export const ACCENTS: Record<
   /* Electric cyan is the product's own accent and therefore the default —
      a user who never opens Settings should still see the intended identity.
      Light values are darkened across the board: a colour bright enough to glow
-     on #070B14 fails contrast on a near-white page. */
+     on #070B14 fails contrast on a near-white page.
+
+     NOT DARKENED ENOUGH, as it turned out. These were set by eye, and four
+     shipped below AA for the white button label they carry: amber at 3.01:1,
+     teal 3.24, emerald 3.59, rose 4.46 — against a 4.5 requirement. Nobody
+     spotted it because a saturated amber button LOOKS confident; it is only
+     unreadable if you happen to need the contrast. Each light value is now
+     the highest lightness that still clears 4.5:1, computed rather than
+     chosen, and lib/theme-contrast.test.ts fails if one drifts back. Amber
+     moved furthest (44% -> 35%): yellow carries the most luminance per unit
+     of saturation, so it had the furthest to fall.
+
+     The `swatch` hexes are deliberately NOT changed. They are the brand
+     reference each accent is named for, shown as a small chip rather than
+     behind text, so they are not a contrast surface — and matching them to
+     the darkened values would leave the palette no longer looking like the
+     colours it offers. */
   cyan: { label: "Electric cyan", light: "188 86% 30%", dark: "188 86% 53%", swatch: "#22d3ee", light2: "199 89% 38%", dark2: "199 89% 62%" },
   blue: { label: "Blue", light: "221 83% 40%", dark: "217 91% 60%", swatch: "#2563eb", light2: "258 80% 52%", dark2: "258 90% 70%" },
   violet: { label: "Violet", light: "262 83% 58%", dark: "263 90% 66%", swatch: "#7c3aed", light2: "300 72% 50%", dark2: "300 85% 68%" },
-  teal: { label: "Teal", light: "184 90% 34%", dark: "180 77% 47%", swatch: "#0d9488", light2: "165 82% 32%", dark2: "165 78% 48%" },
-  emerald: { label: "Emerald", light: "160 84% 32%", dark: "158 64% 47%", swatch: "#059669", light2: "174 78% 30%", dark2: "174 80% 50%" },
-  amber: { label: "Amber", light: "32 95% 44%", dark: "38 92% 55%", swatch: "#d97706", light2: "14 90% 48%", dark2: "20 95% 60%" },
-  rose: { label: "Rose", light: "347 77% 50%", dark: "350 89% 65%", swatch: "#e11d48", light2: "325 78% 50%", dark2: "325 88% 66%" },
+  teal: { label: "Teal", light: "184 90% 28%", dark: "180 77% 47%", swatch: "#0d9488", light2: "165 82% 32%", dark2: "165 78% 48%" },
+  emerald: { label: "Emerald", light: "160 84% 28%", dark: "158 64% 47%", swatch: "#059669", light2: "174 78% 30%", dark2: "174 80% 50%" },
+  amber: { label: "Amber", light: "32 95% 35%", dark: "38 92% 55%", swatch: "#d97706", light2: "14 90% 48%", dark2: "20 95% 60%" },
+  rose: { label: "Rose", light: "347 77% 49%", dark: "350 89% 65%", swatch: "#e11d48", light2: "325 78% 50%", dark2: "325 88% 66%" },
   slate: { label: "Graphite", light: "215 25% 35%", dark: "215 20% 65%", swatch: "#475569", light2: "222 30% 40%", dark2: "222 25% 70%" },
 };
 

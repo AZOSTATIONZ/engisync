@@ -19,6 +19,9 @@ const config: Config = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          // Opaque hover, derived per theme from `shade()`. Not an alpha of
+          // DEFAULT — see the note in globals.css for why that failed AA.
+          hover: "hsl(var(--primary-hover))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -62,6 +65,20 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        /* xl AND 2xl FOLLOW THE TOKEN TOO.
+           They were Tailwind's fixed 12px/16px, which meant `--radius` only
+           reached `rounded-md` and `rounded-lg`. That is 179 of the 226
+           radius utilities in this codebase — but the 47 it missed are the
+           big ones: cards, panels, the hero. Neo-Brutalism set radius 0 and
+           its cards still came back 16px round. Found by reading
+           borderTopLeftRadius off a real `.surface-premium` on /dashboard.
+
+           MULTIPLIERS, not offsets, so the default is unchanged: --radius is
+           0.7rem = 11.2px, and 1.071 x 11.2 = 12.0px, 1.429 x 11.2 = 16.0px,
+           exactly what these were before. An offset like `+ 5px` would have
+           left brutalist's 0 radius with 5px corners instead of square. */
+        xl: "calc(var(--radius) * 1.071)",
+        "2xl": "calc(var(--radius) * 1.429)",
       },
       keyframes: {
         "accordion-down": {

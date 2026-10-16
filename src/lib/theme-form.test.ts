@@ -61,15 +61,48 @@ describe("generated theme CSS", () => {
     }
   });
 
-  it("emits no form variables while no personality defines form", () => {
-    // Stage 1 adds the mechanism, not the styles. If a form variable appears
-    // here today, something is overriding shape and the "no visible change"
-    // guarantee is already broken.
+  it("emits form variables for the styles that define them, and only those", () => {
+    /* THIS TEST WAS VACUOUS FOR ONE COMMIT.
+       It was written when no personality defined `form` and read
+       `if (withForm.length === 0) { ...assert... }` — correct then, and
+       silently assert-nothing the moment a style defined form. It kept
+       passing while testing nothing, which is worse than having been
+       deleted, because the green tick claimed coverage that was gone.
+       Now it checks the actual rule in both directions. */
     const withForm = THEMES.filter((t) => t.form);
-    if (withForm.length === 0) {
-      expect(css).not.toContain("--shadow-strength:");
-      expect(css).not.toContain("--border-width:");
-      expect(css).not.toContain("--radius:");
+    const withoutForm = THEMES.filter((t) => !t.form);
+    expect(withForm.length, "some style should define form by now").toBeGreaterThan(0);
+
+    for (const t of withForm) {
+      // Every key the style sets must reach the stylesheet, scoped to it.
+      const rule = new RegExp(`\\[data-theme="${t.key}"\\]\\{([^}]*)\\}`, "g");
+      const bodies = [...css.matchAll(rule)].map((m) => m[1]).join(";");
+      const expected: Record<string, string | undefined> = {
+        "--radius": t.form!.radius,
+        "--border-width": t.form!.borderWidth,
+        "--shadow-strength": t.form!.shadowStrength,
+        "--glass-blur": t.form!.glassBlur,
+        "--glass-opacity": t.form!.glassOpacity,
+        "--motion-scale": t.form!.motionScale,
+      };
+      for (const [name, value] of Object.entries(expected)) {
+        if (value === undefined) continue;
+        expect(bodies, `${t.key} should emit ${name}:${value}`).toContain(
+          `${name}:${value}`,
+        );
+      }
+    }
+
+    for (const t of withoutForm) {
+      // A palette-only personality must still be pixel-identical to default
+      // shape. One stray `--radius` here and nine shipped themes change form.
+      const rule = new RegExp(`\\[data-theme="${t.key}"\\]\\{([^}]*)\\}`, "g");
+      const bodies = [...css.matchAll(rule)].map((m) => m[1]).join(";");
+      for (const name of ["--radius", "--border-width", "--shadow-strength", "--motion-scale"]) {
+        expect(bodies, `${t.key} defines no form, so must not emit ${name}`).not.toContain(
+          `${name}:`,
+        );
+      }
     }
   });
 

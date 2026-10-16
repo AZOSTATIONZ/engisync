@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isEmailConfigured } from "@/lib/email";
 import { ACCENTS, isAccentKey, resolveAccent } from "@/lib/personalization";
+import { shade } from "@/lib/themes";
 import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
@@ -137,7 +138,12 @@ export default async function DashboardLayout({
           reaching for `!important`, which would then have to be fought by
           everything downstream. */}
       {explicitAccent && (
-        <style>{`:root:root{--primary:${accent.light};--primary-2:${accent.light2}}.dark:root:root{--primary:${accent.dark};--primary-2:${accent.dark2}}`}</style>
+        /* `--primary-hover` has to come along with `--primary`. It is derived,
+           not stored, so overriding the brand colour without it would leave an
+           accent user hovering into the PERSONALITY's hover colour — amber
+           button, cyan hover. Same `shade()` the personalities use, so the two
+           paths cannot drift. */
+        <style>{`:root:root{--primary:${accent.light};--primary-2:${accent.light2};--primary-hover:${shade(accent.light, -6)}}.dark:root:root{--primary:${accent.dark};--primary-2:${accent.dark2};--primary-hover:${shade(accent.dark, 6)}}`}</style>
       )}
       <Navbar isSupervisor={supervises} />
       {showVerify && <VerifyBanner />}

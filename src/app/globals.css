@@ -69,6 +69,17 @@
        #070B14 is illegible on paper-white; identical hex in both themes would
        be brand consistency at the cost of anyone actually reading it. */
     --primary: 188 86% 30%;   /* electric cyan, darkened for light surfaces */
+    /* HOVER IS A DARKER COLOUR, NOT A TRANSPARENT ONE.
+       This used to be `hover:bg-primary/90` on the button itself, which blends
+       the brand colour toward whatever is behind it. On a light page that
+       means hovering LIGHTENS the button while its label stays white, and the
+       label drops from 4.57:1 to 3.91:1 — below AA, on the default theme, in
+       the one state a mouse user holds. Measured, not guessed: see
+       lib/theme-contrast.test.ts.
+       Darker in light mode, lighter in dark mode, so hover always moves AWAY
+       from the label colour. Every personality derives its own from `shade()`;
+       this is the fallback for no `data-theme`. */
+    --primary-hover: 188 86% 24%;
     --success: 160 84% 28%;   /* emerald  #10B981 family */
     /* Amber is the hardest hue to make legible on white — at the lightness
        that still reads as "amber" it measured 3.99:1, under the 4.5 minimum.
@@ -137,6 +148,7 @@
     --sidebar: 222 45% 9%;         /* #0C1220 */
     --shadow-color: 222 60% 2%;
     --primary: 188 86% 53%;        /* #22D3EE electric cyan */
+    --primary-hover: 188 86% 59%;  /* lighter: dark-mode labels are near-black */
     /* Cyan is a LIGHT colour: text on top of it must be dark, or the label on
        every primary button disappears. */
     --primary-foreground: 222 48% 7%;
@@ -364,12 +376,26 @@
       hsl(var(--surface-bottom)) 100%
     );
     border: var(--border-width) solid hsl(var(--border));
+    /* EVERY ALPHA HERE SCALES WITH `--shadow-strength`.
+       It did not, until measuring it. Stage 1 tokenised this rule's BORDER
+       and left five hardcoded shadow alphas behind, so a style that set
+       `shadowStrength: 0` flattened `.elev-*` and left the main card surface
+       exactly as deep as before — which is most of what you actually see.
+       Caught by reading the computed box-shadow on /dashboard rather than
+       trusting that the token existed: the alpha came back 0.8 whether the
+       strength was 0 or 1.8.
+
+       The white inset highlight scales too. It is the top edge of the depth
+       illusion, not a separate decoration, and leaving it at full strength
+       on a flat style draws a bright gloss line across something that is
+       meant to have no relief at all. Alpha is clamped by the browser, so
+       Material's 1.8 multiplier saturates harmlessly rather than erroring. */
     box-shadow:
-      inset 0 1px 0 0 hsl(0 0% 100% / 0.9),
-      inset 0 -1px 0 0 hsl(var(--shadow-color) / 0.04),
-      0 1px 1.5px -0.5px hsl(var(--shadow-color) / 0.1),
-      0 4px 8px -3px hsl(var(--shadow-color) / 0.1),
-      0 14px 32px -12px hsl(var(--shadow-color) / 0.16);
+      inset 0 1px 0 0 hsl(0 0% 100% / calc(0.9 * var(--shadow-strength))),
+      inset 0 -1px 0 0 hsl(var(--shadow-color) / calc(0.04 * var(--shadow-strength))),
+      0 1px 1.5px -0.5px hsl(var(--shadow-color) / calc(0.1 * var(--shadow-strength))),
+      0 4px 8px -3px hsl(var(--shadow-color) / calc(0.1 * var(--shadow-strength))),
+      0 14px 32px -12px hsl(var(--shadow-color) / calc(0.16 * var(--shadow-strength)));
   }
   .dark .surface-premium {
     background: linear-gradient(
@@ -378,8 +404,8 @@
       hsl(var(--surface-bottom)) 100%
     );
     box-shadow:
-      inset 0 1px 0 0 hsl(0 0% 100% / 0.05),
-      0 8px 32px -16px hsl(var(--shadow-color) / 0.8);
+      inset 0 1px 0 0 hsl(0 0% 100% / calc(0.05 * var(--shadow-strength))),
+      0 8px 32px -16px hsl(var(--shadow-color) / calc(0.8 * var(--shadow-strength)));
   }
 
   /* A hairline of brand colour along the top of a card. Used to mark the one
