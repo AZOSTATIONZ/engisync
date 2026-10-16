@@ -536,6 +536,27 @@
      ignored the theme entirely. The tint now comes from the theme's own card
      colour and the blur from a form token, which is what lets a Glassmorphism
      style turn it up and a Flat style set it to 0 and go opaque. */
+  /* ── CHROME BLUR ──────────────────────────────────────────────────
+     The navbar and the mobile bottom bar are translucent and blur what
+     scrolls under them. They used Tailwind's fixed `backdrop-blur-xl` (24px)
+     and `backdrop-blur-lg` (16px), which meant the chrome ignored the style:
+     Flat, Material, Neo-Brutalism, Minimalism, Neumorphism, Claymorphism and
+     Skeuomorphism all set `glassBlur: 0`, flattened every panel in the
+     product, and still had a frosted bar pinned to the top of the screen.
+
+     Reading the same token the panels do makes the chrome part of the style
+     rather than an exception to it — and Glassmorphism's 40px now reaches the
+     navbar, which is where that style is most visible.
+
+     Blur only. Background tint stays with each component, because the two
+     bars are deliberately different opacities. The default is 24px, so the
+     navbar is unchanged; the bottom bar moves 16px -> 24px, which is not a
+     visible difference at that size but does make the pair consistent. */
+  .chrome-blur {
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+
   .glass {
     border: var(--border-width) solid hsl(0 0% 100% / 0.1);
     background: hsl(var(--card) / var(--glass-opacity));

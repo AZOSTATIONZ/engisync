@@ -60,7 +60,7 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
   }
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/70 chrome-blur supports-[backdrop-filter]:bg-background/60">
       {/* MOBILE WIDTH BUDGET
           At 360px the container leaves ~328px. Previously this row needed
           ~404px (hamburger 44 + wordmark 117 + search 41 + theme 40 + bell 40

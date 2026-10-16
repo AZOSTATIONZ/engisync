@@ -472,7 +472,7 @@ export const THEMES: ThemePersonality[] = [
     swatch: ["#0C1026", "#6E8BFF"],
     light: {
       bg: "220 60% 92%", card: "0 0% 100%", elevated: "0 0% 100%",
-      sidebar: "220 55% 90%", primary: "230 68% 42%", primary2: "280 60% 45%",
+      sidebar: "220 55% 96%", primary: "230 68% 42%", primary2: "280 60% 45%",
       shadow: "230 40% 35%", border: "220 30% 85%",
     },
     dark: {
@@ -574,7 +574,7 @@ export const THEMES: ThemePersonality[] = [
     swatch: ["#1A0A22", "#FF5FC8"],
     light: {
       bg: "45 88% 94%", card: "0 0% 100%", elevated: "0 0% 100%",
-      sidebar: "320 65% 92%", primary: "320 78% 38%", primary2: "180 85% 26%",
+      sidebar: "320 65% 92.5%", primary: "320 78% 38%", primary2: "180 85% 26%",
       shadow: "320 50% 30%", border: "320 40% 80%",
     },
     dark: {
@@ -605,7 +605,7 @@ export const THEMES: ThemePersonality[] = [
     swatch: ["#1A1510", "#4A90D9"],
     light: {
       bg: "35 30% 89%", card: "38 40% 96%", elevated: "38 45% 98%",
-      sidebar: "35 28% 85%", primary: "210 72% 36%", primary2: "25 72% 36%",
+      sidebar: "38 38% 95%", primary: "210 72% 36%", primary2: "25 72% 36%",
       shadow: "30 40% 30%", border: "35 25% 78%",
     },
     dark: {

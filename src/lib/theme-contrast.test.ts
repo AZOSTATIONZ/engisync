@@ -105,11 +105,24 @@ describe("every style meets WCAG 2.2 AA", () => {
           }
         });
 
-        it("renders secondary text at 4.5:1 or better on cards", () => {
+        it("renders secondary text at 4.5:1 or better on every surface", () => {
           // --muted-foreground carries timestamps, counts and helper text at
           // normal size, so it is 1.4.3 body text and not a large-text
           // exemption, however secondary it looks.
-          for (const s of ["bg", "card", "elevated"] as const) {
+          //
+          // `sidebar` BELONGS IN THIS LIST and was missing from it. Every
+          // inactive navigation item is `text-muted-foreground` on the rail
+          // (components/sidebar.tsx), and the rail has its own background
+          // token — so checking bg/card/elevated said nothing about the one
+          // surface that carries the most muted text in the product. Three
+          // styles were below AA there and nothing caught it: Glassmorphism
+          // 4.32:1, Skeuomorphism 4.13:1, Maximalism 4.50:1.
+          //
+          // The obvious repair — lightening each rail until it passed — put
+          // it at 1.01:1 against the page, i.e. no longer a visible rail at
+          // all. Those three are lighter than their page instead of barely
+          // darker, which clears AA and separates them better than before.
+          for (const s of ["bg", "card", "elevated", "sidebar"] as const) {
             const ratio = contrastRatio(fg.mutedForeground, t[s]);
             expect(
               ratio,

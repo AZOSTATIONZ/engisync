@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -132,10 +132,53 @@ export function InstallPrompt() {
     }
   }, [deferred, dismiss]);
 
+  /* RESERVE THE SPACE THIS BANNER OCCUPIES.
+     ------------------------------------------------------------------
+     It is `fixed`, so it is outside flow and sits ON TOP of the page. The
+     layout's `pb-24` reserves room for the bottom NAV and nothing else, so
+     on a phone this card covered whatever was at the end of the content —
+     the last row of a table, the submit button of a form. The one place a
+     banner must not cover anything is the bottom of a scrollable page,
+     because that is exactly where scrolling stops.
+
+     The height cannot be hardcoded: the iOS copy runs to three lines, the
+     Chrome copy has an Install button, and both reflow with text size. So
+     the banner measures itself and publishes the result as
+     `--install-prompt-h`, which the dashboard layout adds to the padding it
+     already applies. A ResizeObserver rather than a one-off measurement,
+     because rotating the phone changes the wrap.
+
+     Cleared on unmount, which also covers dismissal and installation —
+     leaving a stale value would reserve space for a banner that is gone. */
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = cardRef.current;
+    const root = document.documentElement;
+    const clear = () => root.style.removeProperty("--install-prompt-h");
+    if (!visible || !el) {
+      clear();
+      return;
+    }
+    const publish = () =>
+      root.style.setProperty("--install-prompt-h", `${el.offsetHeight}px`);
+    publish();
+    // Guarded: ResizeObserver is absent on some older Android browsers, and
+    // these students are on exactly those. The single measurement above
+    // still applies there.
+    const ro =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(publish) : null;
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      clear();
+    };
+  }, [visible]);
+
   if (!visible) return null;
 
   return (
     <div
+      ref={cardRef}
       role="region"
       aria-label="Install EngiSync"
       /* Sits above the mobile bottom nav (which is fixed) rather than under

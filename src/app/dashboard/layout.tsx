@@ -158,8 +158,14 @@ export default async function DashboardLayout({
           and wide tables scroll inside their own container. */}
       <div className="container flex flex-1 gap-0">
         <Sidebar isSupervisor={supervises} />
-        {/* pb-24 on mobile keeps content clear of the fixed bottom nav. */}
-        <main className="min-w-0 flex-1 py-6 pb-24 md:py-8 md:pb-8 md:pl-8">
+        {/* pb-24 on mobile keeps content clear of the fixed bottom nav, and
+            `--install-prompt-h` adds the install banner's measured height on
+            top of it when that banner is showing. Both are fixed-position and
+            therefore invisible to layout; without this the end of every page
+            sat underneath them. The variable is published by the banner
+            itself and removed when it goes, so the fallback 0px is what
+            applies the rest of the time. */}
+        <main className="min-w-0 flex-1 py-6 pb-[calc(6rem+var(--install-prompt-h,0px))] md:py-8 md:pb-[calc(2rem+var(--install-prompt-h,0px))] md:pl-8">
           {children}
         </main>
       </div>
