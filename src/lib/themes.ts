@@ -465,6 +465,200 @@ export const THEMES: ThemePersonality[] = [
       motionScale: "0.6",
     },
   },
+  {
+    key: "glass",
+    label: "Glassmorphism",
+    blurb: "Frosted panels floating over colour.",
+    swatch: ["#0C1026", "#6E8BFF"],
+    light: {
+      bg: "220 60% 92%", card: "0 0% 100%", elevated: "0 0% 100%",
+      sidebar: "220 55% 90%", primary: "230 68% 42%", primary2: "280 60% 45%",
+      shadow: "230 40% 35%", border: "220 30% 85%",
+    },
+    dark: {
+      bg: "230 45% 7%", card: "230 30% 13%", elevated: "230 26% 18%",
+      sidebar: "230 40% 9%", primary: "220 90% 68%", primary2: "280 82% 72%",
+      shadow: "230 60% 2%", border: "230 25% 24%",
+    },
+    form: {
+      // Glass only reads as glass if there is something behind it worth
+      // blurring, which is why the page background is the most saturated of
+      // any style here rather than a near-neutral.
+      //
+      // glassOpacity 0.55 is a floor, not a preference. `.glass` composites
+      // `--card` at this alpha over `--bg`, so the text sits on the blend;
+      // card and bg are deliberately close in lightness in BOTH modes so the
+      // blend cannot land somewhere the foreground fails against. Pushing
+      // this lower looks better in a screenshot and starts eating legibility
+      // on a busy background.
+      radius: "1rem",
+      shadowStrength: "1.2",
+      glassBlur: "40px",
+      glassOpacity: "0.55",
+      motionScale: "1.1",
+    },
+  },
+  {
+    key: "neu",
+    label: "Neumorphism",
+    blurb: "Shapes pressed out of a single surface.",
+    swatch: ["#23262E", "#7B93D6"],
+    light: {
+      // bg and card are THE SAME VALUE on purpose. Soft UI has no figure/
+      // ground contrast at all — an element is legible only because of the
+      // light and dark shadow pair below, which is the style's whole idea
+      // and also its well-known accessibility weakness.
+      bg: "220 16% 90.5%", card: "220 16% 90.5%", elevated: "220 16% 93%",
+      sidebar: "220 16% 90.5%", primary: "220 55% 36%", primary2: "250 48% 42%",
+      shadow: "220 25% 55%", border: "220 14% 84%",
+    },
+    dark: {
+      bg: "220 14% 16%", card: "220 14% 16%", elevated: "220 14% 20%",
+      sidebar: "220 14% 16%", primary: "220 75% 70%", primary2: "250 72% 74%",
+      shadow: "220 32% 7%", border: "220 12% 23%",
+    },
+    form: {
+      radius: "1.2rem",
+      shadowStrength: "1",
+      glassBlur: "0px",
+      glassOpacity: "1",
+      motionScale: "1",
+    },
+    // The extruded look is a PAIR of shadows — dark bottom-right, light
+    // top-left — which `shadowStrength` cannot express any more than it could
+    // express Neo-Brutalism's hard offset. The light source is top-left in
+    // both modes so the two stay recognisably one style.
+    //
+    // The highlight is near-white at 0.6 in light mode and barely there in
+    // dark: a white glow at that strength on a dark surface reads as a haze
+    // rather than a bevel.
+    extraCss:
+      `[data-theme="neu"] .surface-premium{background:hsl(var(--card));` +
+      `box-shadow:6px 6px 14px hsl(var(--shadow-color) / 0.45),` +
+      `-6px -6px 14px hsl(0 0% 100% / 0.6)}` +
+      `.dark[data-theme="neu"] .surface-premium{background:hsl(var(--card));` +
+      `box-shadow:6px 6px 14px hsl(var(--shadow-color) / 0.65),` +
+      `-6px -6px 14px hsl(0 0% 100% / 0.04)}`,
+  },
+  {
+    key: "clay",
+    label: "Claymorphism",
+    blurb: "Rounded, puffy shapes in soft pastel.",
+    swatch: ["#17102A", "#B07CFF"],
+    light: {
+      bg: "265 55% 95%", card: "0 0% 100%", elevated: "0 0% 100%",
+      sidebar: "265 50% 93%", primary: "265 62% 44%", primary2: "330 62% 42%",
+      shadow: "265 45% 55%", border: "265 30% 90%",
+    },
+    dark: {
+      bg: "265 35% 10%", card: "265 28% 16%", elevated: "265 24% 21%",
+      sidebar: "265 32% 12%", primary: "265 85% 76%", primary2: "330 80% 74%",
+      shadow: "265 50% 4%", border: "265 22% 26%",
+    },
+    form: {
+      // No `borderWidth` override: clay has no visible outline, and setting
+      // it to 0 would strip the only edge `.glass` has. The border is made
+      // to disappear by COLOUR instead — it sits a few points off the card —
+      // which keeps the token meaningful for anything that needs it.
+      radius: "1.75rem",
+      shadowStrength: "1.5",
+      glassBlur: "0px",
+      glassOpacity: "1",
+      motionScale: "1.15",
+    },
+  },
+  {
+    key: "maximal",
+    label: "Maximalism",
+    blurb: "Loud, saturated and unapologetic.",
+    swatch: ["#1A0A22", "#FF5FC8"],
+    light: {
+      bg: "45 88% 94%", card: "0 0% 100%", elevated: "0 0% 100%",
+      sidebar: "320 65% 92%", primary: "320 78% 38%", primary2: "180 85% 26%",
+      shadow: "320 50% 30%", border: "320 40% 80%",
+    },
+    dark: {
+      bg: "285 50% 8%", card: "285 35% 14%", elevated: "285 30% 19%",
+      sidebar: "320 45% 11%", primary: "320 92% 72%", primary2: "170 88% 58%",
+      shadow: "285 60% 3%", border: "285 30% 26%",
+    },
+    form: {
+      // The page and the rail are DIFFERENT hues, which no other style here
+      // does. Maximalism is the one place where surfaces are allowed to
+      // argue with each other.
+      //
+      // The brand colours are darker in light mode than they look like they
+      // should be: a hot pink at the lightness this style wants cannot carry
+      // a white label at 4.5:1, and the label is not negotiable.
+      radius: "1rem",
+      borderWidth: "2px",
+      shadowStrength: "1.6",
+      glassBlur: "12px",
+      glassOpacity: "0.8",
+      motionScale: "1.3",
+    },
+  },
+  {
+    key: "skeuo",
+    label: "Skeuomorphism",
+    blurb: "Warm, glossy surfaces that look like objects.",
+    swatch: ["#1A1510", "#4A90D9"],
+    light: {
+      bg: "35 30% 89%", card: "38 40% 96%", elevated: "38 45% 98%",
+      sidebar: "35 28% 85%", primary: "210 72% 36%", primary2: "25 72% 36%",
+      shadow: "30 40% 30%", border: "35 25% 78%",
+    },
+    dark: {
+      bg: "30 20% 10%", card: "32 18% 15%", elevated: "32 16% 20%",
+      sidebar: "30 22% 12%", primary: "205 80% 64%", primary2: "28 82% 60%",
+      shadow: "30 45% 3%", border: "32 16% 26%",
+    },
+    form: {
+      // shadowStrength 2 does the gloss on its own. `.surface-premium` already
+      // carries an inset white highlight along its top edge; at this
+      // multiplier the alpha saturates at 1 and that hairline becomes a
+      // genuine specular line, with the drop shadows deepening to match. No
+      // extraCss needed — this is the tokenised path doing exactly the job it
+      // was built for.
+      radius: "0.55rem",
+      shadowStrength: "2",
+      glassBlur: "0px",
+      glassOpacity: "1",
+      motionScale: "0.9",
+    },
+  },
+  {
+    key: "organic",
+    label: "Organic",
+    blurb: "Soft asymmetric shapes, leaf and bark colours.",
+    swatch: ["#0C1A0E", "#6FD36F"],
+    light: {
+      bg: "80 25% 94%", card: "70 30% 98%", elevated: "70 35% 99.5%",
+      sidebar: "80 24% 91%", primary: "130 48% 28%", primary2: "45 60% 30%",
+      shadow: "100 30% 28%", border: "80 20% 85%",
+    },
+    dark: {
+      bg: "120 25% 7%", card: "120 18% 12%", elevated: "120 16% 17%",
+      sidebar: "120 24% 9%", primary: "110 55% 60%", primary2: "45 68% 60%",
+      shadow: "120 40% 2%", border: "120 16% 20%",
+    },
+    form: {
+      radius: "1.4rem",
+      shadowStrength: "0.8",
+      glassBlur: "16px",
+      glassOpacity: "0.75",
+      motionScale: "1.2",
+    },
+    // Nothing in nature is a rounded rectangle. Opposite corners differ, which
+    // a single `--radius` cannot express whatever value it is given.
+    //
+    // Scoped to `.surface-premium` alone, deliberately. Applying this to every
+    // rounded thing would deform chips, avatars and buttons — a lopsided 40px
+    // avatar reads as a rendering fault, not as a design.
+    extraCss:
+      `[data-theme="organic"] .surface-premium` +
+      `{border-radius:1.6rem 0.9rem 1.6rem 0.9rem}`,
+  },
 ];
 
 export const DEFAULT_THEME = "midnight";
