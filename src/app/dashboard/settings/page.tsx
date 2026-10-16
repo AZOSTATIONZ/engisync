@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Palette } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { routes } from "@/lib/routes";
 import { isEmailConfigured, providerName } from "@/lib/email";
 import { isPushConfigured } from "@/lib/push";
 import {
@@ -138,8 +141,19 @@ export default async function SettingsPage() {
             remembered on this device.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <ThemePicker />
+          {/* The quick chips above stay for the common case — a student who
+              knows which theme they want should not have to leave Settings to
+              pick it. The Studio is for the other case: comparing, previewing
+              on your own dashboard, deciding. */}
+          <Link
+            href={routes.appearance}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            <Palette className="h-4 w-4" aria-hidden />
+            Open Theme Studio to preview each one
+          </Link>
         </CardContent>
       </Card>
 

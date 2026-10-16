@@ -83,6 +83,34 @@
     --ring: 188 86% 30%;
     --sidebar: 213 30% 92%;
     --radius: 0.7rem;
+
+    /* ── FORM TOKENS ────────────────────────────────────────────────
+       The second axis of a design style: shape, not hue. A personality
+       overrides these (see lib/themes.ts) and the house utilities below
+       read them, so a style can flatten every shadow, square every corner
+       or thicken every border without a single component being edited.
+
+       These defaults are exactly what the app rendered before they existed,
+       so a personality that sets no form is pixel-identical to before. */
+
+    /* Hairline width on bordered surfaces. Brutalist styles raise it. */
+    --border-width: 1px;
+    /* Multiplier on elevation shadow alpha. 0 flattens the product. */
+    --shadow-strength: 1;
+    /* Glass surfaces: backdrop blur, and the opacity of the tint over it. */
+    --glass-blur: 24px;
+    --glass-opacity: 0.7;
+    /* Multiplier on durations. `prefers-reduced-motion` still overrides it —
+       a style may not opt a user out of an accessibility preference. */
+    --motion-scale: 1;
+
+    /* Premium surface gradient endpoints.
+       These were hardcoded to `210 40% 99.5%` and `210 26% 97%` — cool blue,
+       in every personality, so a Sunset card carried Midnight's tint. The
+       per-theme values are generated in lib/themes.ts; these are the
+       fallbacks for any surface rendered before a theme is applied. */
+    --surface-top: 210 40% 99.5%;
+    --surface-bottom: 210 26% 97%;
   }
 
   /* Dark mode inverts the logic: surfaces get LIGHTER as they rise, which is
@@ -128,6 +156,12 @@
     --border: 221 22% 18%;
     --input: 222 30% 22%;
     --ring: 188 86% 53%;
+
+    /* Dark inverts the premium gradient: the card is brightest at the top and
+       falls away, rather than catching light from above. Same literals the
+       rule used to hardcode, kept here as the pre-theme fallback. */
+    --surface-top: 221 39% 11%;
+    --surface-bottom: 222 40% 9%;
   }
 }
 
@@ -325,11 +359,11 @@
     position: relative;
     background: linear-gradient(
       180deg,
-      hsl(210 40% 99.5%) 0%,
+      hsl(var(--surface-top)) 0%,
       hsl(var(--card)) 62%,
-      hsl(210 26% 97%) 100%
+      hsl(var(--surface-bottom)) 100%
     );
-    border: 1px solid hsl(var(--border));
+    border: var(--border-width) solid hsl(var(--border));
     box-shadow:
       inset 0 1px 0 0 hsl(0 0% 100% / 0.9),
       inset 0 -1px 0 0 hsl(var(--shadow-color) / 0.04),
@@ -340,12 +374,12 @@
   .dark .surface-premium {
     background: linear-gradient(
       180deg,
-      hsl(var(--card)) 0%,
-      hsl(222 40% 9%) 100%
+      hsl(var(--surface-top)) 0%,
+      hsl(var(--surface-bottom)) 100%
     );
     box-shadow:
       inset 0 1px 0 0 hsl(0 0% 100% / 0.05),
-      0 8px 32px -16px hsl(222 60% 2% / 0.8);
+      0 8px 32px -16px hsl(var(--shadow-color) / 0.8);
   }
 
   /* A hairline of brand colour along the top of a card. Used to mark the one
@@ -411,25 +445,29 @@
      Shadows use --shadow-color (brand-tinted) at low alpha, and are almost
      invisible in dark mode by design — there, the lightness steps between
      --background / --card / --elevated carry the depth instead. */
+  /* Every alpha below is multiplied by --shadow-strength, which defaults to 1
+     and therefore changes nothing today. It is the single lever a Flat style
+     pulls to 0 to remove depth from the entire product, or a Skeuomorphic one
+     raises to deepen it — without touching a component. */
   .elev-1 {
     box-shadow:
-      0 1px 2px -1px hsl(var(--shadow-color) / 0.08),
-      0 1px 3px hsl(var(--shadow-color) / 0.05);
+      0 1px 2px -1px hsl(var(--shadow-color) / calc(0.08 * var(--shadow-strength))),
+      0 1px 3px hsl(var(--shadow-color) / calc(0.05 * var(--shadow-strength)));
   }
   .elev-2 {
     box-shadow:
-      0 1px 2px -1px hsl(var(--shadow-color) / 0.1),
-      0 4px 12px -2px hsl(var(--shadow-color) / 0.08);
+      0 1px 2px -1px hsl(var(--shadow-color) / calc(0.1 * var(--shadow-strength))),
+      0 4px 12px -2px hsl(var(--shadow-color) / calc(0.08 * var(--shadow-strength)));
   }
   .elev-3 {
     box-shadow:
-      0 2px 4px -2px hsl(var(--shadow-color) / 0.12),
-      0 12px 28px -6px hsl(var(--shadow-color) / 0.14);
+      0 2px 4px -2px hsl(var(--shadow-color) / calc(0.12 * var(--shadow-strength))),
+      0 12px 28px -6px hsl(var(--shadow-color) / calc(0.14 * var(--shadow-strength)));
   }
   .elev-4 {
     box-shadow:
-      0 4px 8px -4px hsl(var(--shadow-color) / 0.16),
-      0 24px 48px -12px hsl(var(--shadow-color) / 0.2);
+      0 4px 8px -4px hsl(var(--shadow-color) / calc(0.16 * var(--shadow-strength))),
+      0 24px 48px -12px hsl(var(--shadow-color) / calc(0.2 * var(--shadow-strength)));
   }
   .dark .elev-1,
   .dark .elev-2,
@@ -466,18 +504,36 @@
     background-color: hsl(var(--elevated));
   }
 
-  /* Glassmorphism surface */
+  /* GLASS SURFACES.
+     Previously `bg-white/70` and `dark:bg-slate-900/60` — literal white and
+     literal slate, so a glass panel stayed cool-grey in every personality and
+     ignored the theme entirely. The tint now comes from the theme's own card
+     colour and the blur from a form token, which is what lets a Glassmorphism
+     style turn it up and a Flat style set it to 0 and go opaque. */
   .glass {
-    @apply border border-white/10 bg-white/70 backdrop-blur-xl dark:bg-white/5;
+    border: var(--border-width) solid hsl(0 0% 100% / 0.1);
+    background: hsl(var(--card) / var(--glass-opacity));
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+  .dark .glass {
+    background: hsl(var(--elevated) / calc(var(--glass-opacity) * 0.45));
+    border-color: hsl(0 0% 100% / 0.08);
   }
   .glass-strong {
-    @apply border border-white/15 bg-white/80 backdrop-blur-2xl dark:bg-slate-900/60;
+    border: var(--border-width) solid hsl(0 0% 100% / 0.15);
+    background: hsl(var(--card) / calc(var(--glass-opacity) + 0.1));
+    backdrop-filter: blur(calc(var(--glass-blur) * 1.65));
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.65));
   }
-  /* Soft premium card shadow */
+  .dark .glass-strong {
+    background: hsl(var(--card) / 0.6);
+  }
+  /* Soft premium card shadow. Tinted by the theme rather than fixed navy. */
   .shadow-soft {
     box-shadow:
-      0 1px 2px rgba(16, 24, 40, 0.04),
-      0 8px 24px -12px rgba(16, 24, 40, 0.12);
+      0 1px 2px hsl(var(--shadow-color) / calc(0.04 * var(--shadow-strength))),
+      0 8px 24px -12px hsl(var(--shadow-color) / calc(0.12 * var(--shadow-strength)));
   }
 }
 

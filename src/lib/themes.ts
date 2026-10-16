@@ -45,6 +45,74 @@ export type ThemeTokens = {
   border: string;
 };
 
+/**
+ * FORM, as opposed to colour.
+ *
+ * The nine personalities above vary hue and nothing else, which is why they
+ * read as the same interface painted differently. A design *style* — flat,
+ * brutalist, neumorphic, glass — is defined far more by shape than by colour:
+ * how round things are, how heavy the shadow is, how thick a border is,
+ * whether surfaces are blurred, what the type feels like.
+ *
+ * These tokens are that second axis. They are emitted as CSS variables
+ * alongside the colour block, and the house utilities in globals.css
+ * (`.elev-*`, `.glass`, `.surface-premium`) consume them — so a style changes
+ * the whole product's shape without a single component being edited.
+ *
+ * EVERY VALUE HERE IS OPTIONAL and falls back to `DEFAULT_FORM`, which holds
+ * exactly what the app renders today. A personality that specifies no form is
+ * pixel-identical to how it looked before this existed.
+ */
+export type ThemeForm = {
+  /** Corner radius. Drives Tailwind's rounded-sm/md/lg via --radius. */
+  radius: string;
+  /** Hairline width for bordered surfaces. Brutalist styles raise this. */
+  borderWidth: string;
+  /**
+   * Multiplier on every elevation shadow's alpha.
+   * 0 flattens the product completely; 1 is today; >1 deepens it.
+   */
+  shadowStrength: string;
+  /** Backdrop blur on glass surfaces. 0px makes them opaque. */
+  glassBlur: string;
+  /** Opacity of the glass tint over the backdrop. */
+  glassOpacity: string;
+  /**
+   * Font stack. Deliberately a STACK, not a webfont URL: these students are
+   * on metered mobile data, and twenty typefaces would cost more bandwidth
+   * than the entire application bundle.
+   *
+   * NOT WIRED YET, and deliberately so. Nothing in this codebase currently
+   * binds `font-family` to a variable: `tailwind.config.ts` has no
+   * `fontFamily` entry and globals.css has no `font-family` rule, so `body`'s
+   * `font-sans` resolves to Tailwind's default system stack. `next/font` sets
+   * `--font-sans` on the body and no rule reads it — meaning Inter is fetched
+   * on every page load and never rendered. Connecting that is a visible
+   * typography change and a bandwidth decision, so it belongs to its own
+   * stage rather than being smuggled into a no-op one.
+   */
+  fontSans: string;
+  /**
+   * Multiplier on transition and animation duration. 0 is not "no motion" —
+   * `prefers-reduced-motion` owns that, and a style must never override an
+   * accessibility preference.
+   */
+  motionScale: string;
+};
+
+/** Exactly what the application renders today. */
+export const DEFAULT_FORM: ThemeForm = {
+  radius: "0.7rem",
+  borderWidth: "1px",
+  shadowStrength: "1",
+  glassBlur: "24px",
+  glassOpacity: "0.7",
+  // Empty until typography is wired — see the note on the field. `formBlock`
+  // skips empty values, so this emits nothing rather than an invalid rule.
+  fontSans: "",
+  motionScale: "1",
+};
+
 export type ThemePersonality = {
   key: string;
   label: string;
@@ -54,6 +122,8 @@ export type ThemePersonality = {
   swatch: [string, string];
   light: ThemeTokens;
   dark: ThemeTokens;
+  /** Shape overrides. Omitted entirely = today's look. */
+  form?: Partial<ThemeForm>;
 };
 
 export const THEMES: ThemePersonality[] = [
@@ -222,15 +292,62 @@ export function resolveTheme(v: string | null | undefined): string {
  * `[data-theme="x"]` for light and `.dark[data-theme="x"]` for dark, which
  * composes with next-themes' `class="dark"` instead of competing for it.
  */
+/**
+ * Nudge the lightness of an `H S% L%` triple, clamped to 0–100.
+ *
+ * Exists for one reason: `.surface-premium` used to hardcode its gradient
+ * endpoints as `hsl(210 40% 99.5%)` and `hsl(210 26% 97%)` — cool blue, in
+ * every personality. A Sunset or Forest card therefore carried a blue tint
+ * that belonged to Midnight, which is the sort of thing nobody can name but
+ * everybody can see.
+ *
+ * Deriving the endpoints from each theme's own `card` fixes that, and doing it
+ * here in TypeScript rather than with `color-mix()` keeps the output as plain
+ * `hsl()` — these students are on old Android phones, and a surface that
+ * silently fails to paint on a browser without `color-mix` support is a worse
+ * bug than a blue tint.
+ */
+export function shade(triple: string, deltaL: number): string {
+  const m = /^(.+?)\s+(\d+(?:\.\d+)?)%$/.exec(triple.trim());
+  if (!m) return triple; // Unrecognised shape — leave it exactly as given.
+  const lightness = Number(m[2]);
+  if (!Number.isFinite(lightness)) return triple;
+  const next = Math.min(100, Math.max(0, lightness + deltaL));
+  // Trim a trailing ".0" so "97.0%" reads as "97%", matching the hand-written
+  // values elsewhere in this file.
+  return `${m[1]} ${String(Number(next.toFixed(2)))}%`;
+}
+
 export function themeCss(): string {
-  const block = (sel: string, t: ThemeTokens) =>
+  const block = (sel: string, t: ThemeTokens, dark: boolean) =>
     `${sel}{--background:${t.bg};--card:${t.card};--elevated:${t.elevated};` +
     `--sidebar:${t.sidebar};--primary:${t.primary};--primary-2:${t.primary2};` +
-    `--shadow-color:${t.shadow};--border:${t.border};--ring:${t.primary}}`;
+    `--shadow-color:${t.shadow};--border:${t.border};--ring:${t.primary};` +
+    // Premium surface gradient, derived from this theme rather than fixed.
+    // Light reads brightest at the top; dark falls away towards the bottom.
+    `--surface-top:${dark ? t.card : t.elevated};` +
+    `--surface-bottom:${shade(t.card, dark ? -2 : -1)}}`;
+
+  /** Form variables, only for the keys a personality actually overrides. */
+  const formBlock = (sel: string, form?: Partial<ThemeForm>) => {
+    if (!form) return "";
+    const pairs: string[] = [];
+    if (form.radius) pairs.push(`--radius:${form.radius}`);
+    if (form.borderWidth) pairs.push(`--border-width:${form.borderWidth}`);
+    if (form.shadowStrength) pairs.push(`--shadow-strength:${form.shadowStrength}`);
+    if (form.glassBlur) pairs.push(`--glass-blur:${form.glassBlur}`);
+    if (form.glassOpacity) pairs.push(`--glass-opacity:${form.glassOpacity}`);
+    if (form.fontSans) pairs.push(`--font-sans:${form.fontSans}`);
+    if (form.motionScale) pairs.push(`--motion-scale:${form.motionScale}`);
+    return pairs.length ? `${sel}{${pairs.join(";")}}` : "";
+  };
 
   return THEMES.map(
     (t) =>
-      block(`[data-theme="${t.key}"]`, t.light) +
-      block(`.dark[data-theme="${t.key}"]`, t.dark),
+      block(`[data-theme="${t.key}"]`, t.light, false) +
+      block(`.dark[data-theme="${t.key}"]`, t.dark, true) +
+      // Form is per-personality, not per-mode: a style's shape should not
+      // change when the lights go out.
+      formBlock(`[data-theme="${t.key}"]`, t.form),
   ).join("");
 }

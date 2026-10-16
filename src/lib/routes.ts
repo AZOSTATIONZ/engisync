@@ -45,6 +45,8 @@ export const routes = {
 
   /** Account-menu destinations, not primary navigation. */
   settings: "/dashboard/settings",
+  /** Theme Studio. Nested under settings because that is where people look. */
+  appearance: "/dashboard/settings/appearance",
   profile: "/dashboard/profile",
 
   /**
