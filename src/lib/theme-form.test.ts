@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { DEFAULT_FORM, THEMES, shade, themeCss } from "@/lib/themes";
 
 /**
@@ -102,5 +104,47 @@ describe("DEFAULT_FORM", () => {
     // and never rendered. Connecting it is a visible change and belongs to
     // its own stage — see the note on ThemeForm.fontSans.
     expect(DEFAULT_FORM.fontSans).toBe("");
+  });
+});
+
+describe("account theme persistence", () => {
+  const sync = readFileSync(
+    join(process.cwd(), "src/components/theme-studio/theme-sync.tsx"),
+    "utf8",
+  );
+  const action = readFileSync(
+    join(process.cwd(), "src/app/theme-actions.ts"),
+    "utf8",
+  );
+
+  it("validates the key server-side", () => {
+    // A server action is a public endpoint. The gallery only offers real
+    // themes, which constrains people and not crafted requests — and an
+    // arbitrary string in this column would render as the default forever
+    // with no indication why.
+    expect(action).toContain("isThemeKey");
+  });
+
+  it("returns quietly for guests instead of redirecting", () => {
+    // The provider lives in the root layout and therefore runs on the
+    // sign-in page. Bouncing someone out of the form they are filling in,
+    // because of a colour scheme, would be absurd.
+    expect(action).toContain("if (!session?.user?.id) return");
+    expect(action).not.toContain("redirect(");
+  });
+
+  it("lets the account win, and promotes a device choice when it is silent", () => {
+    // The two halves of reconciliation. `themeKey` is nullable precisely so
+    // "never chose" is distinguishable from "chose the default": a student
+    // who picked a theme before registering keeps it.
+    expect(sync).toContain("adoptFromAccount(accountTheme)");
+    expect(sync).toContain("saveThemePreference(onDevice)");
+  });
+
+  it("reconciles once per mount, not on every navigation", () => {
+    // The dashboard layout re-renders on every navigation. Re-applying the
+    // account theme each time would fight whatever the user just chose in
+    // the Studio.
+    expect(sync).toContain("done.current");
   });
 });

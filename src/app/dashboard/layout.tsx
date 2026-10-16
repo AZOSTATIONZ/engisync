@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { VerifyBanner } from "@/components/verify-banner";
 import { InstallPrompt } from "@/components/install-prompt";
 import { LivingBackground } from "@/components/living-background";
+import { ThemeSync } from "@/components/theme-studio/theme-sync";
 import { disciplineFor } from "@/lib/media";
 
 export default async function DashboardLayout({
@@ -32,6 +33,9 @@ export default async function DashboardLayout({
     select: {
       emailVerified: true,
       accentColor: true,
+      // One more column on a query this layout already makes, so account-level
+      // theming costs no extra round trip to Neon.
+      themeKey: true,
       // Session revocation. Free here — this query already runs on every
       // authenticated page, so validating the token's generation costs one
       // more column rather than another round trip. See the check below.
@@ -97,6 +101,9 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* Reconciles the account's theme with this device's. Renders nothing;
+          see the component for which store wins and why. */}
+      <ThemeSync accountTheme={user?.themeKey ?? null} />
       {/* Ambient depth behind everything. Fixed and -z-10 so it never repaints
           on scroll and never sits above content; aria-hidden because it
           carries no information. Defined fully in globals.css. */}

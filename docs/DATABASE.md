@@ -102,11 +102,34 @@ them lost data:
 5. `npm run prisma:deploy` against production, or let the deploy pipeline do
    it.
 
+### `migrate dev` hangs with no error
+
+If `npm run prisma:migrate` stops at `Datasource "db": PostgreSQL database …`
+and never continues, the connection string is Neon's **pooled** endpoint — the
+hostname contains `-pooler`.
+
+The application should use the pooler. The migration engine cannot: it creates
+a shadow database and takes advisory locks, and a pooled connection supports
+neither. It does not fail, it waits, which looks exactly like a slow network.
+
+`DIRECT_URL` in `.env` is the same branch and the same credentials with
+`-pooler` removed from the host, and `directUrl` in `prisma/schema.prisma`
+points the migration engine at it. If you create a new branch, set both:
+
+```
+DATABASE_URL="postgresql://…@ep-xxx-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
+DIRECT_URL="postgresql://…@ep-xxx.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require"
+```
+
 ### The drift trap
 
 `migrate diff` against this project emits `DROP TABLE "playing_with_neon"` —
 a leftover Neon sample table that exists in the database and not in the
 schema. It is unrelated to whatever you are changing, and it has been stripped
-by hand from every migration in this repository. Once dev and production are
-separate, generate migrations from the **dev** branch and this stops
-appearing.
+by hand from every migration in this repository.
+
+**Dropped from the dev branch on 16 Oct 2026.** It is a Neon sample table with
+no reference anywhere in the schema or the application, and dev is disposable,
+so removing it there is what makes `migrate dev` usable at all. Production
+still has it — generate migrations from **dev** and the spurious `DROP TABLE`
+stops appearing.

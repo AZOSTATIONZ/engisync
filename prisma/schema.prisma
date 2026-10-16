@@ -9,6 +9,14 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  /// Non-pooled connection, used only by the migration engine.
+  ///
+  /// `prisma migrate dev` creates a shadow database and takes advisory locks,
+  /// and Neon's connection pooler can do neither — the migration simply hangs
+  /// at "Datasource db" with no error, which reads as a network problem and
+  /// is not one. The application keeps using the pooled URL, which is the
+  /// right endpoint for serving requests.
+  directUrl = env("DIRECT_URL")
 }
 
 // ── Enums ─────────────────────────────────────
@@ -313,6 +321,20 @@ model User {
 
   /// Which figure appears in the dashboard hero scene. See the enum.
   avatarPresentation AvatarPresentation @default(NEUTRAL)
+
+  /// Chosen visual theme, as a key into THEMES (lib/themes.ts).
+  ///
+  /// NULLABLE AND UNVALIDATED AT THE DATABASE LEVEL, on purpose. An enum here
+  /// would mean a migration every time a theme is added or renamed, and a
+  /// deploy where the column and the code disagree would leave users with an
+  /// interface the application cannot render. `resolveTheme()` already falls
+  /// back to the default for any unrecognised value, so an unknown key costs
+  /// a default theme rather than an error.
+  ///
+  /// Null means "never chosen" — distinct from choosing the default — which
+  /// is what lets a browser's localStorage win for someone who picked a theme
+  /// before they had an account.
+  themeKey String?
   headline           String?            @db.VarChar(80)
   bio                String?            @db.VarChar(280)
   skills             String[]

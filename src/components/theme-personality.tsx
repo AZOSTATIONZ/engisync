@@ -1,7 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Check, Palette } from "lucide-react";
+
+import { saveThemePreference } from "@/app/theme-actions";
 
 import { cn } from "@/lib/utils";
 import { DEFAULT_THEME, THEMES, resolveTheme, themeCss } from "@/lib/themes";
@@ -22,8 +25,23 @@ const STORAGE_KEY = "engisync-theme";
  */
 const NO_FLASH = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");document.documentElement.setAttribute("data-theme",t||"${DEFAULT_THEME}")}catch(e){document.documentElement.setAttribute("data-theme","${DEFAULT_THEME}")}})()`;
 
-type Ctx = { theme: string; setTheme: (k: string) => void };
-const ThemeCtx = createContext<Ctx>({ theme: DEFAULT_THEME, setTheme: () => {} });
+type Ctx = {
+  theme: string;
+  /** A deliberate choice: applies, stores locally, and syncs to the account. */
+  setTheme: (k: string) => void;
+  /**
+   * Apply a theme that CAME FROM the account. Identical to `setTheme` minus
+   * the write back to the server — echoing a value straight to where it was
+   * just read from is a pointless round trip on a connection that may be
+   * paying for it.
+   */
+  adoptFromAccount: (k: string) => void;
+};
+const ThemeCtx = createContext<Ctx>({
+  theme: DEFAULT_THEME,
+  setTheme: () => {},
+  adoptFromAccount: () => {},
+});
 
 export function useThemePersonality() {
   return useContext(ThemeCtx);
@@ -35,6 +53,7 @@ export function ThemePersonalityProvider({
   children: React.ReactNode;
 }) {
   const [theme, setThemeState] = useState(DEFAULT_THEME);
+  const { status } = useSession();
 
   // Adopt whatever the no-flash script already put on the element, so the
   // React state agrees with the DOM instead of overwriting it.
@@ -43,7 +62,8 @@ export function ThemePersonalityProvider({
     setThemeState(resolveTheme(current));
   }, []);
 
-  const setTheme = useCallback((key: string) => {
+  /** Apply + remember on this device. Shared by both entry points below. */
+  const applyLocally = useCallback((key: string) => {
     const next = resolveTheme(key);
     document.documentElement.setAttribute("data-theme", next);
     try {
@@ -52,10 +72,29 @@ export function ThemePersonalityProvider({
       // Preference simply won't persist. Not worth surfacing.
     }
     setThemeState(next);
+    return next;
   }, []);
 
+  const setTheme = useCallback(
+    (key: string) => {
+      const next = applyLocally(key);
+      // Signed in: also remember it for their other devices. Deliberately not
+      // awaited — the theme is already on screen, and a slow write must not
+      // make the picker feel unresponsive.
+      if (status === "authenticated") void saveThemePreference(next);
+    },
+    [applyLocally, status],
+  );
+
+  const adoptFromAccount = useCallback(
+    (key: string) => {
+      applyLocally(key);
+    },
+    [applyLocally],
+  );
+
   return (
-    <ThemeCtx.Provider value={{ theme, setTheme }}>
+    <ThemeCtx.Provider value={{ theme, setTheme, adoptFromAccount }}>
       {/* Both emitted once, at the root. `themeCss()` is generated from the
           THEMES data so a personality can never drift from its stylesheet. */}
       <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
