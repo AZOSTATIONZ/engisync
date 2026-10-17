@@ -82,14 +82,19 @@ export type ThemeForm = {
    * on metered mobile data, and twenty typefaces would cost more bandwidth
    * than the entire application bundle.
    *
-   * NOT WIRED YET, and deliberately so. Nothing in this codebase currently
-   * binds `font-family` to a variable: `tailwind.config.ts` has no
-   * `fontFamily` entry and globals.css has no `font-family` rule, so `body`'s
-   * `font-sans` resolves to Tailwind's default system stack. `next/font` sets
-   * `--font-sans` on the body and no rule reads it — meaning Inter is fetched
-   * on every page load and never rendered. Connecting that is a visible
-   * typography change and a bandwidth decision, so it belongs to its own
-   * stage rather than being smuggled into a no-op one.
+   * WIRED. `tailwind.config.ts` points `fontFamily.sans` at this variable, so
+   * `font-sans` — which is on `body` and therefore inherited by everything —
+   * resolves through it.
+   *
+   * Getting here meant DELETING a webfont rather than connecting one. Inter
+   * was imported by `next/font`, which set `--font-sans` on the body while
+   * `font-sans` fell through to Tailwind's built-in stack: 47.6 KB preloaded
+   * per first load, every face reporting "unloaded", nothing rendered in it.
+   * Removing it changed nothing on screen and gave the bandwidth back.
+   *
+   * So every value here names fonts that are ALREADY ON THE DEVICE. A style
+   * may change the typeface for free, which is the only reason twenty styles
+   * can each have an opinion about type.
    */
   fontSans: string;
   /**
@@ -107,9 +112,11 @@ export const DEFAULT_FORM: ThemeForm = {
   shadowStrength: "1",
   glassBlur: "24px",
   glassOpacity: "0.7",
-  // Empty until typography is wired — see the note on the field. `formBlock`
-  // skips empty values, so this emits nothing rather than an invalid rule.
-  fontSans: "",
+  // Tailwind's own default stack, which is what every element computed to
+  // before typography was wired — so this default is a description of the
+  // status quo, not a change to it.
+  fontSans:
+    'ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
   motionScale: "1",
 };
 
@@ -419,6 +426,16 @@ export const THEMES: ThemePersonality[] = [
       glassOpacity: "1",
       // Brutalism does not ease. Snapping is the point.
       motionScale: "0.4",
+      /* Monospace, because unstyled-document typography IS the aesthetic —
+         this is what a browser looked like before anyone decorated it.
+         The honest cost: a monospace face is slower to read in long prose,
+         and this product contains project documentation. It is on the style
+         rather than the product, nobody is placed in it by default, and the
+         alternative — a neo-brutalism that quietly uses the same humanist
+         sans as everything else — would not be the style at all. Every
+         family named is a system font. */
+      fontSans:
+        'ui-monospace, "Cascadia Mono", "Segoe UI Mono", "Liberation Mono", Menlo, Monaco, Consolas, monospace',
     },
     // Hard offset shadows cannot come from `shadowStrength`, which only scales
     // the alpha of a blurred recipe — see the note on `extraCss`. The offset
@@ -622,6 +639,11 @@ export const THEMES: ThemePersonality[] = [
       // was built for.
       radius: "0.55rem",
       shadowStrength: "2",
+      /* A serif belongs with the gloss: skeuomorphic interfaces imitated
+         printed objects, and print is set in serif. Georgia was designed for
+         screens specifically, so unlike most serifs it holds up at body
+         sizes on a low-density phone. */
+      fontSans: 'Georgia, Cambria, "Times New Roman", Times, serif',
       glassBlur: "0px",
       glassOpacity: "1",
       motionScale: "0.9",
@@ -645,6 +667,12 @@ export const THEMES: ThemePersonality[] = [
     form: {
       radius: "1.4rem",
       shadowStrength: "0.8",
+      /* Humanist sans — calligraphic, with stroke modulation rather than
+         uniform geometry, which is the typographic version of what this
+         style does with shape. Candara and Optima are widely installed on
+         Windows and macOS; Android has neither and falls through to its own
+         sans, which is correct behaviour rather than a fallback failure. */
+      fontSans: 'Optima, Candara, "Gill Sans", "Gill Sans MT", "Trebuchet MS", sans-serif',
       glassBlur: "16px",
       glassOpacity: "0.75",
       motionScale: "1.2",

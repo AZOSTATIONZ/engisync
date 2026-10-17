@@ -80,6 +80,22 @@ const config: Config = {
          `transition-duration: 0.01ms !important`, which beats any calc here.
          A style may not opt a user out of an accessibility preference, and
          the test asserts the `!important` is still there. */
+      /* `font-sans` now READS the token instead of ignoring it.
+         Previously this key was absent, so `font-sans` fell through to
+         Tailwind's built-in stack while `--font-sans` sat on the body
+         unused — which is how a 47.6 KB webfont was downloaded and never
+         rendered. The fallback after the variable is the same built-in
+         stack, so a page rendered before CSS variables resolve looks
+         identical rather than briefly serif. */
+      fontFamily: {
+        sans: [
+          "var(--font-sans)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
+      },
+
       transitionDuration: {
         DEFAULT: "calc(150ms * var(--motion-scale))",
       },

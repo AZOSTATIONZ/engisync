@@ -132,11 +132,13 @@ describe("DEFAULT_FORM", () => {
     expect(DEFAULT_FORM.glassBlur).toBe("24px");
   });
 
-  it("leaves typography unwired on purpose", () => {
-    // Nothing currently binds font-family to a variable, so Inter is fetched
-    // and never rendered. Connecting it is a visible change and belongs to
-    // its own stage — see the note on ThemeForm.fontSans.
-    expect(DEFAULT_FORM.fontSans).toBe("");
+  it("defaults typography to the stack that was already rendering", () => {
+    // This asserted `fontSans === ""` while typography was unwired. It is now
+    // wired, and the default is Tailwind's built-in sans stack verbatim —
+    // which is what every element computed to beforehand, so making the
+    // typeface a token moved nothing on screen.
+    expect(DEFAULT_FORM.fontSans).toContain("ui-sans-serif");
+    expect(DEFAULT_FORM.fontSans).toContain("system-ui");
   });
 });
 

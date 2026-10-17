@@ -1,9 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+/* NO WEBFONT.
+   `Inter` was imported here and its `--font-sans` variable put on the body,
+   while `font-sans` resolved to Tailwind's default system stack — so the
+   typeface was preloaded and rendered nowhere. Measured on the live site:
+   47.6 KB transferred per first load, with every Inter face reporting
+   "unloaded" in `document.fonts` and both body and headings computing to
+   `ui-sans-serif, system-ui, ...`.
+
+   Removing it changes nothing visible, because nothing was using it, and
+   returns 47.6 KB to students on metered mobile data. That is also what this
+   codebase already said it wanted: see the note on `ThemeForm.fontSans` —
+   "deliberately a STACK, not a webfont URL".
+
+   Typography is now a token (`--font-sans` in globals.css, read by
+   tailwind.config.ts), so a style can change the typeface using fonts
+   already on the device, at no bandwidth cost at all. */
 
 export const metadata: Metadata = {
   title: {
@@ -73,7 +87,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <Providers>{children}</Providers>
       </body>
     </html>

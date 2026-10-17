@@ -115,6 +115,20 @@
        a style may not opt a user out of an accessibility preference. */
     --motion-scale: 1;
 
+    /* TYPEFACE, as a token rather than a webfont.
+       This is Tailwind's own default sans stack, reproduced exactly, so
+       turning typography into a variable changes nothing on screen: it is
+       what every element already computed to. Verified against the live site
+       before the change — body and headings both reported
+       `ui-sans-serif, system-ui, sans-serif, ...`.
+
+       Every font named here is already on the device. A style may swap the
+       stack (see the `fontSans` entries in lib/themes.ts) and the swap costs
+       zero bytes, which is the only reason twenty styles can have opinions
+       about type at all. */
+    --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+      "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
     /* Premium surface gradient endpoints.
        These were hardcoded to `210 40% 99.5%` and `210 26% 97%` — cool blue,
        in every personality, so a Sunset card carried Midnight's tint. The

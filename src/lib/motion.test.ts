@@ -79,15 +79,39 @@ describe("prefers-reduced-motion outranks every style", () => {
   });
 });
 
-describe("typography is still unwired, and says so", () => {
-  it("has no consumer for --font-sans", () => {
-    /* Not a failure — a known gap, asserted so it cannot be mistaken for
-       working. Inter is fetched by next/font on every page load and never
-       rendered, because nothing binds font-family to the variable. When
-       typography is wired this test is what will need changing, which is the
-       point: the change becomes deliberate rather than incidental. */
-    expect(DEFAULT_FORM.fontSans).toBe("");
-    expect(tw).not.toMatch(/fontFamily/);
-    expect(css).not.toMatch(/font-family:\s*var\(--font-sans\)/);
+describe("typography is wired, and costs nothing", () => {
+  /* This block previously asserted the OPPOSITE — that `--font-sans` had no
+     consumer — as a deliberate record of a known gap. The gap is closed, so
+     the assertions are inverted rather than deleted. That inversion is the
+     test doing its job: it had to be edited for the behaviour to change,
+     which is what stops a gap closing by accident. */
+  it("has a consumer for --font-sans", () => {
+    expect(tw).toMatch(/fontFamily/);
+    expect(tw).toMatch(/var\(--font-sans\)/);
+    expect(css).toMatch(/--font-sans:/);
+    expect(DEFAULT_FORM.fontSans).not.toBe("");
+  });
+
+  it("ships no webfont", () => {
+    /* The fix was deleting a typeface, not adding one. Inter was preloaded at
+       47.6 KB per first load and rendered nowhere, because `font-sans`
+       resolved to Tailwind's built-in stack while the variable sat unused on
+       the body. If a `next/font` import returns, this fails — the bandwidth
+       decision then has to be made again rather than inherited. */
+    const layout = readFileSync(join(process.cwd(), "src/app/layout.tsx"), "utf8");
+    expect(layout).not.toMatch(/next\/font/);
+  });
+
+  it("names only fonts already on the device", () => {
+    /* A webfont URL in a style would reintroduce the cost twenty times over.
+       Anything fetched looks like a url() or an https reference. */
+    for (const t of THEMES) {
+      const stack = t.form?.fontSans;
+      if (!stack) continue;
+      expect(stack, `${t.key} must not fetch a font`).not.toMatch(/url\(|https?:/);
+      expect(stack, `${t.key} needs a generic fallback`).toMatch(
+        /(sans-serif|serif|monospace)\s*$/,
+      );
+    }
   });
 });
