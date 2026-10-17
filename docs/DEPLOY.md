@@ -136,7 +136,31 @@ string from the **Neon** dashboard instead — production branch
 `ep-dry-block-ay8bim9d`, with *Pooled connection* switched **off** for
 migrations.
 
-`DIRECT_URL` is **not** set on Vercel and does not need to be. It is only read
-by migration commands, and `vercel-build` supplies the pooled URL with the
-advisory lock disabled instead. Verified: `prisma generate` succeeds without
-`DIRECT_URL`, so the build does not depend on it.
+`DIRECT_URL` is **not** set on Vercel, and `vercel-build` supplies it inline
+from `DATABASE_URL`:
+
+```
+DIRECT_URL="$DATABASE_URL" PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 prisma migrate deploy
+```
+
+Pointing `DIRECT_URL` at the pooled endpoint would normally be wrong — that is
+exactly what hangs — but it is correct here *because* the advisory lock is
+disabled in the same command. The two settings only make sense together.
+
+Locally, `.env` sets `DIRECT_URL` to the genuinely unpooled endpoint, which is
+what `migrate dev` needs. The schema's `directUrl` line is therefore satisfied
+in both places by different values, which is the point of it being a variable.
+
+### A correction worth keeping
+
+The first version of this file said `DIRECT_URL` "does not need to be" set on
+Vercel, on the evidence that `prisma generate` succeeds without it. That
+evidence was real and the conclusion was still wrong: `generate` does not read
+`directUrl`, but `migrate deploy` does, and this build had just been changed to
+run `migrate deploy`. The test was run before the premise changed and the
+result was carried across the change without being re-checked.
+
+The first deploy failed on exactly that, with `P1012: Environment variable not
+found: DIRECT_URL`. Nothing was promoted, because the migration runs before
+`next build` and a failed build is never deployed — which is the one part of
+the design that behaved as intended.
