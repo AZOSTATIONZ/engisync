@@ -24,9 +24,16 @@ export default function AppearancePage() {
   return (
     <div className="max-w-4xl space-y-6">
       <div>
+        {/* `min-h-6` and the negative margin, not extra padding.
+            This measured 72x20 at 375px — under the 24x24 of WCAG 2.2 AA
+            2.5.8. The inline exception does not cover it: that is for targets
+            inside a sentence, constrained by surrounding line-height, and
+            this is a standalone navigation link above a heading. Growing the
+            target vertically and pulling the box back by the same amount
+            keeps the text exactly where it was. */}
         <Link
           href={routes.settings}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="-my-0.5 inline-flex min-h-6 items-center gap-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Settings

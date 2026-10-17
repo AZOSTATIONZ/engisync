@@ -61,6 +61,29 @@ const config: Config = {
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
       },
+      /* MOTION FOLLOWS THE STYLE.
+         `--motion-scale` was added in Stage 4 and eleven styles set it —
+         Neo-Brutalism 0.4 because brutalism does not ease, Maximalism 1.3
+         because it does nothing by halves — and then NOTHING READ IT. The
+         variable was declared in globals.css and consumed nowhere, so every
+         one of those values was decoration on a data structure. Same state
+         `fontSans` is still in, and the same way to find it: grep for the
+         consumer rather than trusting that writing the token did something.
+
+         Tailwind's transition utilities take their duration from this key, so
+         overriding the DEFAULT scales all 76 of them at once. The 8 explicit
+         `duration-*` utilities in the codebase are deliberate — the 1200ms
+         hero crossfade, for one — and keep their own values, because those
+         utilities are emitted after the transition utilities and win.
+
+         `prefers-reduced-motion` is untouched by this. That block sets
+         `transition-duration: 0.01ms !important`, which beats any calc here.
+         A style may not opt a user out of an accessibility preference, and
+         the test asserts the `!important` is still there. */
+      transitionDuration: {
+        DEFAULT: "calc(150ms * var(--motion-scale))",
+      },
+
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

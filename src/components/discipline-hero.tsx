@@ -112,19 +112,38 @@ export function DisciplineHero({
         </div>
       )}
 
-      {/* Progress dots — also communicate that more images exist. */}
+      {/* Progress dots — also communicate that more images exist.
+
+          THE BUTTON IS 24x24; THE DOT INSIDE IT IS NOT.
+          These were 6x6px buttons, which is a WCAG 2.2 AA failure under 2.5.8
+          (target size, 24x24 minimum). The spacing exception does not rescue
+          them either: at 6px wide with a 6px gap the centres are about 12px
+          apart, so the 24px exclusion circles overlap heavily — which is also
+          why simply inflating the hit area with a pseudo-element would have
+          made adjacent dots fight over the same taps.
+
+          So the TARGET grows to 24x24 and the dot stays 6px inside it, with
+          the gap closed to compensate. Centres land ~26px apart, clear of
+          each other, and the hero looks identical: same dot size, same
+          spacing between the visible marks. Verified by measuring the
+          rendered rects at 375px. */}
       {images.length > 1 && (
-        <div className="absolute bottom-3 right-4 flex gap-1.5">
+        <div className="absolute bottom-1 right-2.5 flex gap-0.5">
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
               aria-label={`Show image ${i + 1}`}
               onClick={() => setIndex(i)}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-5 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
-              }`}
-            />
+              className="flex h-6 w-6 items-center justify-center rounded-full"
+            >
+              <span
+                aria-hidden
+                className={`h-1.5 rounded-full transition-all ${
+                  i === index ? "w-5 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}
