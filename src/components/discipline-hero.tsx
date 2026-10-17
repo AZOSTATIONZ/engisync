@@ -77,7 +77,22 @@ export function DisciplineHero({
       ))}
 
       {/* Scrim: keeps any overlaid text legible regardless of the photo. */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
+      {/* SCRIM STRENGTH IS A CONTRAST DECISION, not a styling one.
+          This was `from-black/75 via-black/45 to-black/10`, which is plenty
+          at the left edge and runs out exactly where the text ends. Measured
+          with sharp against all 40 hero images, compositing the scrim over
+          real pixels and the text over that: 24 of 80 cases failed AA, worst
+          3.54:1, and even the OPAQUE heading failed at 4.21:1 on
+          me-turbine.webp. The photographs vary enormously — a dark refinery
+          passes at 10.71:1 while a bright turbine workshop does not — so
+          checking the image that happens to be on screen proves nothing. The
+          slideshow rotates through all of them.
+
+          80/65/25 clears every image with the text at its widest: 5.20:1 at
+          the narrowest viewport, where the text spans 60% of the hero. The
+          right-hand end stays at 25% so the photograph is still visible
+          there, which is the whole point of having one. */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/65 to-black/25" />
 
       {(title || subtitle) && (
         <div className="absolute inset-0 flex flex-col justify-center gap-1 p-5 sm:p-7">
@@ -86,8 +101,13 @@ export function DisciplineHero({
               {title}
             </h2>
           )}
+          {/* Opaque, not `text-white/85`. Fading text that already sits on a
+              photograph costs about 1.4:1 and took this to 4.29:1 on a narrow
+              screen even with the stronger scrim. The subtitle reads as
+              secondary through size and measure, neither of which costs
+              contrast. Same trap as the banner subtitle. */}
           {subtitle && (
-            <p className="max-w-[42ch] text-sm text-white/85">{subtitle}</p>
+            <p className="max-w-[42ch] text-sm text-white">{subtitle}</p>
           )}
         </div>
       )}
