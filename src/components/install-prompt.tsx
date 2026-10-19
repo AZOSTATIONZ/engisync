@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Download, Share, X } from "lucide-react";
+import { ClipboardCopy, Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -47,6 +47,17 @@ function isIos(): boolean {
   );
 }
 
+function isIosSafari(): boolean {
+  if (!isIos()) return false;
+  const ua = navigator.userAgent;
+  // Every iOS browser uses WebKit, but only Safari omits CriOS/FxiOS/etc.
+  // In-app browsers (Instagram, WhatsApp, LinkedIn) include their own token.
+  return (
+    /Safari/.test(ua) &&
+    !/CriOS|FxiOS|OPiOS|EdgiOS|FBAN|FBAV|Instagram|LinkedIn|Twitter|Line\//.test(ua)
+  );
+}
+
 function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
   return (
@@ -59,6 +70,8 @@ function isStandalone(): boolean {
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosHelp, setShowIosHelp] = useState(false);
+  const [showIosNonSafari, setShowIosNonSafari] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -72,7 +85,11 @@ export function InstallPrompt() {
     }
 
     if (isIos()) {
-      setShowIosHelp(true);
+      if (isIosSafari()) {
+        setShowIosHelp(true);
+      } else {
+        setShowIosNonSafari(true);
+      }
       setVisible(true);
       return;
     }
@@ -113,6 +130,16 @@ export function InstallPrompt() {
       localStorage.setItem(DISMISS_KEY, "1");
     } catch {
       // Not remembered on this device. Acceptable: worst case we ask again.
+    }
+  }, []);
+
+  const copyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.origin);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable — the user can still long-press the URL bar.
     }
   }, []);
 
@@ -189,7 +216,13 @@ export function InstallPrompt() {
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Install EngiSync</p>
-          {showIosHelp ? (
+          {showIosNonSafari ? (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Open this link in{" "}
+              <span className="font-medium">Safari</span> to install EngiSync
+              on your home screen. Copy the link below and paste it in Safari.
+            </p>
+          ) : showIosHelp ? (
             <p className="mt-0.5 text-xs text-muted-foreground">
               Tap{" "}
               <Share className="inline h-3.5 w-3.5 align-text-bottom" aria-label="Share" />{" "}
@@ -213,11 +246,21 @@ export function InstallPrompt() {
         </button>
       </div>
 
-      {!showIosHelp && (
+      {showIosNonSafari ? (
+        <Button size="sm" variant="outline" className="mt-3 w-full" onClick={copyLink}>
+          {copied ? (
+            <>Copied!</>
+          ) : (
+            <>
+              <ClipboardCopy className="h-4 w-4" /> Copy link
+            </>
+          )}
+        </Button>
+      ) : !showIosHelp ? (
         <Button size="sm" className="mt-3 w-full" onClick={install}>
           <Download className="h-4 w-4" /> Install
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }
