@@ -52,6 +52,7 @@ export const metadata: Metadata = {
   // The app is a private workspace; indexing dashboard routes would be both
   // useless and a privacy smell. Public portfolios opt back in per-page.
   robots: { index: true, follow: true },
+  verification: { google: "41e1W5Ss2JvohLQz_BEZHIlGI1BPHYuOrlqZBDaNMB0" },
 
   openGraph: {
     title: "EngiSync — Engineering Student Collaboration",
