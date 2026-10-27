@@ -20,6 +20,7 @@ import { Providers } from "@/components/providers";
    already on the device, at no bandwidth cost at all. */
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://engisync.co.zw"),
   title: {
     default: "EngiSync — Engineering Student Collaboration",
     template: "%s · EngiSync",
@@ -51,6 +52,15 @@ export const metadata: Metadata = {
   // The app is a private workspace; indexing dashboard routes would be both
   // useless and a privacy smell. Public portfolios opt back in per-page.
   robots: { index: true, follow: true },
+
+  openGraph: {
+    title: "EngiSync — Engineering Student Collaboration",
+    description:
+      "Manage individual work, group projects, resources, and productivity — built for university engineering students.",
+    url: "https://engisync.co.zw",
+    siteName: "EngiSync",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {
