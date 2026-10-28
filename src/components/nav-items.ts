@@ -5,6 +5,7 @@ import {
   Settings,
   GraduationCap,
   Shield,
+  Building,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -80,7 +81,7 @@ export function getPrimaryNav(): NavItem[] {
  * three primary items.
  */
 export function getRoleNav(
-  opts: { isSupervisor?: boolean; isAdmin?: boolean } = {},
+  opts: { isSupervisor?: boolean; isAdmin?: boolean; isDeptAdmin?: boolean; deptId?: string } = {},
 ): NavItem[] {
   const items: NavItem[] = [];
 
@@ -90,6 +91,15 @@ export function getRoleNav(
       label: "Supervise",
       icon: GraduationCap,
       description: "Projects you have been invited to review.",
+    });
+  }
+
+  if (opts.isDeptAdmin && opts.deptId) {
+    items.push({
+      href: `${routes.departments}/${opts.deptId}`,
+      label: "My Department",
+      icon: Building,
+      description: "Manage members, supervisors and projects in your department.",
     });
   }
 
@@ -131,10 +141,15 @@ export function getAccountNav(): NavItem[] {
  * Sidebar structure: three primary destinations, then any role-gated surfaces
  * under a quiet heading.
  */
-export function getNavSections(isSupervisor = false, isAdmin = false): NavSection[] {
+export function getNavSections(
+  isSupervisor = false,
+  isAdmin = false,
+  isDeptAdmin = false,
+  deptId?: string,
+): NavSection[] {
   const sections: NavSection[] = [{ title: "", items: getPrimaryNav() }];
 
-  const roleItems = getRoleNav({ isSupervisor, isAdmin });
+  const roleItems = getRoleNav({ isSupervisor, isAdmin, isDeptAdmin, deptId });
   if (roleItems.length > 0) {
     sections.push({ title: "Your roles", items: roleItems });
   }
@@ -143,10 +158,15 @@ export function getNavSections(isSupervisor = false, isAdmin = false): NavSectio
 }
 
 /** Flat list of every destination — used by the command palette. */
-export function getAllNavItems(isSupervisor = false, isAdmin = false): NavItem[] {
+export function getAllNavItems(
+  isSupervisor = false,
+  isAdmin = false,
+  isDeptAdmin = false,
+  deptId?: string,
+): NavItem[] {
   return [
     ...getPrimaryNav(),
-    ...getRoleNav({ isSupervisor, isAdmin }),
+    ...getRoleNav({ isSupervisor, isAdmin, isDeptAdmin, deptId }),
     ...getAccountNav(),
   ];
 }

@@ -5,9 +5,19 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getNavSections, isNavActive } from "@/components/nav-items";
 
-export function Sidebar({ isSupervisor = false }: { isSupervisor?: boolean }) {
+export function Sidebar({
+  isSupervisor = false,
+  isAdmin = false,
+  isDeptAdmin = false,
+  deptId,
+}: {
+  isSupervisor?: boolean;
+  isAdmin?: boolean;
+  isDeptAdmin?: boolean;
+  deptId?: string;
+}) {
   const pathname = usePathname();
-  const sections = getNavSections(isSupervisor);
+  const sections = getNavSections(isSupervisor, isAdmin, isDeptAdmin, deptId);
 
   return (
     <aside className="hidden w-60 shrink-0 border-r md:block lg:w-64 xl:w-72">

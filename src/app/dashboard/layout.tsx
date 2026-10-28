@@ -41,14 +41,20 @@ export default async function DashboardLayout({
       // authenticated page, so validating the token's generation costs one
       // more column rather than another round trip. See the check below.
       sessionVersion: true,
+      systemRole: true,
       _count: { select: { projectGrants: { where: { revokedAt: null } } } },
-      // The department drives the ambient motif. Folded into this query as a
-      // nested select rather than fetched separately — the whole point of the
-      // single-query rule here is that the shell renders on every page, and a
-      // decorative background must not cost a round trip to another continent.
+      // The department drives the ambient motif and the nav items. Folded into
+      // this query as a nested select rather than fetched separately — the
+      // whole point of the single-query rule here is that the shell renders on
+      // every page, and a decorative background must not cost a round trip to
+      // another continent.
       deptMemberships: {
         take: 1,
-        select: { department: { select: { name: true, code: true } } },
+        select: {
+          role: true,
+          departmentId: true,
+          department: { select: { name: true, code: true } },
+        },
       },
     },
   });
@@ -91,6 +97,9 @@ export default async function DashboardLayout({
 
   const showVerify = isEmailConfigured() && !user?.emailVerified;
   const supervises = (user?._count.projectGrants ?? 0) > 0;
+  const isAdmin = user?.systemRole === "ADMIN";
+  const deptMembership = user?.deptMemberships[0];
+  const isDeptAdmin = deptMembership?.role === "ADMIN" || deptMembership?.role === "SUPERVISOR";
 
   // `resolveAccent` falls back to the default for null, so it cannot answer
   // "did they actually choose?" — which is the question precedence turns on.
@@ -145,7 +154,7 @@ export default async function DashboardLayout({
            paths cannot drift. */
         <style>{`:root:root{--primary:${accent.light};--primary-2:${accent.light2};--primary-hover:${shade(accent.light, -6)}}.dark:root:root{--primary:${accent.dark};--primary-2:${accent.dark2};--primary-hover:${shade(accent.dark, 6)}}`}</style>
       )}
-      <Navbar isSupervisor={supervises} />
+      <Navbar isSupervisor={supervises} isAdmin={isAdmin} isDeptAdmin={isDeptAdmin} deptId={deptMembership?.departmentId} />
       {showVerify && <VerifyBanner />}
       {/* `min-w-0` lets the main column actually shrink — without it, flex
           children refuse to go below their content width, which is what makes
@@ -157,7 +166,7 @@ export default async function DashboardLayout({
           instead made to fit: long strings break (globals.css), rows wrap,
           and wide tables scroll inside their own container. */}
       <div className="container flex flex-1 gap-0">
-        <Sidebar isSupervisor={supervises} />
+        <Sidebar isSupervisor={supervises} isAdmin={isAdmin} isDeptAdmin={isDeptAdmin} deptId={deptMembership?.departmentId} />
         {/* pb-24 on mobile keeps content clear of the fixed bottom nav, and
             `--install-prompt-h` adds the install banner's measured height on
             top of it when that banner is showing. Both are fixed-position and

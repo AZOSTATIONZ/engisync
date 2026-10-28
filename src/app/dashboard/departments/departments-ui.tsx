@@ -15,6 +15,7 @@ import {
   deleteAnnouncement,
   setMemberRole,
   removeMember,
+  assignSupervisorToProject,
   type ActionState,
 } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -234,6 +235,76 @@ export function MemberAdminControls({
       >
         <Trash2 className="h-4 w-4 text-destructive" />
       </Button>
+    </div>
+  );
+}
+
+// ── Supervisor assignment (chairperson) ─────────────────────────────
+
+export function SupervisorAssignmentCard({
+  departmentId,
+  projects,
+  supervisors,
+}: {
+  departmentId: string;
+  projects: { id: string; name: string; memberCount: number }[];
+  supervisors: { id: string; name: string; projects: { id: string; name: string }[] }[];
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<Record<string, string>>({});
+
+  async function assign(projectId: string) {
+    const supervisorId = selected[projectId];
+    if (!supervisorId) return;
+    setBusy(true);
+    const res = await assignSupervisorToProject(departmentId, projectId, supervisorId);
+    setBusy(false);
+    if (res?.error) toast.error(res.error);
+    else if (res?.success) {
+      toast.success(res.success);
+      router.refresh();
+    }
+  }
+
+  if (projects.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        All projects in this department have a supervisor assigned.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {projects.map((p) => (
+        <div key={p.id} className="flex flex-wrap items-center gap-2 rounded-md border p-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">{p.name}</p>
+            <p className="text-xs text-muted-foreground">{p.memberCount} members</p>
+          </div>
+          <select
+            className={selectClass + " w-40"}
+            value={selected[p.id] ?? ""}
+            onChange={(e) => setSelected((s) => ({ ...s, [p.id]: e.target.value }))}
+            disabled={busy}
+          >
+            <option value="">Select supervisor…</option>
+            {supervisors.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.projects.length} projects)
+              </option>
+            ))}
+          </select>
+          <Button
+            size="sm"
+            disabled={busy || !selected[p.id]}
+            onClick={() => assign(p.id)}
+          >
+            Assign
+          </Button>
+        </div>
+      ))}
     </div>
   );
 }

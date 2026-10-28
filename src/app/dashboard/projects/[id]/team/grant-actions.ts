@@ -156,32 +156,45 @@ export async function revokeProjectAccess(
 
   const grant = await prisma.projectGrant.findFirst({
     where: { id: grantId, workspaceId },
-    select: { id: true, revokedAt: true, user: { select: { name: true, email: true } } },
+    select: { id: true, userId: true, revokedAt: true, user: { select: { name: true, email: true } } },
   });
   if (!grant) return { error: "Grant not found on this project." };
   if (grant.revokedAt) return { error: "That access was already withdrawn." };
+
+  const project = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { name: true },
+  });
 
   await prisma.projectGrant.update({
     where: { id: grant.id },
     data: { revokedAt: new Date(), revokedById: userId },
   });
 
-  await recordActivity({
-    workspaceId,
-    actorId: userId,
-    kind: "MEMBER",
-    action: "withdrew project access from",
-    subject: displayName(grant.user),
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId,
-      action: "PROJECT_ACCESS_REVOKED",
-      target: workspaceId,
-      metadata: { grantId },
-    },
-  });
+  await Promise.all([
+    createNotification({
+      userId: grant.userId,
+      type: NotificationType.WORKSPACE,
+      title: "Your supervisor access has been withdrawn",
+      body: project?.name ?? "a project",
+      link: "/dashboard/supervisor",
+    }),
+    recordActivity({
+      workspaceId,
+      actorId: userId,
+      kind: "MEMBER",
+      action: "withdrew project access from",
+      subject: displayName(grant.user),
+    }),
+    prisma.auditLog.create({
+      data: {
+        userId,
+        action: "PROJECT_ACCESS_REVOKED",
+        target: workspaceId,
+        metadata: { grantId },
+      },
+    }),
+  ]);
 
   revalidatePath(projectTeam(workspaceId));
   return { success: `${displayName(grant.user)} can no longer see this project.` };

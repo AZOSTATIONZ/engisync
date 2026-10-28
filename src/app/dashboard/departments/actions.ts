@@ -241,3 +241,145 @@ export async function removeMember(
   revalidatePath(`/dashboard/departments/${departmentId}`);
   return { success: "Member removed." };
 }
+
+// ── Supervisor assignment (chairperson workflow) ─────────────────────
+
+export async function getUnsupervisedProjects(departmentId: string) {
+  const user = await requireUser();
+  if (!(await isDeptAdmin(departmentId, user.id))) return [];
+
+  return prisma.workspace.findMany({
+    where: {
+      departmentId,
+      grants: { none: { revokedAt: null } },
+    },
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      members: { select: { userId: true }, where: { role: "LEADER" } },
+      _count: { select: { members: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getSupervisorWorkloads(departmentId: string) {
+  const user = await requireUser();
+  if (!(await isDeptAdmin(departmentId, user.id))) return [];
+
+  const supervisors = await prisma.departmentMember.findMany({
+    where: { departmentId, role: { in: ["SUPERVISOR", "ADMIN"] } },
+    select: {
+      userId: true,
+      role: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          projectGrants: {
+            where: { revokedAt: null },
+            select: {
+              workspace: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return supervisors.map((s) => ({
+    id: s.user.id,
+    name: s.user.name ?? s.user.email,
+    role: s.role,
+    projects: s.user.projectGrants.map((g) => ({
+      id: g.workspace.id,
+      name: g.workspace.name,
+    })),
+  }));
+}
+
+export async function assignSupervisorToProject(
+  departmentId: string,
+  projectId: string,
+  supervisorUserId: string,
+): Promise<ActionState> {
+  const user = await requireUser();
+  if (!(await isDeptAdmin(departmentId, user.id))) {
+    return { error: "Only a department chairperson can assign supervisors." };
+  }
+
+  const project = await prisma.workspace.findUnique({
+    where: { id: projectId },
+    select: { departmentId: true, name: true, members: { where: { role: "LEADER" }, select: { userId: true } } },
+  });
+  if (!project || project.departmentId !== departmentId) {
+    return { error: "This project does not belong to your department." };
+  }
+
+  const membership = await prisma.departmentMember.findUnique({
+    where: { departmentId_userId: { departmentId, userId: supervisorUserId } },
+    select: { role: true },
+  });
+  if (!membership || !["SUPERVISOR", "ADMIN"].includes(membership.role)) {
+    return { error: "This person is not an eligible supervisor in your department." };
+  }
+
+  const existingMember = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId: projectId, userId: supervisorUserId } },
+  });
+  if (existingMember) {
+    return { error: "This person is already a member of this project." };
+  }
+
+  await prisma.projectGrant.upsert({
+    where: { workspaceId_userId: { workspaceId: projectId, userId: supervisorUserId } },
+    create: {
+      workspaceId: projectId,
+      userId: supervisorUserId,
+      role: "SUPERVISOR",
+      grantedById: user.id,
+      grantedByName: user.name ?? user.email ?? "Department admin",
+    },
+    update: {
+      revokedAt: null,
+      revokedById: null,
+      grantedById: user.id,
+      grantedByName: user.name ?? user.email ?? "Department admin",
+    },
+  });
+
+  const supervisorName = membership.role === "SUPERVISOR" ? "supervisor" : "department admin";
+
+  await Promise.all([
+    createNotification({
+      userId: supervisorUserId,
+      type: NotificationType.SYSTEM,
+      title: `You have been assigned to supervise "${project.name}"`,
+      body: `A department chairperson assigned you as ${supervisorName}.`,
+      link: `/dashboard/supervisor/${projectId}`,
+    }),
+    ...project.members.map((m) =>
+      createNotification({
+        userId: m.userId,
+        type: NotificationType.SYSTEM,
+        title: `A supervisor has been assigned to your project`,
+        body: `Your department assigned a ${supervisorName} to "${project.name}".`,
+        link: `/dashboard/projects/${projectId}/team`,
+      }),
+    ),
+  ]);
+
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      action: "SUPERVISOR_ASSIGNED_BY_DEPT",
+      target: projectId,
+      metadata: { supervisorUserId, departmentId },
+    },
+  });
+
+  revalidatePath(`/dashboard/departments/${departmentId}`);
+  return { success: "Supervisor assigned successfully." };
+}

@@ -18,11 +18,21 @@ import { getNavSections, isNavActive } from "@/components/nav-items";
  *   drawer would be trapped inside the header strip instead of covering the
  *   viewport.
  */
-export function MobileNav({ isSupervisor = false }: { isSupervisor?: boolean }) {
+export function MobileNav({
+  isSupervisor = false,
+  isAdmin = false,
+  isDeptAdmin = false,
+  deptId,
+}: {
+  isSupervisor?: boolean;
+  isAdmin?: boolean;
+  isDeptAdmin?: boolean;
+  deptId?: string;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const sections = getNavSections(isSupervisor);
+  const sections = getNavSections(isSupervisor, isAdmin, isDeptAdmin, deptId);
 
   // Portals need the DOM; only render after mount to keep SSR markup stable.
   useEffect(() => setMounted(true), []);

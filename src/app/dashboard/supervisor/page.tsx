@@ -25,8 +25,8 @@ export default async function SupervisorPage() {
       {projects.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            You&apos;re not supervising any department yet. A department admin can
-            set your role to Supervisor.
+            You&apos;re not supervising any projects yet. A project leader or
+            department chairperson needs to assign you to supervise a project.
           </CardContent>
         </Card>
       ) : (

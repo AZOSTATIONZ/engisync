@@ -18,7 +18,17 @@ import { getAllNavItems, type NavItem } from "@/components/nav-items";
  * Rendered through a portal because the navbar uses backdrop-blur, which would
  * otherwise trap this fixed overlay inside the header.
  */
-export function CommandPalette({ isSupervisor = false }: { isSupervisor?: boolean }) {
+export function CommandPalette({
+  isSupervisor = false,
+  isAdmin = false,
+  isDeptAdmin = false,
+  deptId,
+}: {
+  isSupervisor?: boolean;
+  isAdmin?: boolean;
+  isDeptAdmin?: boolean;
+  deptId?: string;
+}) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -26,7 +36,7 @@ export function CommandPalette({ isSupervisor = false }: { isSupervisor?: boolea
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const items = useMemo(() => getAllNavItems(isSupervisor), [isSupervisor]);
+  const items = useMemo(() => getAllNavItems(isSupervisor, isAdmin, isDeptAdmin, deptId), [isSupervisor, isAdmin, isDeptAdmin, deptId]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

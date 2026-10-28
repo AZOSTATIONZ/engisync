@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Crown, Lock, Megaphone, Users, Library } from "lucide-react";
+import { ArrowLeft, Crown, Lock, Megaphone, Users, Library, AlertTriangle, GraduationCap } from "lucide-react";
 import { auth } from "@/auth";
 import { getDepartment } from "@/lib/department";
 import { mediaFor } from "@/lib/media";
@@ -12,10 +12,15 @@ import {
   listCollaborationRequests,
   listCollaboratingGroups,
 } from "@/lib/collaboration";
+import {
+  getUnsupervisedProjects,
+  getSupervisorWorkloads,
+} from "../actions";
 import { CollaborationRequestRow } from "../../collaboration-ui";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -24,6 +29,7 @@ import {
   AnnouncementForm,
   DeleteAnnouncementButton,
   MemberAdminControls,
+  SupervisorAssignmentCard,
 } from "../departments-ui";
 
 export const metadata: Metadata = { title: "Department" };
@@ -41,9 +47,11 @@ export default async function DepartmentDetailPage({
 
   const media = mediaFor(dept.name, dept.code);
 
-  const [collabRequests, collaboratingGroups] = await Promise.all([
+  const [collabRequests, collaboratingGroups, unsupervisedProjects, supervisorWorkloads] = await Promise.all([
     dept.isAdmin ? listCollaborationRequests(id) : Promise.resolve([]),
     listCollaboratingGroups(id),
+    dept.isAdmin ? getUnsupervisedProjects(id) : Promise.resolve([]),
+    dept.isAdmin ? getSupervisorWorkloads(id) : Promise.resolve([]),
   ]);
 
   function fmt(iso: string) {
@@ -195,6 +203,75 @@ export default async function DepartmentDetailPage({
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* ── Supervisor management (chairperson only) ──────────── */}
+      {dept.isAdmin && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className={unsupervisedProjects.length > 0 ? "border-destructive/40" : ""}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className={`h-5 w-5 ${unsupervisedProjects.length > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+                Projects without supervisors ({unsupervisedProjects.length})
+              </CardTitle>
+              <CardDescription>
+                Assign a supervisor from your department&apos;s eligible staff.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SupervisorAssignmentCard
+                departmentId={dept.id}
+                projects={unsupervisedProjects.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  memberCount: p._count.members,
+                }))}
+                supervisors={supervisorWorkloads}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <GraduationCap className="h-5 w-5 text-primary" />
+                Supervisor workloads
+              </CardTitle>
+              <CardDescription>
+                Active project assignments per supervisor.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {supervisorWorkloads.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No eligible supervisors in this department yet. Promote a member to the Supervisor role first.
+                </p>
+              ) : (
+                <ul className="divide-y">
+                  {supervisorWorkloads.map((s) => (
+                    <li key={s.id} className="py-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{s.name}</p>
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                          {s.projects.length} project{s.projects.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      {s.projects.length > 0 && (
+                        <ul className="mt-1 space-y-0.5">
+                          {s.projects.map((p) => (
+                            <li key={p.id} className="text-xs text-muted-foreground">
+                              {p.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">

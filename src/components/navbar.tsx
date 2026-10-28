@@ -10,7 +10,17 @@ import { UserMenu } from "@/components/user-menu";
 import { prisma } from "@/lib/prisma";
 import { countUnread, listNotifications } from "@/lib/notifications";
 
-export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean }) {
+export async function Navbar({
+  isSupervisor = false,
+  isAdmin = false,
+  isDeptAdmin = false,
+  deptId,
+}: {
+  isSupervisor?: boolean;
+  isAdmin?: boolean;
+  isDeptAdmin?: boolean;
+  deptId?: string;
+}) {
   const session = await auth();
 
   let unread = 0;
@@ -70,7 +80,7 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
           and `overflow-hidden` stops any future addition from doing the same. */}
       <div className="container flex h-16 items-center justify-between gap-2 overflow-hidden">
         <div className="flex min-w-0 items-center gap-1">
-          {session?.user && <MobileNav isSupervisor={isSupervisor} />}
+          {session?.user && <MobileNav isSupervisor={isSupervisor} isAdmin={isAdmin} isDeptAdmin={isDeptAdmin} deptId={deptId} />}
           <Link href="/" className="flex items-center gap-2 font-bold">
             <Cpu className="h-6 w-6 shrink-0 text-primary" />
             {/* Signed in, the row also carries search/theme/bell/sign-out, so
@@ -84,7 +94,7 @@ export async function Navbar({ isSupervisor = false }: { isSupervisor?: boolean 
         </div>
 
         <nav className="flex shrink-0 items-center gap-1 sm:gap-2">
-          {session?.user && <CommandPalette isSupervisor={isSupervisor} />}
+          {session?.user && <CommandPalette isSupervisor={isSupervisor} isAdmin={isAdmin} isDeptAdmin={isDeptAdmin} deptId={deptId} />}
           <ThemeToggle />
           {session?.user ? (
             <>
